@@ -1,0 +1,11 @@
+node_modules/
+.env
+backend/nicolet.db
+backend/nicolet.db-shm
+backend/nicolet.db-wal
+backend/logs/
+frontend/uploads/gallery/*.jpg
+frontend/uploads/gallery/*.jpeg
+frontend/uploads/gallery/*.png
+frontend/uploads/gallery/*.webp
+frontend/uploads/gallery/*.gif

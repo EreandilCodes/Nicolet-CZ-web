@@ -1,0 +1,2662 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Nicolet CZ</title>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+<div id="admin-layout">
+
+  <!-- ══ HEADER ════════════════════════════════════════════════════════════ -->
+  <header id="admin-header">
+    <a href="/admin" class="admin-brand">
+      <div class="admin-brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div class="admin-brand-text">
+        <span class="admin-brand-name">Nicolet CZ</span>
+        <span class="admin-brand-sub">Admin</span>
+      </div>
+    </a>
+
+    <span id="admin-section-title">Přehled</span>
+
+    <div class="admin-header-actions">
+      <div class="admin-user-info">
+        <div class="admin-user-avatar" id="adminUserAvatar">A</div>
+        <span id="adminUserEmail"></span>
+      </div>
+      <a href="/" class="btn btn-ghost btn-sm" target="_blank" title="Zobrazit web">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        <span>Web</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+  <aside id="admin-sidebar">
+    <nav>
+      <!-- Dashboard -->
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Obsah -->
+      <div class="sidebar-group-label">Obsah</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="carousel">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="6" width="22" height="12" rx="2"/>
+              <path d="M7 12h10M12 8v8"/>
+            </svg>
+            <span>Karusel</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="news">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/>
+              <path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/>
+            </svg>
+            <span>Novinky</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="pages">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Stránky</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Produkty -->
+      <div class="sidebar-group-label">Produkty</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="productCategories">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+              <path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/>
+            </svg>
+            <span>Kategorie</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+            </svg>
+            <span>Produkty</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Aplikace -->
+      <div class="sidebar-group-label">Aplikace</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="appGroups">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Skupiny</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="applications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <span>Aplikace</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Školení -->
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="trainings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+            </svg>
+            <span>Školení</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Formuláře -->
+      <div class="sidebar-group-label">Formuláře</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="forms">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span>Formuláře</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="buttons">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="9" width="22" height="6" rx="3"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+            </svg>
+            <span>Tlačítka</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="submissions">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span>Odpovědi</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Galerie & Menu -->
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="gallery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Galerie</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+            <span>Menu</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Nastavení -->
+      <div class="sidebar-group-label">Správa</div>
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item">
+          <a data-section="contacts">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <span>Kontakty</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>Nastavení</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Logout -->
+      <div class="sidebar-logout">
+        <a id="btnLogout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Odhlásit se</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ══ MAIN ══════════════════════════════════════════════════════════════ -->
+  <main id="admin-main">
+
+    <!-- ── DASHBOARD ─────────────────────────────────────────────────────── -->
+    <section id="dashboardSection" class="admin-section">
+      <div class="dashboard-welcome">
+        <h2>Vítejte v administraci</h2>
+        <p>Spravujte obsah webu Nicolet CZ. Vyberte sekci v levém menu.</p>
+
+        <div class="quick-links">
+          <div class="quick-link" data-section="news" onclick="admin.loadSection('news'); window.location.hash='news'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Z"/>
+            </svg>
+            Novinky
+          </div>
+          <div class="quick-link" onclick="admin.loadSection('products'); window.location.hash='products'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+            </svg>
+            Produkty
+          </div>
+          <div class="quick-link" onclick="admin.loadSection('applications'); window.location.hash='applications'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1"/>
+            </svg>
+            Aplikace
+          </div>
+          <div class="quick-link" onclick="admin.loadSection('trainings'); window.location.hash='trainings'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            Školení
+          </div>
+          <div class="quick-link" onclick="admin.loadSection('gallery'); window.location.hash='gallery'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            Galerie
+          </div>
+          <div class="quick-link" onclick="admin.loadSection('settings'); window.location.hash='settings'">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Nastavení
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="statContacts">–</div>
+          <div class="stat-label">Kontakty</div>
+          <svg class="stat-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statProducts">–</div>
+          <div class="stat-label">Produkty</div>
+          <svg class="stat-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statNews">–</div>
+          <div class="stat-label">Novinky</div>
+          <svg class="stat-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16"/>
+          </svg>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="statTrainings">–</div>
+          <div class="stat-label">Školení (nadcházející)</div>
+          <svg class="stat-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CAROUSEL ───────────────────────────────────────────────────────── -->
+    <section id="carouselSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Karusel</h2>
+        <div class="section-toolbar">
+          <button id="btnAddCarousel" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Obrázek</th>
+              <th>Název CZ</th>
+              <th>Odkaz</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="carouselTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── NEWS ──────────────────────────────────────────────────────────── -->
+    <section id="newsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Novinky</h2>
+        <div class="section-toolbar">
+          <button id="btnAddNews" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat novinku
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Slug</th>
+              <th class="col-status">Stav</th>
+              <th>Datum</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="newsTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── PAGES ──────────────────────────────────────────────────────────── -->
+    <section id="pagesSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Stránky</h2>
+        <div class="section-toolbar">
+          <button id="btnAddPage" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat stránku
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Slug</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="pagesTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── PRODUCT CATEGORIES ─────────────────────────────────────────────── -->
+    <section id="productCategoriesSection" class="admin-section">
+      <!-- Tab navigation -->
+      <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
+        <button id="catTabProd" onclick="admin._switchCatTab('prod')"
+          style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px;">
+          Kategorie produktů
+        </button>
+        <button id="catTabNews" onclick="admin._switchCatTab('news')"
+          style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;">
+          Sekce novinek
+        </button>
+      </div>
+
+      <!-- Product categories tab -->
+      <div id="catPanelProd">
+        <div class="section-header-row">
+          <h2>Kategorie produktů</h2>
+          <div class="section-toolbar">
+            <button id="btnAddProductCategory" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Přidat kategorii
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th>Název</th>
+                <th>Nadřazená</th>
+                <th>Slug</th>
+                <th class="col-order">Pořadí</th>
+                <th class="col-status">Stav</th>
+                <th class="col-actions">Akce</th>
+              </tr>
+            </thead>
+            <tbody id="productCategoriesTableBody">
+              <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- News categories (sections) tab -->
+      <div id="catPanelNews" style="display:none;">
+        <div class="section-header-row">
+          <h2>Sekce novinek</h2>
+          <div class="section-toolbar">
+            <button id="btnAddNewsCategory" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Přidat sekci
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th>Název</th>
+                <th>Slug</th>
+                <th class="col-status">Stav</th>
+                <th class="col-actions">Akce</th>
+              </tr>
+            </thead>
+            <tbody id="newsCategoriesTableBody">
+              <tr><td colspan="5"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PRODUCTS ───────────────────────────────────────────────────────── -->
+    <section id="productsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Produkty</h2>
+        <div class="section-toolbar">
+          <button id="btnAddProduct" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat produkt
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Kategorie</th>
+              <th class="col-status">Featured</th>
+              <th class="col-status">Stav</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── APP GROUPS ─────────────────────────────────────────────────────── -->
+    <section id="appGroupsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Skupiny aplikací</h2>
+        <div class="section-toolbar">
+          <button id="btnAddAppGroup" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat skupinu
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Slug</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="appGroupsTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── APPLICATIONS ───────────────────────────────────────────────────── -->
+    <section id="applicationsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Aplikace</h2>
+        <div class="section-toolbar">
+          <button id="btnAddApplication" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat aplikaci
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Skupina</th>
+              <th class="col-status">Stav</th>
+              <th class="col-status">Featured</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="applicationsTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── TRAININGS ──────────────────────────────────────────────────────── -->
+    <section id="trainingsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Školení</h2>
+        <div class="section-toolbar">
+          <button id="btnAddTraining" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat školení
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Začátek</th>
+              <th>Konec</th>
+              <th>Místo</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="trainingsTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── FORMS ──────────────────────────────────────────────────────────── -->
+    <section id="formsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Formuláře</h2>
+        <div class="section-toolbar">
+          <button id="btnAddForm" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat formulář
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Název</th>
+              <th>Příjemci emailů</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="formsTableBody">
+            <tr><td colspan="5"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── BUTTONS ────────────────────────────────────────────────────────── -->
+    <section id="buttonsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Tlačítka</h2>
+        <div class="section-toolbar">
+          <button id="btnAddButton" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat tlačítko
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Popis</th>
+              <th class="col-status">Typ odkazu</th>
+              <th class="col-status">Styl</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="buttonsTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SUBMISSIONS ────────────────────────────────────────────────────── -->
+    <section id="submissionsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Odpovědi formulářů</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Formulář</th>
+              <th>Odesláno</th>
+              <th class="col-status">Stav</th>
+              <th>Náhled dat</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="submissionsTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── GALLERY ────────────────────────────────────────────────────────── -->
+    <section id="gallerySection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Galerie</h2>
+        <div class="section-toolbar">
+          <button id="btnAddGalFolder" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            + Složka
+          </button>
+          <button id="btnUploadGalImage" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            + Nahrát obrázek
+          </button>
+        </div>
+      </div>
+      <div class="gallery-layout" style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;">
+        <div class="gallery-folders-panel" id="galFolderList" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;background:#fafafa;min-height:200px;">
+          <div class="table-empty"><p>Načítám…</p></div>
+        </div>
+        <div class="gallery-images-panel" id="galImageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;min-height:200px;">
+          <div class="table-empty"><p>Načítám…</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MENU ───────────────────────────────────────────────────────────── -->
+    <section id="menuSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Menu</h2>
+        <div class="section-toolbar">
+          <button id="btnRestoreMenuDefaults" class="btn btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.87"/>
+            </svg>
+            Obnovit výchozí
+          </button>
+          <button id="btnAddMenuItem" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat položku
+          </button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Popis</th>
+              <th>Typ</th>
+              <th>Odkaz</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="menuTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── CONTACTS ───────────────────────────────────────────────────────── -->
+    <section id="contactsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Kontakty</h2>
+        <div class="section-toolbar">
+          <button id="btnAddContact" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat kontakt
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Jméno</th>
+              <th>Email</th>
+              <th>Telefon</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="contactsTableBody">
+            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── SETTINGS ────────────────────────────────────────────────────────── -->
+    <section id="settingsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Nastavení</h2>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- Základní informace -->
+        <div class="settings-card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            Základní informace o webu
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Název webu (CZ)</label>
+            <input type="text" id="settingSiteName" class="form-input" placeholder="Nicolet CZ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název webu (EN)</label>
+            <input type="text" id="settingSiteNameEn" class="form-input" placeholder="Nicolet CZ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Patička – text (CZ)</label>
+            <textarea id="settingFooterCz" class="form-textarea" rows="3" placeholder="Text v patičce webu…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Patička – text (EN)</label>
+            <textarea id="settingFooterEn" class="form-textarea" rows="3" placeholder="Footer text…"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="admin.settings.saveGeneral()">Uložit</button>
+        </div>
+
+        <!-- Kontaktní informace -->
+        <div class="settings-card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8a16 16 0 0 0 6 6l.27-.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            Kontaktní informace
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Telefon</label>
+            <input type="text" id="settingPhone" class="form-input" placeholder="+420 xxx xxx xxx">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="settingEmail" class="form-input" placeholder="info@nicoletcz.cz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Adresa</label>
+            <textarea id="settingAddress" class="form-textarea" rows="2" placeholder="Ulice č., Praha"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="admin.settings.saveGeneral()">Uložit</button>
+        </div>
+
+        <!-- SEO -->
+        <div class="settings-card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Výchozí SEO
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Title (CZ)</label>
+            <input type="text" id="settingSeoTitleCz" class="form-input" placeholder="Nicolet CZ – Molekulová spektroskopie">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title (EN)</label>
+            <input type="text" id="settingSeoTitleEn" class="form-input" placeholder="Nicolet CZ – Molecular Spectroscopy">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (CZ)</label>
+            <textarea id="settingSeoDescCz" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (EN)</label>
+            <textarea id="settingSeoDescEn" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="admin.settings.saveSeo()">Uložit</button>
+        </div>
+
+        <!-- Notifikace & Analytika -->
+        <div class="settings-card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Notifikace &amp; Analytika
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Notifikační email</label>
+            <input type="email" id="settingNotifEmail" class="form-input" placeholder="info@nicoletcz.cz">
+            <div class="form-hint">Na tuto adresu přijdou notifikace z formulářů (pokud není nastaveno jinak)</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Google Analytics ID (gtag)</label>
+            <input type="text" id="settingGtagId" class="form-input" placeholder="G-XXXXXXXXXX">
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="admin.settings.saveNotifications()">Uložit</button>
+            <button id="btnTestEmail" class="btn btn-secondary" onclick="admin.settings.sendTestEmail()">
+              Odeslat testovací email
+            </button>
+          </div>
+        </div>
+
+        <!-- Media defaults card -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            Média
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Výchozí miniatura</label>
+            <div class="img-picker-wrap">
+              <input type="text" id="settingDefaultThumbnail" class="form-input" placeholder="/uploads/gallery/…">
+              <input type="file" id="settingDefaultThumbnailFile" accept="image/*" style="display:none" onchange="uploadImage(this,'settingDefaultThumbnail')">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('settingDefaultThumbnailFile').click()">Nahrát</button>
+            </div>
+            <div class="form-hint">Použije se jako náhled produktu nebo aplikace, pokud nemají vlastní miniaturu.</div>
+          </div>
+          <button class="btn btn-primary" onclick="admin.settings.saveMedia()">Uložit</button>
+        </div>
+
+      </div>
+    </section>
+
+  </main><!-- /admin-main -->
+
+</div><!-- /admin-layout -->
+
+<!-- ══ CAROUSEL MODAL ════════════════════════════════════════════════════════ -->
+<div id="carouselModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="carouselModalTitle">Přidat položku</h3>
+      <button class="modal-close" onclick="admin.carousel.closeModal()">&times;</button>
+    </div>
+    <form id="carouselForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">URL obrázku <span class="required">*</span></label>
+          <div class="img-picker-wrap">
+            <input type="text" id="carouselImageUrl" class="form-input" placeholder="/uploads/gallery/…">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('carouselImageUrl','carouselImagePreview')">Vybrat z galerie</button>
+          </div>
+          <img id="carouselImagePreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Odkaz (URL)</label>
+          <input type="text" id="carouselLinkUrl" class="form-input" placeholder="/produkty nebo https://…">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ)</label>
+            <input type="text" id="carouselTitleCz" class="form-input" placeholder="Název položky">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="carouselTitleEn" class="form-input" placeholder="Item title">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Podtitulek (CZ)</label>
+            <input type="text" id="carouselSubtitleCz" class="form-input" placeholder="Podtitulek">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Podtitulek (EN)</label>
+            <input type="text" id="carouselSubtitleEn" class="form-input" placeholder="Subtitle">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="carouselOrder" class="form-input" value="0" min="0">
+          </div>
+        </div>
+        <div style="display:flex;gap:24px;margin-top:4px;">
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="carouselShowText" checked>
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Zobrazit text</span>
+          </label>
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="carouselActive" checked>
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Aktivní</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.carousel.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ NEWS MODAL ════════════════════════════════════════════════════════════ -->
+<div id="newsModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="newsModalTitle">Přidat novinku</h3>
+      <button class="modal-close" onclick="admin.news.closeModal()">&times;</button>
+    </div>
+    <form id="newsForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné – vygeneruje se automaticky)</label>
+          <input type="text" id="newsSlug" class="form-input" placeholder="moje-novinka">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="newsTitleCz" class="form-input" placeholder="Název novinky" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="newsTitleEn" class="form-input" placeholder="News title">
+          </div>
+        </div>
+<div class="form-group">
+ <label class="form-label">Kategorie (sekce)</label>
+ <select id="newsCategoryId" class="form-select">
+ <option value="">— Vyberte kategorii —</option>
+ </select>
+ </div>
+        <!-- CZ / EN language tabs for content -->
+        <div class="form-group">
+          <label class="form-label">Obsah</label>
+          <div class="lang-tab-bar">
+            <button type="button" id="newsTabCz" class="lang-tab-btn lang-tab-active" onclick="switchNewsLang('cz')">CZ</button>
+            <button type="button" id="newsTabEn" class="lang-tab-btn" onclick="switchNewsLang('en')">EN</button>
+          </div>
+          <div id="newsContentCzPanel" class="lang-tab-panel">
+            <div class="editor-wrap">
+              <div class="editor-top-bar">
+                <div class="editor-mode-toggle">
+                  <button type="button" class="editor-mode-btn active" onclick="setEditorMode('newsContentCz','text')">Text</button>
+                  <button type="button" class="editor-mode-btn" onclick="setEditorMode('newsContentCz','html')">HTML</button>
+                </div>
+                <div class="editor-toolbar">
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','h1')" title="Nadpis 1">H1</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','h2')" title="Nadpis 2">H2</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','h3')" title="Nadpis 3">H3</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','bold')" title="Tučné"><b>B</b></button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','italic')" title="Kurzíva"><i>I</i></button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','ul')" title="Seznam">•</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','ol')" title="Číslovaný">1.</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentCz','link')" title="Odkaz">🔗</button>
+                </div>
+              </div>
+              <div id="newsContentCz_view" class="editor-content-view" contenteditable="true"></div>
+              <textarea id="newsContentCz" class="form-textarea" rows="10" style="display:none;" placeholder="Obsah článku (HTML)…"></textarea>
+            </div>
+          </div>
+          <div id="newsContentEnPanel" class="lang-tab-panel" style="display:none;">
+            <div class="editor-wrap">
+              <div class="editor-top-bar">
+                <div class="editor-mode-toggle">
+                  <button type="button" class="editor-mode-btn active" onclick="setEditorMode('newsContentEn','text')">Text</button>
+                  <button type="button" class="editor-mode-btn" onclick="setEditorMode('newsContentEn','html')">HTML</button>
+                </div>
+                <div class="editor-toolbar">
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','h1')" title="Heading 1">H1</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','h2')" title="Heading 2">H2</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','h3')" title="Heading 3">H3</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','bold')" title="Bold"><b>B</b></button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','italic')" title="Italic"><i>I</i></button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','ul')" title="Bullet list">•</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','ol')" title="Number list">1.</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('newsContentEn','link')" title="Link">🔗</button>
+                </div>
+              </div>
+              <div id="newsContentEn_view" class="editor-content-view" contenteditable="true"></div>
+              <textarea id="newsContentEn" class="form-textarea" rows="10" style="display:none;" placeholder="Article content (HTML)…"></textarea>
+            </div>
+          </div>
+        </div>
+<div class="form-group">
+ <label class="form-label">Obrázek</label>
+ <div class="img-picker-wrap">
+   <input type="text" id="newsCoverImage" class="form-input" placeholder="/uploads/gallery/…">
+   <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('newsCoverImage','newsCoverPreview')">Vybrat z galerie</button>
+ </div>
+ <img id="newsCoverPreview" src="" alt="" style="display:none;max-height:80px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Popisek obrázku</label>
+            <input type="text" id="newsCoverCaption" class="form-input" placeholder="Popisek pod obrázkem…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Zarovnání</label>
+            <select id="newsCoverAlign" class="form-select">
+              <option value="center">Na střed</option>
+              <option value="left">Vlevo</option>
+              <option value="right">Vpravo</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO titulek (CZ)</label>
+            <input type="text" id="newsSeoTitleCz" class="form-input" placeholder="SEO title">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO titulek (EN)</label>
+            <input type="text" id="newsSeoTitleEn" class="form-input" placeholder="SEO title EN">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO popis (CZ)</label>
+            <textarea id="newsSeoDescCz" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO popis (EN)</label>
+            <textarea id="newsSeoDescEn" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="toggle">
+            <input type="checkbox" id="newsPublished">
+            <div class="toggle-slider"></div>
+          </div>
+          <span class="toggle-label">Publikováno</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.news.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ PAGES MODAL ═══════════════════════════════════════════════════════════ -->
+<div id="pagesModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="pagesModalTitle">Přidat stránku</h3>
+      <button class="modal-close" onclick="admin.pages.closeModal()">&times;</button>
+    </div>
+    <form id="pagesForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="pagesSlug" class="form-input" placeholder="moje-stranka">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="pagesTitleCz" class="form-input" placeholder="Název stránky" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="pagesTitleEn" class="form-input" placeholder="Page title">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Perex (CZ)</label>
+            <textarea id="pagesExcerptCz" class="form-textarea" rows="3" placeholder="Krátký popis…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perex (EN)</label>
+            <textarea id="pagesExcerptEn" class="form-textarea" rows="3" placeholder="Short description…"></textarea>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Obsah (CZ)</label>
+            <textarea id="pagesContentCz" class="form-textarea" rows="8" placeholder="Obsah stránky (HTML)…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Obsah (EN)</label>
+            <textarea id="pagesContentEn" class="form-textarea" rows="8" placeholder="Page content (HTML)…"></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Obrázek (URL z galerie)</label>
+          <input type="text" id="pagesCoverImage" class="form-input" placeholder="/uploads/gallery/…">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO titulek (CZ)</label>
+            <input type="text" id="pagesSeoTitleCz" class="form-input" placeholder="SEO title">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO titulek (EN)</label>
+            <input type="text" id="pagesSeoTitleEn" class="form-input" placeholder="SEO title EN">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO popis (CZ)</label>
+            <textarea id="pagesSeoDescCz" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO popis (EN)</label>
+            <textarea id="pagesSeoDescEn" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="pagesOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="pagesPublished">
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Publikováno</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.pages.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ NEWS CATEGORIES MODAL ═════════════════════════════════════════════════ -->
+<div id="ncatModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="ncatModalTitle">Přidat sekci</h3>
+      <button class="modal-close" onclick="admin.newsCats.closeModal()">&times;</button>
+    </div>
+    <form id="ncatForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="ncatNameCz" class="form-input" placeholder="Název sekce" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="ncatNameEn" class="form-input" placeholder="Section name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="ncatSlug" class="form-input" placeholder="nazev-sekce">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="ncatOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="ncatActive" checked>
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Aktivní</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.newsCats.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ PRODUCT CATEGORIES MODAL ══════════════════════════════════════════════ -->
+<div id="pcatModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="pcatModalTitle">Přidat kategorii</h3>
+      <button class="modal-close" onclick="admin.prodCats.closeModal()">&times;</button>
+    </div>
+    <form id="pcatForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="pcatNameCz" class="form-input" placeholder="Název kategorie" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="pcatNameEn" class="form-input" placeholder="Category name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="pcatSlug" class="form-input" placeholder="nazev-kategorie">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nadřazená kategorie</label>
+          <select id="pcatParentId" class="form-select">
+            <option value="">— Žádná nadřazená —</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="pcatOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="pcatActive" checked>
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Aktivní</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.prodCats.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ PRODUCTS MODAL ════════════════════════════════════════════════════════ -->
+<div id="productsModal" class="modal-overlay hidden">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <h3 id="prodModalTitle">Přidat produkt</h3>
+      <button class="modal-close" onclick="admin.products.closeModal()">&times;</button>
+    </div>
+    <form id="productsForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="prodNameCz" class="form-input" placeholder="Název produktu" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="prodNameEn" class="form-input" placeholder="Product name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="prodSlug" class="form-input" placeholder="nazev-produktu">
+        </div>
+<div class="form-group">
+  <label class="form-label">Popis</label>
+  <div class="lang-tab-bar">
+    <button type="button" id="prodTabCz" class="lang-tab-btn lang-tab-active" onclick="switchProductLang('cz')">CZ</button>
+    <button type="button" id="prodTabEn" class="lang-tab-btn" onclick="switchProductLang('en')">EN</button>
+  </div>
+  <div id="prodDescCzPanel" class="lang-tab-panel">
+    <div class="editor-wrap">
+      <div class="editor-top-bar">
+        <div class="editor-mode-toggle">
+          <button type="button" class="editor-mode-btn active" onclick="setEditorMode('prodDescCz','text')">Text</button>
+          <button type="button" class="editor-mode-btn" onclick="setEditorMode('prodDescCz','html')">HTML</button>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','h1')" title="Nadpis 1">H1</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','h2')" title="Nadpis 2">H2</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','h3')" title="Nadpis 3">H3</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','bold')" title="Tučné"><b>B</b></button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','italic')" title="Kurzíva"><i>I</i></button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','ul')" title="Seznam">•</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','ol')" title="Číslovaný">1.</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescCz','link')" title="Odkaz">🔗</button>
+        </div>
+      </div>
+      <div id="prodDescCz_view" class="editor-content-view" contenteditable="true"></div>
+      <textarea id="prodDescCz" class="form-textarea" rows="10" style="display:none;" placeholder="Popis produktu…"></textarea>
+    </div>
+  </div>
+  <div id="prodDescEnPanel" class="lang-tab-panel" style="display:none;">
+    <div class="editor-wrap">
+      <div class="editor-top-bar">
+        <div class="editor-mode-toggle">
+          <button type="button" class="editor-mode-btn active" onclick="setEditorMode('prodDescEn','text')">Text</button>
+          <button type="button" class="editor-mode-btn" onclick="setEditorMode('prodDescEn','html')">HTML</button>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','h1')" title="Heading 1">H1</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','h2')" title="Heading 2">H2</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','h3')" title="Heading 3">H3</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','bold')" title="Bold"><b>B</b></button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','italic')" title="Italic"><i>I</i></button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','ul')" title="Bullet list">•</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','ol')" title="Number list">1.</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('prodDescEn','link')" title="Link">🔗</button>
+        </div>
+      </div>
+      <div id="prodDescEn_view" class="editor-content-view" contenteditable="true"></div>
+      <textarea id="prodDescEn" class="form-textarea" rows="10" style="display:none;" placeholder="Product description…"></textarea>
+    </div>
+  </div>
+</div>
+<!-- Thumbnail -->
+<div class="form-group">
+  <label class="form-label">Miniatura (thumbnail)</label>
+  <div class="img-picker-wrap">
+    <input type="text" id="prodThumbnailUrl" class="form-input" placeholder="/uploads/gallery/…">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('prodThumbnailUrl','prodThumbnailPreview')">Vybrat z galerie</button>
+  </div>
+  <img id="prodThumbnailPreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+  <div class="form-hint">Zobrazuje se v náhledech. Pokud nevyplněno, použije se výchozí z Nastavení.</div>
+</div>
+<!-- Gallery images -->
+<div class="form-group">
+  <label class="form-label">Obrázky galerie</label>
+  <div id="prodImagesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPickerMulti('prod')">Vybrat z galerie</button>
+    <input type="text" id="prodImageUrlInput" class="form-input" style="max-width:260px;" placeholder="nebo vložit URL">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="admin.products.addImageFromUrl()">Přidat URL</button>
+  </div>
+</div>
+ <!-- Categories -->
+ <div class="form-group">
+   <label class="form-label">Kategorie</label>
+   <div id="prodCategoryList" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;min-height:40px;">
+     <p style="color:#9ca3af;font-size:13px;">Načítám kategorie…</p>
+   </div>
+ </div>
+ <!-- Application autocomplete -->
+ <div class="form-group">
+   <label class="form-label">Propojené aplikace</label>
+   <div class="autocomplete-picker">
+     <input type="text" id="prodAppSearch" class="form-input" placeholder="Hledat aplikaci…" autocomplete="off"
+       oninput="admin.products.filterAppSuggestions(this.value)" onfocus="admin.products.filterAppSuggestions(this.value)">
+     <div id="prodAppSuggestions" class="autocomplete-list" style="display:none;"></div>
+   </div>
+   <div id="prodAppChips" class="selected-chips"></div>
+ </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO titulek (CZ)</label>
+            <input type="text" id="prodSeoTitleCz" class="form-input" placeholder="SEO title">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO titulek (EN)</label>
+            <input type="text" id="prodSeoTitleEn" class="form-input" placeholder="SEO title EN">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">SEO popis (CZ)</label>
+            <textarea id="prodSeoDescCz" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SEO popis (EN)</label>
+            <textarea id="prodSeoDescEn" class="form-textarea" rows="2" placeholder="Meta description…"></textarea>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="prodOrder" class="form-input" value="0" min="0">
+          </div>
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="prodFeatured">
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Featured</span>
+          </label>
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="prodPublished">
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Publikováno</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.products.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ APP GROUPS MODAL ══════════════════════════════════════════════════════ -->
+<div id="agModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="agModalTitle">Přidat skupinu</h3>
+      <button class="modal-close" onclick="admin.appGroups.closeModal()">&times;</button>
+    </div>
+    <form id="agForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="agNameCz" class="form-input" placeholder="Název skupiny" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="agNameEn" class="form-input" placeholder="Group name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="agSlug" class="form-input" placeholder="nazev-skupiny">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="agOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="agActive" checked>
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Aktivní</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.appGroups.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ APPLICATIONS MODAL ════════════════════════════════════════════════════ -->
+<div id="applicationsModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="appModalTitle">Přidat aplikaci</h3>
+      <button class="modal-close" onclick="admin.apps.closeModal()">&times;</button>
+    </div>
+    <form id="applicationsForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="appNameCz" class="form-input" placeholder="Název aplikace" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="appNameEn" class="form-input" placeholder="Application name">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Slug (volitelné)</label>
+            <input type="text" id="appSlug" class="form-input" placeholder="nazev-aplikace">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Skupina</label>
+            <select id="appGroupId" class="form-select">
+              <option value="">— Vyberte skupinu —</option>
+            </select>
+          </div>
+        </div>
+<div class="form-group">
+  <label class="form-label">Obsah</label>
+  <div class="lang-tab-bar">
+    <button type="button" id="appTabCz" class="lang-tab-btn lang-tab-active" onclick="switchAppLang('cz')">CZ</button>
+    <button type="button" id="appTabEn" class="lang-tab-btn" onclick="switchAppLang('en')">EN</button>
+  </div>
+  <div id="appContentCzPanel" class="lang-tab-panel">
+    <div class="editor-wrap">
+      <div class="editor-top-bar">
+        <div class="editor-mode-toggle">
+          <button type="button" class="editor-mode-btn active" onclick="setEditorMode('appContentCz','text')">Text</button>
+          <button type="button" class="editor-mode-btn" onclick="setEditorMode('appContentCz','html')">HTML</button>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','h1')" title="Nadpis 1">H1</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','h2')" title="Nadpis 2">H2</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','h3')" title="Nadpis 3">H3</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','bold')" title="Tučné"><b>B</b></button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','italic')" title="Kurzíva"><i>I</i></button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','ul')" title="Seznam">•</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','ol')" title="Číslovaný">1.</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentCz','link')" title="Odkaz">🔗</button>
+        </div>
+      </div>
+      <div id="appContentCz_view" class="editor-content-view" contenteditable="true"></div>
+      <textarea id="appContentCz" class="form-textarea" rows="10" style="display:none;" placeholder="Obsah (HTML)…"></textarea>
+    </div>
+  </div>
+  <div id="appContentEnPanel" class="lang-tab-panel" style="display:none;">
+    <div class="editor-wrap">
+      <div class="editor-top-bar">
+        <div class="editor-mode-toggle">
+          <button type="button" class="editor-mode-btn active" onclick="setEditorMode('appContentEn','text')">Text</button>
+          <button type="button" class="editor-mode-btn" onclick="setEditorMode('appContentEn','html')">HTML</button>
+        </div>
+        <div class="editor-toolbar">
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','h1')" title="Heading 1">H1</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','h2')" title="Heading 2">H2</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','h3')" title="Heading 3">H3</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','bold')" title="Bold"><b>B</b></button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','italic')" title="Italic"><i>I</i></button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','ul')" title="Bullet list">•</button>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','ol')" title="Number list">1.</button>
+          <span class="editor-sep"></span>
+          <button type="button" class="editor-btn" onclick="insertFormat('appContentEn','link')" title="Link">🔗</button>
+        </div>
+      </div>
+      <div id="appContentEn_view" class="editor-content-view" contenteditable="true"></div>
+      <textarea id="appContentEn" class="form-textarea" rows="10" style="display:none;" placeholder="Content (HTML)…"></textarea>
+    </div>
+  </div>
+</div>
+<!-- Cover image + caption + align -->
+<div class="form-group">
+  <label class="form-label">Obrázek</label>
+  <div class="img-picker-wrap">
+    <input type="text" id="appCoverImage" class="form-input" placeholder="/uploads/gallery/…">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('appCoverImage','appCoverPreview')">Vybrat z galerie</button>
+  </div>
+  <img id="appCoverPreview" src="" alt="" style="display:none;max-height:80px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+</div>
+<div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+  <div class="form-group">
+    <label class="form-label">Popisek obrázku</label>
+    <input type="text" id="appCoverCaption" class="form-input" placeholder="Popisek pod obrázkem">
+  </div>
+  <div class="form-group">
+    <label class="form-label">Zarovnání</label>
+    <select id="appCoverAlign" class="form-select">
+      <option value="center">Střed</option>
+      <option value="left">Vlevo</option>
+      <option value="right">Vpravo</option>
+    </select>
+  </div>
+</div>
+<!-- Thumbnail -->
+<div class="form-group">
+  <label class="form-label">Miniatura (thumbnail)</label>
+  <div class="img-picker-wrap">
+    <input type="text" id="appThumbnailUrl" class="form-input" placeholder="/uploads/gallery/…">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('appThumbnailUrl','appThumbnailPreview')">Vybrat z galerie</button>
+  </div>
+  <img id="appThumbnailPreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+  <div class="form-hint">Zobrazuje se v náhledech. Pokud nevyplněno, použije se výchozí z Nastavení.</div>
+</div>
+<!-- Product autocomplete -->
+<div class="form-group">
+  <label class="form-label">Propojené přístroje</label>
+  <div class="autocomplete-picker">
+    <input type="text" id="appProductSearch" class="form-input" placeholder="Hledat přístroj…" autocomplete="off"
+      oninput="admin.apps.filterProductSuggestions(this.value)" onfocus="admin.apps.filterProductSuggestions(this.value)">
+    <div id="appProductSuggestions" class="autocomplete-list" style="display:none;"></div>
+  </div>
+  <div id="appProductChips" class="selected-chips"></div>
+</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="appOrder" class="form-input" value="0" min="0">
+          </div>
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="appFeatured">
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Featured</span>
+          </label>
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="appPublished">
+              <div class="toggle-slider"></div>
+            </div>
+            <span class="toggle-label">Publikováno</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.apps.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ TRAININGS MODAL ═══════════════════════════════════════════════════════ -->
+<div id="trainingsModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="trainModalTitle">Přidat školení</h3>
+      <button class="modal-close" onclick="admin.trainings.closeModal()">&times;</button>
+    </div>
+    <form id="trainingsForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="trainTitleCz" class="form-input" placeholder="Název školení" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="trainTitleEn" class="form-input" placeholder="Training title">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+<div class="form-group">
+  <label class="form-label">Obsah (CZ)</label>
+  <div class="editor-wrap">
+    <div class="editor-top-bar">
+      <div class="editor-mode-toggle">
+        <button type="button" class="editor-mode-btn active" onclick="setEditorMode('trainContentCz','text')">Text</button>
+        <button type="button" class="editor-mode-btn" onclick="setEditorMode('trainContentCz','html')">HTML</button>
+      </div>
+      <div class="editor-toolbar">
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentCz','bold')" title="Tučné"><b>B</b></button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentCz','italic')" title="Kurzíva"><i>I</i></button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentCz','ul')" title="Seznam">•</button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentCz','ol')" title="Číslovaný">1.</button>
+      </div>
+    </div>
+    <div id="trainContentCz_view" class="editor-content-view" contenteditable="true"></div>
+    <textarea id="trainContentCz" class="form-textarea" rows="5" style="display:none;" placeholder="Popis školení…"></textarea>
+  </div>
+</div>
+<div class="form-group">
+  <label class="form-label">Obsah (EN)</label>
+  <div class="editor-wrap">
+    <div class="editor-top-bar">
+      <div class="editor-mode-toggle">
+        <button type="button" class="editor-mode-btn active" onclick="setEditorMode('trainContentEn','text')">Text</button>
+        <button type="button" class="editor-mode-btn" onclick="setEditorMode('trainContentEn','html')">HTML</button>
+      </div>
+      <div class="editor-toolbar">
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentEn','bold')" title="Bold"><b>B</b></button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentEn','italic')" title="Italic"><i>I</i></button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentEn','ul')" title="Bullet list">•</button>
+        <button type="button" class="editor-btn" onclick="insertFormat('trainContentEn','ol')" title="Number list">1.</button>
+      </div>
+    </div>
+    <div id="trainContentEn_view" class="editor-content-view" contenteditable="true"></div>
+    <textarea id="trainContentEn" class="form-textarea" rows="5" style="display:none;" placeholder="Training description…"></textarea>
+  </div>
+</div>
+</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Datum začátku</label>
+            <input type="date" id="trainDateStart" class="form-input">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Datum konce</label>
+            <input type="date" id="trainDateEnd" class="form-input">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Místo (CZ)</label>
+            <input type="text" id="trainLocationCz" class="form-input" placeholder="Praha, konferenční centrum…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Místo (EN)</label>
+            <input type="text" id="trainLocationEn" class="form-input" placeholder="Prague, conference centre…">
+          </div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="toggle">
+            <input type="checkbox" id="trainPublished">
+            <div class="toggle-slider"></div>
+          </div>
+          <span class="toggle-label">Publikováno</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.trainings.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ BUTTONS MODAL ═════════════════════════════════════════════════════════ -->
+<div id="buttonsModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="btnModalTitle">Přidat tlačítko</h3>
+      <button class="modal-close" onclick="admin.buttons.closeModal()">&times;</button>
+    </div>
+    <form id="buttonsForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Popis (CZ) <span class="required">*</span></label>
+            <input type="text" id="btnLabelCz" class="form-input" placeholder="Zjistit více" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (EN)</label>
+            <input type="text" id="btnLabelEn" class="form-input" placeholder="Learn more">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Typ odkazu</label>
+            <select id="btnLinkType" class="form-select">
+              <option value="internal">Interní</option>
+              <option value="external">Externí</option>
+              <option value="form">Formulář</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Styl</label>
+            <select id="btnStyle" class="form-select">
+              <option value="primary">Primární</option>
+              <option value="secondary">Sekundární</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cíl (URL / slug formuláře)</label>
+          <input type="text" id="btnLinkValue" class="form-input" placeholder="/produkty nebo https://… nebo slug formuláře">
+        </div>
+        <label class="toggle-wrap">
+          <div class="toggle">
+            <input type="checkbox" id="btnActive" checked>
+            <div class="toggle-slider"></div>
+          </div>
+          <span class="toggle-label">Aktivní</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.buttons.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ FORMS MODAL ═══════════════════════════════════════════════════════════ -->
+<div id="formsModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="formModalTitle">Přidat formulář</h3>
+      <button class="modal-close" onclick="admin.forms.closeModal()">&times;</button>
+    </div>
+    <form id="formsFormEl">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Název formuláře <span class="required">*</span></label>
+          <input type="text" id="formName" class="form-input" placeholder="Kontaktní formulář" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Popis (CZ)</label>
+            <textarea id="formDescCz" class="form-textarea" rows="3" placeholder="Popis formuláře…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (EN)</label>
+            <textarea id="formDescEn" class="form-textarea" rows="3" placeholder="Form description…"></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Příjemci emailů (oddělte čárkou)</label>
+          <input type="text" id="formEmailRecipients" class="form-input" placeholder="info@nicoletcz.cz, obchod@nicoletcz.cz">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Text tlačítka odeslání (CZ)</label>
+            <input type="text" id="formSubmitLabelCz" class="form-input" placeholder="Odeslat">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Text tlačítka odeslání (EN)</label>
+            <input type="text" id="formSubmitLabelEn" class="form-input" placeholder="Submit">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Zpráva po odeslání (CZ)</label>
+            <textarea id="formSuccessMsgCz" class="form-textarea" rows="2" placeholder="Děkujeme, budeme vás kontaktovat."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Zpráva po odeslání (EN)</label>
+            <textarea id="formSuccessMsgEn" class="form-textarea" rows="2" placeholder="Thank you, we will contact you."></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Obrázek pozadí (URL z galerie)</label>
+          <input type="text" id="formBackgroundImage" class="form-input" placeholder="/uploads/gallery/…">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pole formuláře (JSON)</label>
+          <textarea id="formFieldsJson" class="form-textarea" rows="8" placeholder='[{"name":"jmeno","label_cz":"Jméno","label_en":"Name","type":"text","required":true,"options":[]}]'></textarea>
+          <div class="form-hint">
+            Každé pole: <code>{"name":"pole","label_cz":"Popis CZ","label_en":"Popis EN","type":"text|email|tel|textarea|checkbox|select","required":true,"options":[]}</code>
+          </div>
+        </div>
+        <label class="toggle-wrap">
+          <div class="toggle">
+            <input type="checkbox" id="formActive" checked>
+            <div class="toggle-slider"></div>
+          </div>
+          <span class="toggle-label">Aktivní</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.forms.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ SUBMISSION DETAIL MODAL ═══════════════════════════════════════════════ -->
+<div id="submissionDetailModal" class="modal-overlay hidden">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="submissionDetailTitle">Detail odpovědi</h3>
+      <button class="modal-close" onclick="admin.submissions.closeDetailModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#6b7280;margin-bottom:12px;" id="submissionDetailDate"></p>
+      <div id="submissionDetailData" style="font-size:14px;line-height:1.7;"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="admin.submissions.closeDetailModal()">Zavřít</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ GALLERY FOLDER MODAL ═══════════════════════════════════════════════════ -->
+<div id="galFolderModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="galFolderModalTitle">Nová složka</h3>
+      <button class="modal-close" onclick="admin.gallery.closeFolderModal()">&times;</button>
+    </div>
+    <form id="galFolderForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Název (CZ) <span class="required">*</span></label>
+            <input type="text" id="galFolderNameCz" class="form-input" placeholder="Název složky" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Název (EN)</label>
+            <input type="text" id="galFolderNameEn" class="form-input" placeholder="Folder name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slug (volitelné)</label>
+          <input type="text" id="galFolderSlug" class="form-input" placeholder="nazev-slozky">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nadřazená složka</label>
+          <select id="galFolderParentId" class="form-select">
+            <option value="">— Kořenová složka —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pořadí</label>
+          <input type="number" id="galFolderOrder" class="form-input" value="0" min="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.gallery.closeFolderModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ GALLERY IMAGE EDIT MODAL ═══════════════════════════════════════════════ -->
+<div id="galImageModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Upravit obrázek</h3>
+      <button class="modal-close" onclick="admin.gallery.closeImageModal()">&times;</button>
+    </div>
+    <form id="galImageForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Titulek (CZ)</label>
+            <input type="text" id="galImageTitleCz" class="form-input" placeholder="Titulek obrázku">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Titulek (EN)</label>
+            <input type="text" id="galImageTitleEn" class="form-input" placeholder="Image title">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Popis (CZ)</label>
+            <textarea id="galImageDescCz" class="form-textarea" rows="3" placeholder="Popis…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (EN)</label>
+            <textarea id="galImageDescEn" class="form-textarea" rows="3" placeholder="Description…"></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tagy (oddělte čárkou)</label>
+          <input type="text" id="galImageTags" class="form-input" placeholder="produkt, laborator, …">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Složka</label>
+          <select id="galImageFolderId" class="form-select">
+            <option value="">— Žádná složka —</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.gallery.closeImageModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ GALLERY UPLOAD MODAL ═══════════════════════════════════════════════════ -->
+<div id="galUploadModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nahrát obrázek</h3>
+      <button class="modal-close" onclick="admin.gallery.closeUploadModal()">&times;</button>
+    </div>
+    <form id="galUploadForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Soubor <span class="required">*</span></label>
+          <input type="file" id="galUploadFile" class="form-input" accept="image/*" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Složka</label>
+          <select id="galUploadFolderId" class="form-select">
+            <option value="">— Žádná složka —</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Titulek (CZ)</label>
+            <input type="text" id="galUploadTitleCz" class="form-input" placeholder="Titulek obrázku">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Titulek (EN)</label>
+            <input type="text" id="galUploadTitleEn" class="form-input" placeholder="Image title">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.gallery.closeUploadModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Nahrát</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ MENU MODAL ═════════════════════════════════════════════════════════════ -->
+<div id="menuModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="menuModalTitle">Přidat položku menu</h3>
+      <button class="modal-close" onclick="admin.menu.closeModal()">&times;</button>
+    </div>
+    <form id="menuForm">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Popis (CZ) <span class="required">*</span></label>
+            <input type="text" id="menuLabelCz" class="form-input" placeholder="Produkty" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Popis (EN)</label>
+            <input type="text" id="menuLabelEn" class="form-input" placeholder="Products">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nadřazená položka</label>
+          <select id="menuParentId" class="form-select">
+            <option value="">— Žádný (kořenová položka) —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Typ odkazu</label>
+          <select id="menuLinkType" class="form-select">
+            <option value="internal">Interní URL</option>
+            <option value="page">Stránka</option>
+            <option value="category">Kategorie produktů</option>
+            <option value="product">Produkt</option>
+            <option value="application">Aplikace</option>
+            <option value="external">Externí URL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vybrat entitu</label>
+          <select id="menuEntityPicker" class="form-select" style="display:none;">
+            <option value="">— Vyberte —</option>
+          </select>
+          <div class="form-hint">Výběrem se automaticky vyplní odkaz níže.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cíl (URL / slug)</label>
+          <input type="text" id="menuLinkValue" class="form-input" placeholder="/o-nas nebo https://…">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="menuOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="menuActive" checked>
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Aktivní</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.menu.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══ CONTACT MODAL ════════════════════════════════════════════════════════ -->
+<div id="contactModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="contactModalTitle">Přidat kontakt</h3>
+      <button class="modal-close" onclick="admin.contacts.closeModal()">&times;</button>
+    </div>
+    <form id="contactForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Jméno <span class="required">*</span></label>
+          <input type="text" id="contactName" class="form-input" placeholder="Jan Novák" required>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Role (CZ)</label>
+            <input type="text" id="contactRoleCz" class="form-input" placeholder="Obchodní ředitel">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role (EN)</label>
+            <input type="text" id="contactRoleEn" class="form-input" placeholder="Sales Director">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="contactEmail" class="form-input" placeholder="jan@nicoletcz.cz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefon</label>
+            <input type="text" id="contactPhone" class="form-input" placeholder="+420 xxx xxx xxx">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fotka (URL z galerie)</label>
+          <input type="text" id="contactImageUrl" class="form-input" placeholder="/uploads/gallery/…">
+          <div class="form-hint">Nahrajte fotku do galerie a sem vložte URL</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Pořadí</label>
+            <input type="number" id="contactOrder" class="form-input" value="0" min="0">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+            <label class="toggle-wrap">
+              <div class="toggle">
+                <input type="checkbox" id="contactActive" checked>
+                <div class="toggle-slider"></div>
+              </div>
+              <span class="toggle-label">Aktivní</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="admin.contacts.closeModal()">Zrušit</button>
+        <button type="submit" class="btn btn-primary">Uložit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="admin-toast"></div>
+
+<script type="module" src="/js/admin.js"></script>
+
+<style>
+  .hidden { display: none !important; }
+  .modal-wide { max-width: 800px; }
+  .modal-xl   { max-width: 1000px; }
+  .gal-folder-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; color: #374151; transition: background 0.15s;
+  }
+  .gal-folder-item:hover { background: #f3f4f6; }
+  .gal-folder-active { background: #eff6ff; color: #2563eb; }
+  .gal-image-card {
+    border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;
+    background: #fff; transition: box-shadow 0.15s;
+  }
+  .gal-image-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+  .gal-image-info { padding: 8px; }
+.gal-image-actions {
+ display: flex; gap: 4px; padding: 4px 8px 8px;
+ border-top: 1px solid #f3f4f6;
+ }
+ .editor-toolbar {
+ display: flex; gap: 4px; padding: 6px 8px;
+ background: #f8fafc; border: 1px solid #e2e8f0;
+ border-bottom: none; border-radius: 6px 6px 0 0;
+ }
+ .editor-btn {
+ width: 28px; height: 28px; border: 1px solid #cbd5e1;
+ border-radius: 4px; background: #fff; color: #475569;
+ font-size: 13px; cursor: pointer; display: flex;
+ align-items: center; justify-content: center;
+ transition: all 0.15s;
+ }
+ .editor-btn:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+ .lang-tab-bar {
+   display: flex; gap: 0; border: 1px solid #e2e8f0;
+   border-radius: 6px 6px 0 0; overflow: hidden;
+   background: #f8fafc; margin-bottom: -1px; position: relative; z-index: 1;
+ }
+ .lang-tab-btn {
+   flex: 1; padding: 8px 20px; border: none; background: transparent;
+   color: #64748b; font-size: 13px; font-weight: 600; cursor: pointer;
+   transition: all 0.15s; border-right: 1px solid #e2e8f0;
+ }
+ .lang-tab-btn:last-child { border-right: none; }
+ .lang-tab-btn:hover { background: #eff6ff; color: #2563eb; }
+ .lang-tab-active { background: #fff !important; color: #2563eb !important; border-bottom: 2px solid #2563eb; }
+ .lang-tab-panel { border: 1px solid #e2e8f0; border-radius: 0 0 6px 6px; padding: 16px; background: #fff; }
+</style>
+
+<!-- ══ GALLERY PICKER MODAL ══════════════════════════════════════════════════ -->
+<div id="galleryPickerModal" class="gallery-picker-overlay hidden">
+  <div class="gallery-picker-modal">
+    <div class="gallery-picker-modal-header">
+      <h3 style="margin:0;font-size:16px;font-weight:600;">Vybrat obrázek z galerie</h3>
+      <input type="text" id="galPickerSearch" class="gallery-picker-search form-input"
+        placeholder="Hledat…" oninput="filterGalleryPicker(this.value)">
+      <button class="modal-close" onclick="closeGalleryPicker()" style="position:static;margin-left:8px;">&times;</button>
+    </div>
+    <div id="galPickerGrid" class="gallery-picker-grid"></div>
+    <div class="gallery-picker-footer">
+      <button class="btn btn-secondary btn-sm" onclick="closeGalleryPicker()">Zrušit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ── Editor helper: escape for use in JS only (not injected to DOM as innerHTML) ──
+function _esc(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+}
+
+// ── Text/HTML editor toggle ──────────────────────────────────────────────────
+
+// Call after setting textarea.value — populates the contenteditable view & defaults to Text mode.
+function initEditorView(id) {
+  const ta   = document.getElementById(id);
+  const view = document.getElementById(id + '_view');
+  if (!ta || !view) return;
+  view.innerHTML = ta.value;
+  ta.style.display  = 'none';
+  view.style.display = '';
+  ta.dataset.editorMode = 'text';
+  // sync toggle buttons
+  const wrap = view.closest('.editor-wrap');
+  if (wrap) {
+    wrap.querySelectorAll('.editor-mode-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === 'Text');
+    });
+  }
+}
+
+// Switch mode: 'text' or 'html'
+function setEditorMode(id, mode) {
+  const ta   = document.getElementById(id);
+  const view = document.getElementById(id + '_view');
+  if (!ta || !view) return;
+  if (mode === 'html') {
+    ta.value = view.innerHTML;
+    view.style.display = 'none';
+    ta.style.display   = '';
+    ta.focus();
+  } else {
+    view.innerHTML = ta.value;
+    ta.style.display   = 'none';
+    view.style.display = '';
+    view.focus();
+  }
+  ta.dataset.editorMode = mode;
+  const wrap = view.closest('.editor-wrap') || ta.closest('.editor-wrap');
+  if (wrap) {
+    wrap.querySelectorAll('.editor-mode-btn').forEach(b => {
+      const btnMode = b.textContent.trim() === 'HTML' ? 'html' : 'text';
+      b.classList.toggle('active', btnMode === mode);
+    });
+  }
+}
+
+// Call before reading textarea.value in saveItem() — flushes contenteditable → textarea.
+function syncEditorToHtml(id) {
+  const ta   = document.getElementById(id);
+  const view = document.getElementById(id + '_view');
+  if (!ta || !view) return;
+  if (ta.dataset.editorMode !== 'html') {
+    ta.value = view.innerHTML;
+  }
+}
+
+// ── insertFormat: works in both text (contenteditable) and html (textarea) modes ──
+function insertFormat(textareaId, format) {
+  const ta = document.getElementById(textareaId);
+  if (!ta) return;
+
+  // Text mode → operate on contenteditable
+  if (ta.dataset.editorMode !== 'html') {
+    const view = document.getElementById(textareaId + '_view');
+    if (!view) return;
+    view.focus();
+    if (format === 'bold')   { document.execCommand('bold');   return; }
+    if (format === 'italic') { document.execCommand('italic'); return; }
+    if (format === 'ul')     { document.execCommand('insertUnorderedList'); return; }
+    if (format === 'ol')     { document.execCommand('insertOrderedList');   return; }
+    if (format === 'h1' || format === 'h2' || format === 'h3') {
+      document.execCommand('formatBlock', false, format); return;
+    }
+    if (format === 'link') {
+      const url = prompt('URL odkazu:', 'https://');
+      if (url) document.execCommand('createLink', false, url);
+      return;
+    }
+    return;
+  }
+
+  // HTML mode → insert tags into textarea at cursor
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  const text  = ta.value;
+  const sel   = text.substring(start, end);
+  let insert = '', cursorOffset = 0;
+
+  if (format === 'h1')     { const i = sel||'Nadpis 1'; insert = `<h1>${i}</h1>\n`; }
+  else if (format === 'h2') { const i = sel||'Nadpis 2'; insert = `<h2>${i}</h2>\n`; }
+  else if (format === 'h3') { const i = sel||'Nadpis 3'; insert = `<h3>${i}</h3>\n`; }
+  else if (format === 'bold')   { const i = sel||'text'; insert = `<strong>${i}</strong>`; }
+  else if (format === 'italic') { const i = sel||'text'; insert = `<em>${i}</em>`; }
+  else if (format === 'ul')  { const i = sel||'položka'; insert = `\n<ul>\n  <li>${i}</li>\n</ul>\n`; }
+  else if (format === 'ol')  { const i = sel||'položka'; insert = `\n<ol>\n  <li>${i}</li>\n</ol>\n`; }
+  else if (format === 'link') {
+    const url = prompt('URL odkazu:', 'https://');
+    if (!url) return;
+    const i = sel || url;
+    insert = `<a href="${url}">${i}</a>`;
+  }
+
+  cursorOffset = insert.length;
+  ta.value = text.substring(0, start) + insert + text.substring(end);
+  ta.setSelectionRange(start + cursorOffset, start + cursorOffset);
+  ta.focus();
+}
+
+// ── News language tabs (CZ / EN) ─────────────────────────────────────────────
+
+let _newsCurrentLang = 'cz';
+
+function resetNewsLangTabs() {
+  _newsCurrentLang = 'cz';
+  const czPanel = document.getElementById('newsContentCzPanel');
+  const enPanel = document.getElementById('newsContentEnPanel');
+  const czTab   = document.getElementById('newsTabCz');
+  const enTab   = document.getElementById('newsTabEn');
+  if (czPanel) czPanel.style.display = '';
+  if (enPanel) enPanel.style.display = 'none';
+  if (czTab)   czTab.classList.add('lang-tab-active');
+  if (enTab)   enTab.classList.remove('lang-tab-active');
+}
+
+function switchNewsLang(lang) {
+  // Flush current editor before switching
+  if (_newsCurrentLang === 'cz') syncEditorToHtml('newsContentCz');
+  else                            syncEditorToHtml('newsContentEn');
+
+  _newsCurrentLang = lang;
+
+  document.getElementById('newsContentCzPanel').style.display = lang === 'cz' ? '' : 'none';
+  document.getElementById('newsContentEnPanel').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('newsTabCz').classList.toggle('lang-tab-active', lang === 'cz');
+  document.getElementById('newsTabEn').classList.toggle('lang-tab-active', lang === 'en');
+}
+
+// ── Product language tabs (CZ / EN) ──────────────────────────────────────────
+
+let _prodCurrentLang = 'cz';
+
+function resetProductLangTabs() {
+  _prodCurrentLang = 'cz';
+  const czPanel = document.getElementById('prodDescCzPanel');
+  const enPanel = document.getElementById('prodDescEnPanel');
+  const czTab   = document.getElementById('prodTabCz');
+  const enTab   = document.getElementById('prodTabEn');
+  if (czPanel) czPanel.style.display = '';
+  if (enPanel) enPanel.style.display = 'none';
+  if (czTab)   czTab.classList.add('lang-tab-active');
+  if (enTab)   enTab.classList.remove('lang-tab-active');
+}
+
+function switchProductLang(lang) {
+  if (_prodCurrentLang === 'cz') syncEditorToHtml('prodDescCz');
+  else                            syncEditorToHtml('prodDescEn');
+  _prodCurrentLang = lang;
+  document.getElementById('prodDescCzPanel').style.display = lang === 'cz' ? '' : 'none';
+  document.getElementById('prodDescEnPanel').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('prodTabCz').classList.toggle('lang-tab-active', lang === 'cz');
+  document.getElementById('prodTabEn').classList.toggle('lang-tab-active', lang === 'en');
+}
+
+// ── Application language tabs (CZ / EN) ──────────────────────────────────────
+
+let _appCurrentLang = 'cz';
+
+function resetAppLangTabs() {
+  _appCurrentLang = 'cz';
+  const czPanel = document.getElementById('appContentCzPanel');
+  const enPanel = document.getElementById('appContentEnPanel');
+  const czTab   = document.getElementById('appTabCz');
+  const enTab   = document.getElementById('appTabEn');
+  if (czPanel) czPanel.style.display = '';
+  if (enPanel) enPanel.style.display = 'none';
+  if (czTab)   czTab.classList.add('lang-tab-active');
+  if (enTab)   enTab.classList.remove('lang-tab-active');
+}
+
+function switchAppLang(lang) {
+  if (_appCurrentLang === 'cz') syncEditorToHtml('appContentCz');
+  else                           syncEditorToHtml('appContentEn');
+  _appCurrentLang = lang;
+  document.getElementById('appContentCzPanel').style.display = lang === 'cz' ? '' : 'none';
+  document.getElementById('appContentEnPanel').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('appTabCz').classList.toggle('lang-tab-active', lang === 'cz');
+  document.getElementById('appTabEn').classList.toggle('lang-tab-active', lang === 'en');
+}
+
+// ── Gallery Picker ────────────────────────────────────────────────────────────
+
+let _galPickerTarget  = null;
+let _galPickerPreview = null;
+let _galAllImages     = [];
+
+async function openGalleryPicker(targetInputId, previewImgId) {
+  _galPickerTarget  = targetInputId;
+  _galPickerPreview = previewImgId || null;
+  const searchEl = document.getElementById('galPickerSearch');
+  if (searchEl) searchEl.value = '';
+  document.getElementById('galleryPickerModal').classList.remove('hidden');
+  await _loadGalleryPickerImages();
+}
+
+// Called from products.js for picking into _imagesState
+function openGalleryPickerMulti(prefix) {
+  _galPickerTarget  = '__multi__' + prefix;
+  _galPickerPreview = null;
+  const searchEl = document.getElementById('galPickerSearch');
+  if (searchEl) searchEl.value = '';
+  document.getElementById('galleryPickerModal').classList.remove('hidden');
+  _loadGalleryPickerImages();
+}
+
+async function _loadGalleryPickerImages() {
+  const grid = document.getElementById('galPickerGrid');
+  if (!grid) return;
+  grid.innerHTML = '<p style="padding:20px;color:#6b7280;grid-column:1/-1;">Načítám obrázky…</p>';
+  try {
+    const token = localStorage.getItem('nicolet_token');
+    const res = await fetch('/api/gallery/images/admin/all', {
+      headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : {}
+    });
+    const ct = res.headers.get('content-type');
+    if (!res.ok) {
+      const err = ct?.includes('application/json') ? await res.json() : { error: await res.text() };
+      throw new Error(err.error || 'Request failed');
+    }
+    _galAllImages = await res.json();
+    _renderGalleryPickerImages(_galAllImages);
+  } catch (err) {
+    grid.innerHTML = `<p style="padding:20px;color:#ef4444;grid-column:1/-1;">Chyba: ${_esc(err.message)}</p>`;
+  }
+}
+
+function _renderGalleryPickerImages(images) {
+  const grid = document.getElementById('galPickerGrid');
+  if (!grid) return;
+  const currentUrl = _galPickerTarget && !_galPickerTarget.startsWith('__multi__')
+    ? (document.getElementById(_galPickerTarget)?.value || '') : '';
+  if (!images.length) {
+    grid.innerHTML = '<p style="padding:20px;color:#6b7280;grid-column:1/-1;">Žádné obrázky v galerii.</p>';
+    return;
+  }
+  grid.innerHTML = images.map(img => {
+    const url  = img.image_url || img.identifier || '';
+    const name = _esc(img.title_cz || img.identifier || '–');
+    const sel  = url === currentUrl ? ' selected' : '';
+    return `<div class="gallery-picker-item${sel}" onclick="selectGalleryImage('${_esc(url)}')">
+      <img src="${_esc(url)}" alt="${name}"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;height:90px;background:#f1f5f9;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;">no preview</div>
+      <div class="gallery-picker-item-name">${name}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterGalleryPicker(query) {
+  const q = query.toLowerCase();
+  const filtered = _galAllImages.filter(img =>
+    !q || (img.title_cz || img.identifier || '').toLowerCase().includes(q) ||
+          (img.image_url || '').toLowerCase().includes(q)
+  );
+  _renderGalleryPickerImages(filtered);
+}
+
+function selectGalleryImage(url) {
+  if (_galPickerTarget && _galPickerTarget.startsWith('__multi__')) {
+    const prefix = _galPickerTarget.replace('__multi__', '');
+    // Delegate to the relevant manager
+    if (prefix === 'prod') window.admin?.products?.addImageFromUrl(url);
+  } else if (_galPickerTarget) {
+    const input = document.getElementById(_galPickerTarget);
+    if (input) input.value = url;
+    if (_galPickerPreview) {
+      const preview = document.getElementById(_galPickerPreview);
+      if (preview) { preview.src = url; preview.style.display = ''; }
+    }
+  }
+  closeGalleryPicker();
+}
+
+function closeGalleryPicker() {
+  document.getElementById('galleryPickerModal').classList.add('hidden');
+  _galPickerTarget  = null;
+  _galPickerPreview = null;
+}
+
+// ── uploadImage (settings / other single-field uploads) ──────────────────────
+async function uploadImage(input, targetId) {
+ const file = input.files[0];
+ if (!file) return;
+ const formData = new FormData();
+ formData.append('image', file);
+ try {
+ const token = localStorage.getItem('nicolet_token');
+ const res = await fetch('/api/gallery/images/admin/upload', {
+ method: 'POST',
+ headers: token ? { Authorization: 'Bearer ' + token } : {},
+ body: formData
+ });
+ const ct = res.headers.get('content-type');
+ if (!res.ok) {
+ const err = ct?.includes('application/json') ? await res.json() : { error: await res.text() };
+ throw new Error(err.error || 'Upload failed');
+ }
+ const data = await res.json();
+ const url = data.image_url || data.identifier;
+ if (url) {
+ document.getElementById(targetId).value = url;
+ }
+ window.admin?.showNotification('Obrázek nahrán', 'success');
+ } catch (err) {
+ console.error('Upload error:', err);
+ window.admin?.showNotification('Chyba nahrávání: ' + err.message, 'error');
+ }
+}
+</script>
+
+</body>
+</html>

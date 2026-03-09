@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nicolet CZ – Molekulová spektroskopie</title>
+  <meta name="description" content="Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.">
+  <link rel="stylesheet" href="/css/public.css">
+</head>
+<body>
+
+<!-- ══ TOP CONTACT BAR ════════════════════════════════════════════════════ -->
+<div id="topbar">
+  <div class="container topbar-inner">
+    <div class="topbar-contact">
+      <a href="tel:">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8a16 16 0 0 0 6 6l.27-.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        <span id="topbarPhone">+420 xxx xxx xxx</span>
+      </a>
+      <a href="mailto:">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <span id="topbarEmail">info@nicoletcz.cz</span>
+      </a>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Language switch -->
+      <div class="lang-switch">
+        <button data-lang-btn="cz" class="active">CZ</button>
+        <button data-lang-btn="en">EN</button>
+      </div>
+
+      <!-- Search trigger -->
+      <button class="topbar-search" data-open-search>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Hledat
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN HEADER ═════════════════════════════════════════════════════════ -->
+<header id="site-header">
+  <div class="container header-inner">
+
+    <!-- Logo -->
+    <a href="/" class="site-logo">
+      <div class="site-logo-text">
+        <span class="site-logo-name">Nicolet CZ</span>
+        <span class="site-logo-tagline">Molekulová spektroskopie</span>
+      </div>
+    </a>
+
+    <!-- Main navigation -->
+    <!-- Navigation: populated from Admin menu by public.js; static items serve as fallback -->
+    <ul id="main-nav">
+      <li>
+        <a href="/novinky" data-nav="/novinky">
+          Novinky
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <div class="nav-dropdown">
+          <a href="/novinky" data-nav="/novinky">Všechny novinky</a>
+        </div>
+      </li>
+      <li>
+        <a href="/produkty" data-nav="/produkty">
+          Produkty
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <div class="nav-dropdown">
+          <a href="/produkty" data-nav="/produkty">Všechny produkty</a>
+        </div>
+      </li>
+      <li>
+        <a href="/o-nas" data-nav="/o-nas">
+          O nás
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <div class="nav-dropdown">
+          <a href="/stranka/o-nas" data-nav="/stranka/o-nas">O společnosti</a>
+          <a href="/stranka/kontakt" data-nav="/stranka/kontakt">Kontakt</a>
+        </div>
+      </li>
+      <li>
+        <a href="/skoleni" data-nav="/skoleni">
+          Školení a kurzy
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <div class="nav-dropdown">
+          <a href="/skoleni" data-nav="/skoleni">Termíny školení</a>
+        </div>
+      </li>
+      <li>
+        <a href="/stranka/aplikacni-podpora" data-nav="/stranka/aplikacni-podpora">Aplikační podpora</a>
+      </li>
+      <li>
+        <a href="/aplikace" data-nav="/aplikace">
+          Aplikace
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </a>
+        <div class="nav-dropdown">
+          <a href="/aplikace" data-nav="/aplikace">Všechny aplikace</a>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Mobile menu toggle -->
+    <button id="mobileMenuToggle" class="nav-mobile-toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+  </div>
+</header>
+
+<!-- ══ PAGE CONTENT (SPA target) ══════════════════════════════════════════ -->
+<main id="page-content">
+  <!-- Filled by public.js router -->
+</main>
+
+<!-- ══ FOOTER ════════════════════════════════════════════════════════════ -->
+<footer id="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+
+      <div class="footer-brand">
+        <div class="site-logo" style="margin-bottom:16px">
+          <div class="site-logo-text">
+            <span class="site-logo-name">Nicolet CZ</span>
+            <span class="site-logo-tagline">Molekulová spektroskopie</span>
+          </div>
+        </div>
+        <p id="footerText">Dodavatel přístrojů pro molekulovou spektroskopii. Na trhu od 1990.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Produkty</h4>
+        <ul class="footer-links">
+          <li><a href="/produkty" data-nav="/produkty">Všechny produkty</a></li>
+          <li><a href="/aplikace" data-nav="/aplikace">Aplikace</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Společnost</h4>
+        <ul class="footer-links">
+          <li><a href="/stranka/o-nas" data-nav="/stranka/o-nas">O nás</a></li>
+          <li><a href="/novinky" data-nav="/novinky">Novinky</a></li>
+          <li><a href="/skoleni" data-nav="/skoleni">Školení</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Kontakt</h4>
+        <div class="footer-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12"/>
+          </svg>
+          <span id="footerPhone">–</span>
+        </div>
+        <div class="footer-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          <span id="footerEmail">–</span>
+        </div>
+        <div class="footer-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          <span id="footerAddress">–</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copy">
+        &copy; <span id="footerYear"></span> Nicolet CZ s.r.o. Všechna práva vyhrazena.
+      </p>
+      <div class="lang-switch">
+        <button data-lang-btn="cz">CZ</button>
+        <button data-lang-btn="en">EN</button>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══ SEARCH OVERLAY ════════════════════════════════════════════════════ -->
+<div id="search-overlay">
+  <div class="search-box">
+    <div class="search-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="search-input" placeholder="Hledat produkty, aplikace, novinky…" autocomplete="off">
+      <button class="search-close">&times;</button>
+    </div>
+    <div id="search-results"></div>
+  </div>
+</div>
+
+<script>
+  // Set footer year
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+</script>
+<script type="module" src="/js/public.js"></script>
+
+</body>
+</html>

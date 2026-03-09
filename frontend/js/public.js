@@ -1,0 +1,956 @@
+/**
+ * Nicolet CZ – Public SPA
+ * Full implementation: homepage, carousel, products, applications, trainings, news, pages, search
+ */
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function getLang() {
+  return localStorage.getItem('nicolet_lang') || 'cz';
+}
+
+function setLang(lang) {
+  localStorage.setItem('nicolet_lang', lang);
+  app.route();
+  app.updateLangUI();
+  app._renderNav();
+}
+
+function pick(czVal, enVal) {
+  if (getLang() === 'en' && enVal) return enVal;
+  return czVal || '';
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr).toLocaleDateString(getLang() === 'en' ? 'en-GB' : 'cs-CZ', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  } catch { return dateStr; }
+}
+
+async function safeFetch(url) {
+  const response = await fetch(url);
+  const contentType = response.headers.get('content-type');
+  if (!response.ok) {
+    const err = contentType?.includes('application/json')
+      ? await response.json()
+      : { error: await response.text() };
+    throw new Error(err.error || 'Request failed');
+  }
+  if (!contentType?.includes('application/json')) throw new Error('Neplatná odpověď serveru');
+  return response.json();
+}
+
+// ── Static UI texts ───────────────────────────────────────────────────────────
+const UI = {
+  cz: {
+    nav: {
+      news: 'Novinky', products: 'Produkty', about: 'O nás',
+      training: 'Školení a kurzy', appSupport: 'Aplikační podpora',
+      applications: 'Aplikace',
+    },
+    search: {
+      placeholder: 'Hledat produkty, aplikace, novinky…',
+      close: 'Zavřít', no_results: 'Žádné výsledky',
+    },
+    common: {
+      loading: 'Načítám…', read_more: 'Číst více', back: 'Zpět',
+      published: 'Publikováno', date: 'Datum', contact: 'Kontakt',
+      all_products: 'Všechny produkty', all_apps: 'Všechny aplikace',
+      all_news: 'Všechny novinky', trainings: 'Termíny školení',
+      no_items: 'Žádné položky.', page_not_found: 'Stránka nenalezena',
+      page_not_found_desc: 'Tato stránka neexistuje nebo byla přesunuta.',
+      back_home: 'Zpět na hlavní stránku',
+      contact_us: 'Kontaktujte nás',
+      featured: 'Doporučeno',
+      date_from: 'Od', date_to: 'Do', location: 'Místo',
+      download_spec: 'Technická specifikace',
+      related_products: 'Související produkty',
+      search_results: 'Výsledky hledání',
+      search_for: 'Hledat',
+    }
+  },
+  en: {
+    nav: {
+      news: 'News', products: 'Products', about: 'About us',
+      training: 'Training & courses', appSupport: 'Application support',
+      applications: 'Applications',
+    },
+    search: {
+      placeholder: 'Search products, applications, news…',
+      close: 'Close', no_results: 'No results',
+    },
+    common: {
+      loading: 'Loading…', read_more: 'Read more', back: 'Back',
+      published: 'Published', date: 'Date', contact: 'Contact',
+      all_products: 'All products', all_apps: 'All applications',
+      all_news: 'All news', trainings: 'Training schedule',
+      no_items: 'No items.', page_not_found: 'Page not found',
+      page_not_found_desc: 'This page does not exist or has been moved.',
+      back_home: 'Back to homepage',
+      contact_us: 'Contact us',
+      featured: 'Featured',
+      date_from: 'From', date_to: 'To', location: 'Location',
+      download_spec: 'Technical specification',
+      related_products: 'Related products',
+      search_results: 'Search results',
+      search_for: 'Search',
+    }
+  }
+};
+
+function t(path) {
+  const keys = path.split('.');
+  let obj = UI[getLang()];
+  for (const k of keys) { if (!obj) return path; obj = obj[k]; }
+  return obj || path;
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+class PublicApp {
+  constructor() {
+    this.lang     = getLang();
+    this.settings = {};
+    this.menuItems = [];
+    this._categories = null;   // cached
+    this._appGroups  = null;   // cached
+  }
+
+  async init() {
+    try { this.settings = await safeFetch('/api/settings/public'); }
+    catch { this.settings = {}; }
+
+    // Load menu from DB
+    try { this.menuItems = await safeFetch('/api/menu'); }
+    catch { this.menuItems = []; }
+
+    await this._renderNav();
+    this._updateTopbar();
+    this._updateFooter();
+    this.updateLangUI();
+    this._bindLangSwitch();
+    this._bindSearch();
+    this._bindMobileMenu();
+
+    window.addEventListener('popstate', () => this.route());
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('[data-nav]');
+      if (link) { e.preventDefault(); this.navigate(link.dataset.nav); }
+    });
+
+    await this.route();
+  }
+
+  async route() {
+    const path  = window.location.pathname;
+    const parts = path.split('/').filter(Boolean);
+    const el    = document.getElementById('page-content');
+    if (!el) return;
+
+    el.innerHTML = `<div class="container" style="padding:80px 24px;text-align:center;color:var(--text-3)">${t('common.loading')}</div>`;
+
+    try {
+      if (path === '/' || path === '') {
+        await this.renderHome(el);
+      } else if (parts[0] === 'novinky' && parts[1]) {
+        await this.renderNewsDetail(el, parts[1]);
+      } else if (parts[0] === 'novinky') {
+        await this.renderNewsList(el);
+      } else if (parts[0] === 'produkty' && parts[1]) {
+        await this.renderProductDetail(el, parts[1]);
+      } else if (parts[0] === 'produkty') {
+        await this.renderProducts(el);
+      } else if (parts[0] === 'aplikace' && parts[1]) {
+        await this.renderApplicationDetail(el, parts[1]);
+      } else if (parts[0] === 'aplikace') {
+        await this.renderApplications(el);
+      } else if (parts[0] === 'skoleni') {
+        await this.renderTrainings(el);
+      } else if (parts[0] === 'hledat') {
+        await this.renderSearch(el);
+      } else if (parts[0] === 'stranka' && parts[1]) {
+        await this.renderPage(el, parts[1]);
+      } else {
+        this.render404(el);
+      }
+    } catch (err) {
+      console.error('Route error:', err);
+      el.innerHTML = `<div class="container section"><p style="color:var(--error)">Chyba načítání stránky.</p></div>`;
+    }
+  }
+
+  navigate(path) {
+    history.pushState(null, '', path);
+    this.route();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── HOME ──────────────────────────────────────────────────────────────────
+
+  async renderHome(el) {
+    const [carouselItems, products, applications, newsPosts] = await Promise.allSettled([
+      safeFetch('/api/carousel'),
+      safeFetch('/api/products'),
+      safeFetch('/api/applications'),
+      safeFetch('/api/news'),
+    ]);
+
+    const carousel = carouselItems.value || [];
+    const prods    = (products.value || []).filter(p => p.is_featured);
+    const apps     = (applications.value || []).filter(a => a.is_featured);
+    const news     = (newsPosts.value || []).slice(0, 3);
+
+    el.innerHTML = `
+      ${this._renderCarousel(carousel)}
+      ${prods.length ? this._renderFeaturedProducts(prods) : ''}
+      ${apps.length  ? this._renderFeaturedApplications(apps) : ''}
+      ${news.length  ? this._renderNewsTeaser(news) : ''}
+      ${this._renderContactBanner()}
+    `;
+  }
+
+  _renderCarousel(items) {
+    if (!items.length) {
+      return `
+        <div class="carousel-wrap" style="height:480px;background:linear-gradient(135deg,var(--bg-0),var(--bg-3));display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border)">
+          <div style="text-align:center;color:var(--text-3)">
+            <div style="font-size:2.5rem;margin-bottom:12px">◈</div>
+            <div style="font-size:1rem;color:var(--text-2)">Nicolet CZ – Molekulová spektroskopie</div>
+          </div>
+        </div>`;
+    }
+
+    const slides = items.map((item, i) => `
+      <div class="carousel-slide ${i === 0 ? 'active' : ''}" data-slide="${i}">
+        <img src="${esc(item.image_url)}" alt="${esc(pick(item.title_cz, item.title_en))}" loading="${i === 0 ? 'eager' : 'lazy'}">
+        ${item.show_text && (item.title_cz || item.subtitle_cz) ? `
+          <div class="carousel-caption">
+            ${item.title_cz ? `<h2>${esc(pick(item.title_cz, item.title_en))}</h2>` : ''}
+            ${item.subtitle_cz ? `<p>${esc(pick(item.subtitle_cz, item.subtitle_en))}</p>` : ''}
+            ${item.link_url ? `<a href="${esc(item.link_url)}" class="btn-primary-pub" data-nav="${esc(item.link_url)}">${t('common.read_more')}</a>` : ''}
+          </div>` : ''}
+      </div>`).join('');
+
+    const dots = items.length > 1
+      ? `<div class="carousel-dots">${items.map((_, i) => `<button class="carousel-dot ${i === 0 ? 'active' : ''}" data-goto="${i}"></button>`).join('')}</div>`
+      : '';
+
+    const arrows = items.length > 1 ? `
+      <button class="carousel-arrow carousel-prev" aria-label="Předchozí">&#8592;</button>
+      <button class="carousel-arrow carousel-next" aria-label="Další">&#8594;</button>` : '';
+
+    setTimeout(() => this._initCarousel(), 0);
+
+    return `<div class="carousel-wrap" id="main-carousel">${slides}${arrows}${dots}</div>`;
+  }
+
+  _initCarousel() {
+    const wrap = document.getElementById('main-carousel');
+    if (!wrap) return;
+    let current = 0;
+    const slides = wrap.querySelectorAll('.carousel-slide');
+    const dots   = wrap.querySelectorAll('.carousel-dot');
+    if (slides.length < 2) return;
+
+    const go = (n) => {
+      slides[current].classList.remove('active');
+      dots[current]?.classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      dots[current]?.classList.add('active');
+    };
+
+    wrap.querySelector('.carousel-prev')?.addEventListener('click', () => go(current - 1));
+    wrap.querySelector('.carousel-next')?.addEventListener('click', () => go(current + 1));
+    dots.forEach(d => d.addEventListener('click', () => go(Number(d.dataset.goto))));
+
+    // Auto-advance every 6s
+    let timer = setInterval(() => go(current + 1), 6000);
+    wrap.addEventListener('mouseenter', () => clearInterval(timer));
+    wrap.addEventListener('mouseleave', () => { timer = setInterval(() => go(current + 1), 6000); });
+  }
+
+  _renderFeaturedProducts(prods) {
+    const cards = prods.slice(0, 4).map(p => `
+      <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
+        ${p.images_json ? (() => { try { const imgs = JSON.parse(p.images_json); return imgs[0] ? `<div class="product-card-img"><img src="${esc(imgs[0])}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'; } catch { return '<div class="product-card-img product-card-img-empty"></div>'; } })() : '<div class="product-card-img product-card-img-empty"></div>'}
+        <div class="product-card-body">
+          <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
+          ${p.description_cz ? `<div class="product-card-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 120)}…</div>` : ''}
+          <span class="product-card-link">${t('common.read_more')} →</span>
+        </div>
+      </a>`).join('');
+
+    return `
+      <section class="section-block">
+        <div class="container">
+          <div class="section-header">
+            <div class="section-label">${t('common.featured')}</div>
+            <h2 class="section-title">${t('nav.products')}</h2>
+          </div>
+          <div class="product-grid">${cards}</div>
+          <div style="text-align:center;margin-top:32px">
+            <a href="/produkty" data-nav="/produkty" class="btn-outline-pub">${t('common.all_products')}</a>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  _renderFeaturedApplications(apps) {
+    const cards = apps.slice(0, 3).map(a => `
+      <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
+        ${a.cover_image ? `<div class="app-card-img"><img src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
+        <div class="app-card-body">
+          <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
+          ${a.content_cz ? `<div class="app-card-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 100)}…</div>` : ''}
+          <span class="app-card-link">${t('common.read_more')} →</span>
+        </div>
+      </a>`).join('');
+
+    return `
+      <section class="section-block section-block-alt">
+        <div class="container">
+          <div class="section-header">
+            <div class="section-label">${t('common.featured')}</div>
+            <h2 class="section-title">${t('nav.applications')}</h2>
+          </div>
+          <div class="app-grid">${cards}</div>
+          <div style="text-align:center;margin-top:32px">
+            <a href="/aplikace" data-nav="/aplikace" class="btn-outline-pub">${t('common.all_apps')}</a>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  _renderNewsTeaser(posts) {
+    const cards = posts.map(p => `
+      <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
+        ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
+        <div class="news-card-body">
+          <div class="news-card-date">${fmtDate(p.published_at)}</div>
+          <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
+          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
+          <span class="news-card-link">${t('common.read_more')} →</span>
+        </div>
+      </a>`).join('');
+
+    return `
+      <section class="section-block">
+        <div class="container">
+          <div class="section-header">
+            <h2 class="section-title">${t('nav.news')}</h2>
+          </div>
+          <div class="news-grid">${cards}</div>
+          <div style="text-align:center;margin-top:32px">
+            <a href="/novinky" data-nav="/novinky" class="btn-outline-pub">${t('common.all_news')}</a>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  _renderContactBanner() {
+    const phone = this.settings.contact_phone || '';
+    const email = this.settings.contact_email || '';
+    return `
+      <section class="contact-banner">
+        <div class="container">
+          <h2>${t('common.contact_us')}</h2>
+          <div class="contact-banner-items">
+            ${phone ? `<a href="tel:${esc(phone)}" class="contact-banner-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8a16 16 0 0 0 6 6z"/></svg>${esc(phone)}</a>` : ''}
+            ${email ? `<a href="mailto:${esc(email)}" class="contact-banner-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${esc(email)}</a>` : ''}
+          </div>
+        </div>
+      </section>`;
+  }
+
+  // ── NEWS ──────────────────────────────────────────────────────────────────
+
+  async renderNewsList(el) {
+    const posts = await safeFetch('/api/news');
+    el.innerHTML = `
+      <div class="container section">
+        <div class="section-header">
+          <h1 class="page-title">${t('nav.news')}</h1>
+        </div>
+        ${!posts.length
+          ? `<p class="empty-state">${t('common.no_items')}</p>`
+          : `<div class="news-grid news-grid-full">${posts.map(p => `
+              <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
+                ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
+                <div class="news-card-body">
+                  <div class="news-card-date">${fmtDate(p.published_at)}</div>
+                  <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
+                  ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
+                  <span class="news-card-link">${t('common.read_more')} →</span>
+                </div>
+              </a>`).join('')}</div>`}
+      </div>`;
+  }
+
+  async renderNewsDetail(el, slug) {
+    const post = await safeFetch(`/api/news/${slug}`);
+    el.innerHTML = `
+      <article class="container section article-body">
+        <div class="article-meta">
+          <a href="/novinky" data-nav="/novinky" class="back-link">← ${t('common.back')}</a>
+          <span class="article-date">${fmtDate(post.published_at)}</span>
+        </div>
+        ${post.cover_image ? `<figure class="article-cover-wrap img-align--${esc(post.cover_align || 'center')}"><img class="article-cover" src="${esc(post.cover_image)}" alt="${esc(pick(post.title_cz, post.title_en))}">${post.cover_caption ? `<figcaption class="img-caption img-caption--${esc(post.cover_align || 'center')}">${esc(post.cover_caption)}</figcaption>` : ''}</figure>` : ''}
+        <h1 class="article-title">${esc(pick(post.title_cz, post.title_en))}</h1>
+        ${post.excerpt_cz ? `<p class="article-excerpt">${esc(pick(post.excerpt_cz, post.excerpt_en))}</p>` : ''}
+        <div class="article-content">${pick(post.content_cz, post.content_en) || ''}</div>
+      </article>`;
+  }
+
+  // ── PRODUCTS ──────────────────────────────────────────────────────────────
+
+  async renderProducts(el) {
+    const [prods, cats] = await Promise.all([
+      safeFetch('/api/products'),
+      this._getCategories(),
+    ]);
+
+    const filterHtml = cats.length ? `
+      <div class="filter-bar-pub">
+        <button class="filter-chip active" data-cat-filter="">
+          ${getLang() === 'en' ? 'All' : 'Vše'}
+        </button>
+        ${cats.map(c => `<button class="filter-chip" data-cat-filter="${c.id}">${esc(pick(c.name_cz, c.name_en))}</button>`).join('')}
+      </div>` : '';
+
+    const defaultThumb = this.settings.default_thumbnail || '';
+    const cards = prods.map(p => {
+      const catIds = (p.categories || []).map(c => c.id).join(' ');
+      let thumb = p.thumbnail_url || '';
+      if (!thumb) { try { const imgs = JSON.parse(p.images_json || '[]'); thumb = (typeof imgs[0] === 'string' ? imgs[0] : imgs[0]?.url) || ''; } catch {} }
+      if (!thumb) thumb = defaultThumb;
+      return `
+        <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}" data-product-cats="${esc(catIds)}">
+          ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
+          <div class="product-card-body">
+            ${p.is_featured ? `<span class="badge-featured">${t('common.featured')}</span>` : ''}
+            <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
+            ${p.description_cz ? `<div class="product-card-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 120)}</div>` : ''}
+            <span class="product-card-link">${t('common.read_more')} →</span>
+          </div>
+        </a>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="container section">
+        <h1 class="page-title">${t('nav.products')}</h1>
+        ${filterHtml}
+        <div class="product-grid" id="productsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+      </div>`;
+
+    // Category filter
+    el.querySelectorAll('.filter-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const catId = btn.dataset.catFilter;
+        el.querySelectorAll('.product-card').forEach(card => {
+          const cats = card.dataset.productCats || '';
+          card.style.display = (!catId || cats.split(' ').includes(catId)) ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  async renderProductDetail(el, slug) {
+    const p = await safeFetch(`/api/products/${slug}`);
+    let images = [];
+    try {
+      const raw = JSON.parse(p.images_json || '[]');
+      images = raw.map(e => typeof e === 'string' ? { url: e, caption: '', align: 'center' } : e);
+    } catch {}
+    const cats = (p.categories || []).map(c => pick(c.name_cz, c.name_en)).join(', ');
+    const linkedApps = p.applications || [];
+
+    const galleryHtml = images.length
+      ? `<div class="product-detail-cover">
+           <img id="prodMainImg" class="article-cover img-align--center" src="${esc(images[0].url)}" alt="${esc(pick(p.name_cz, p.name_en))}">
+           ${images[0].caption ? `<p class="img-caption img-caption--${esc(images[0].align || 'center')}">${esc(images[0].caption)}</p>` : ''}
+           ${images.length > 1 ? `<div class="product-thumbs">${images.map((img, i) => `
+             <img src="${esc(img.url)}" class="product-thumb ${i === 0 ? 'active' : ''}"
+               onclick="document.getElementById('prodMainImg').src='${esc(img.url)}';document.querySelectorAll('.product-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active')"
+               loading="lazy">`).join('')}</div>` : ''}
+         </div>`
+      : '';
+
+    const tabContentDesc = `
+      <div class="product-detail-desc-wrap">
+        ${p.description_cz ? `<div class="product-detail-desc">${pick(p.description_cz, p.description_en)}</div>` : ''}
+        ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="product-spec-content">${pick(p.spec_cz, p.spec_en)}</div></div>` : ''}
+      </div>`;
+
+    const tabContentApps = linkedApps.length
+      ? `<div class="linked-items-grid">${linkedApps.map(a => `
+          <a class="linked-item-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
+            ${a.thumbnail_url || a.cover_image ? `<div class="linked-item-img"><img src="${esc(a.thumbnail_url || a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : ''}
+            <div class="linked-item-name">${esc(pick(a.name_cz, a.name_en))}</div>
+          </a>`).join('')}</div>`
+      : `<p class="empty-state">${getLang() === 'en' ? 'No linked applications.' : 'Žádné propojené aplikace.'}</p>`;
+
+    el.innerHTML = `
+      <article class="container section">
+        <a href="/produkty" data-nav="/produkty" class="back-link">← ${t('common.all_products')}</a>
+        ${galleryHtml}
+        <div class="detail-tabs">
+          <div class="detail-tab-bar">
+            <button class="detail-tab-btn active" data-tab="desc">${getLang() === 'en' ? 'About the instrument' : 'O přístroji'}</button>
+            <button class="detail-tab-btn" data-tab="apps">${getLang() === 'en' ? 'Applications' : 'Aplikace'}${linkedApps.length ? ` <span class="tab-count">${linkedApps.length}</span>` : ''}</button>
+          </div>
+          <div class="detail-tab-panel" data-panel="desc">
+            ${cats ? `<div class="product-detail-cats">${esc(cats)}</div>` : ''}
+            <h1 class="product-detail-name">${esc(pick(p.name_cz, p.name_en))}</h1>
+            ${tabContentDesc}
+          </div>
+          <div class="detail-tab-panel" data-panel="apps" style="display:none;">${tabContentApps}</div>
+        </div>
+      </article>`;
+
+    el.querySelectorAll('.detail-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        el.querySelectorAll('.detail-tab-panel').forEach(p => {
+          p.style.display = p.dataset.panel === tab ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  // ── APPLICATIONS ──────────────────────────────────────────────────────────
+
+  async renderApplications(el) {
+    const [apps, groups] = await Promise.all([
+      safeFetch('/api/applications'),
+      this._getAppGroups(),
+    ]);
+
+    const filterHtml = groups.length ? `
+      <div class="filter-bar-pub">
+        <button class="filter-chip active" data-group-filter="">
+          ${getLang() === 'en' ? 'All' : 'Vše'}
+        </button>
+        ${groups.map(g => `<button class="filter-chip" data-group-filter="${g.id}">${esc(pick(g.name_cz, g.name_en))}</button>`).join('')}
+      </div>` : '';
+
+    const defaultThumb = this.settings.default_thumbnail || '';
+    const cards = apps.map(a => {
+      const thumb = a.thumbnail_url || defaultThumb;
+      const imgSrc = thumb || a.cover_image;
+      return `
+      <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}" data-app-group="${a.group_id || ''}">
+        ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
+        <div class="app-card-body">
+          <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
+          ${a.content_cz ? `<div class="app-card-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 120)}</div>` : ''}
+          <span class="app-card-link">${t('common.read_more')} →</span>
+        </div>
+      </a>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="container section">
+        <h1 class="page-title">${t('nav.applications')}</h1>
+        ${filterHtml}
+        <div class="app-grid" id="appsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+      </div>`;
+
+    el.querySelectorAll('.filter-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const gid = btn.dataset.groupFilter;
+        el.querySelectorAll('.app-card').forEach(card => {
+          card.style.display = (!gid || card.dataset.appGroup === gid) ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  async renderApplicationDetail(el, slug) {
+    const a = await safeFetch(`/api/applications/${slug}`);
+    const linkedProds = a.products || [];
+
+    const coverHtml = a.cover_image
+      ? `<div class="app-detail-cover">
+           <img class="article-cover img-align--${esc(a.cover_align || 'center')}" src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}">
+           ${a.cover_caption ? `<p class="img-caption img-caption--${esc(a.cover_align || 'center')}">${esc(a.cover_caption)}</p>` : ''}
+         </div>`
+      : '';
+
+    const tabContentDesc = `<div class="article-content">${pick(a.content_cz, a.content_en) || ''}</div>`;
+
+    const tabContentProds = linkedProds.length
+      ? `<div class="linked-items-grid">${linkedProds.map(p => `
+          <a class="linked-item-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
+            ${p.thumbnail_url ? `<div class="linked-item-img"><img src="${esc(p.thumbnail_url)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : ''}
+            <div class="linked-item-name">${esc(pick(p.name_cz, p.name_en))}</div>
+          </a>`).join('')}</div>`
+      : `<p class="empty-state">${getLang() === 'en' ? 'No linked instruments.' : 'Žádné propojené přístroje.'}</p>`;
+
+    el.innerHTML = `
+      <article class="container section">
+        <a href="/aplikace" data-nav="/aplikace" class="back-link">← ${t('common.all_apps')}</a>
+        ${coverHtml}
+        <div class="detail-tabs">
+          <div class="detail-tab-bar">
+            <button class="detail-tab-btn active" data-tab="desc">
+              ${getLang() === 'en' ? 'About the application' : 'O aplikaci'}
+            </button>
+            <button class="detail-tab-btn" data-tab="prods">
+              ${getLang() === 'en' ? 'Vhodné přístroje' : 'Vhodné přístroje'}${linkedProds.length ? ` <span class="tab-count">${linkedProds.length}</span>` : ''}
+            </button>
+          </div>
+          <div class="detail-tab-panel" data-panel="desc">
+            <h1 class="article-title">${esc(pick(a.name_cz, a.name_en))}</h1>
+            ${tabContentDesc}
+          </div>
+          <div class="detail-tab-panel" data-panel="prods" style="display:none;">${tabContentProds}</div>
+        </div>
+      </article>`;
+
+    el.querySelectorAll('.detail-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        el.querySelectorAll('.detail-tab-panel').forEach(p => {
+          p.style.display = p.dataset.panel === tab ? '' : 'none';
+        });
+      });
+    });
+  }
+
+  // ── TRAININGS ─────────────────────────────────────────────────────────────
+
+  async renderTrainings(el) {
+    const trainings = await safeFetch('/api/trainings');
+    const rows = trainings.map(tr => `
+      <div class="training-card">
+        <div class="training-card-dates">
+          <div class="training-date-from">
+            <span class="training-date-label">${t('common.date_from')}</span>
+            <span class="training-date-val">${fmtDate(tr.date_start)}</span>
+          </div>
+          ${tr.date_end ? `<div class="training-date-to">
+            <span class="training-date-label">${t('common.date_to')}</span>
+            <span class="training-date-val">${fmtDate(tr.date_end)}</span>
+          </div>` : ''}
+        </div>
+        <div class="training-card-body">
+          <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
+          ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
+          ${tr.content_cz ? `<div class="training-card-desc">${pick(tr.content_cz, tr.content_en)}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    el.innerHTML = `
+      <div class="container section">
+        <h1 class="page-title">${t('nav.training')}</h1>
+        ${!trainings.length
+          ? `<p class="empty-state">${t('common.no_items')}</p>`
+          : `<div class="trainings-list">${rows}</div>`}
+      </div>`;
+  }
+
+  // ── PAGES ─────────────────────────────────────────────────────────────────
+
+  async renderPage(el, slug) {
+    const page = await safeFetch(`/api/pages/${slug}`);
+    el.innerHTML = `
+      <article class="container section article-body">
+        ${page.cover_image ? `<img class="article-cover" src="${esc(page.cover_image)}" alt="${esc(pick(page.title_cz, page.title_en))}">` : ''}
+        <h1 class="article-title">${esc(pick(page.title_cz, page.title_en))}</h1>
+        ${page.excerpt_cz ? `<p class="article-excerpt">${esc(pick(page.excerpt_cz, page.excerpt_en))}</p>` : ''}
+        <div class="article-content">${pick(page.content_cz, page.content_en) || ''}</div>
+      </article>`;
+  }
+
+  // ── SEARCH ────────────────────────────────────────────────────────────────
+
+  async renderSearch(el) {
+    const q = new URLSearchParams(window.location.search).get('q') || '';
+    if (!q) {
+      el.innerHTML = `<div class="container section"><h1 class="page-title">${t('common.search_results')}</h1><p class="empty-state">${t('common.no_items')}</p></div>`;
+      return;
+    }
+
+    const ql = q.toLowerCase();
+    const [prods, apps, news] = await Promise.allSettled([
+      safeFetch('/api/products'),
+      safeFetch('/api/applications'),
+      safeFetch('/api/news'),
+    ]);
+
+    const matchProd = (prods.value || []).filter(p =>
+      pick(p.name_cz, p.name_en).toLowerCase().includes(ql) ||
+      pick(p.description_cz, p.description_en).toLowerCase().includes(ql)
+    );
+    const matchApp = (apps.value || []).filter(a =>
+      pick(a.name_cz, a.name_en).toLowerCase().includes(ql) ||
+      pick(a.content_cz, a.content_en).toLowerCase().includes(ql)
+    );
+    const matchNews = (news.value || []).filter(n =>
+      pick(n.title_cz, n.title_en).toLowerCase().includes(ql) ||
+      pick(n.excerpt_cz, n.excerpt_en).toLowerCase().includes(ql)
+    );
+
+    const total = matchProd.length + matchApp.length + matchNews.length;
+
+    const section = (title, items, makeCard) => items.length
+      ? `<div class="search-section"><h3 class="search-section-title">${title}</h3><div class="search-results-grid">${items.map(makeCard).join('')}</div></div>`
+      : '';
+
+    el.innerHTML = `
+      <div class="container section">
+        <h1 class="page-title">${t('common.search_results')}: <em>"${esc(q)}"</em></h1>
+        <p style="color:var(--text-2);margin-bottom:32px">${total} ${getLang() === 'en' ? 'result(s)' : 'výsledek/výsledků'}</p>
+        ${!total ? `<p class="empty-state">${t('search.no_results')}</p>` : ''}
+        ${section(t('nav.products'), matchProd, p => `
+          <a class="search-result-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
+            <div class="search-result-type">${t('nav.products')}</div>
+            <div class="search-result-title">${esc(pick(p.name_cz, p.name_en))}</div>
+            ${p.description_cz ? `<div class="search-result-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 100)}</div>` : ''}
+          </a>`)}
+        ${section(t('nav.applications'), matchApp, a => `
+          <a class="search-result-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
+            <div class="search-result-type">${t('nav.applications')}</div>
+            <div class="search-result-title">${esc(pick(a.name_cz, a.name_en))}</div>
+            ${a.content_cz ? `<div class="search-result-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 100)}</div>` : ''}
+          </a>`)}
+        ${section(t('nav.news'), matchNews, n => `
+          <a class="search-result-card" href="/novinky/${esc(n.slug)}" data-nav="/novinky/${esc(n.slug)}">
+            <div class="search-result-type">${t('nav.news')}</div>
+            <div class="search-result-title">${esc(pick(n.title_cz, n.title_en))}</div>
+            ${n.excerpt_cz ? `<div class="search-result-desc">${esc(pick(n.excerpt_cz, n.excerpt_en)).substring(0, 100)}</div>` : ''}
+          </a>`)}
+      </div>`;
+  }
+
+  // ── 404 ───────────────────────────────────────────────────────────────────
+
+  render404(el) {
+    el.innerHTML = `
+      <div class="container section" style="text-align:center;padding:80px 24px">
+        <div style="font-size:4rem;font-weight:800;color:var(--text-3);line-height:1">404</div>
+        <h2 style="margin:16px 0 8px;color:var(--text-0)">${t('common.page_not_found')}</h2>
+        <p style="color:var(--text-2);margin-bottom:24px">${t('common.page_not_found_desc')}</p>
+        <a href="/" data-nav="/" class="btn-primary-pub">${t('common.back_home')}</a>
+      </div>`;
+  }
+
+  // ── Navigation from DB menu ────────────────────────────────────────────────
+
+  async _renderNav() {
+    const nav = document.getElementById('main-nav');
+    if (!nav) return;
+
+    // Keep static fallback if API failed or returned suspiciously few root items
+    const rootCount = this.menuItems.filter(i => !i.parent_id).length;
+    if (rootCount < 3) return;
+
+    // Load news categories for injection into Novinky dropdown
+    let newsCategories = [];
+    try { newsCategories = await safeFetch('/api/news-categories'); } catch {}
+
+    const lang = getLang();
+    const roots    = this.menuItems.filter(i => !i.parent_id).sort((a, b) => a.display_order - b.display_order);
+    const children = this.menuItems.filter(i =>  i.parent_id);
+
+    const chevronSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+    nav.innerHTML = roots.map(item => {
+      const href = item.link_value || '#';
+      const label = lang === 'en' && item.label_en ? item.label_en : item.label_cz;
+
+      const itemChildren = children
+        .filter(c => c.parent_id === item.id)
+        .sort((a, b) => a.display_order - b.display_order);
+
+      // Inject news categories under any item linking to /novinky
+      const extraChildren = (item.link_value === '/novinky' && newsCategories.length)
+        ? newsCategories.map(cat => ({
+            label_cz:   cat.name_cz,
+            label_en:   cat.name_en || cat.name_cz,
+            link_value: `/novinky?kategorie=${cat.slug}`,
+          }))
+        : [];
+
+      const allChildren = [...itemChildren, ...extraChildren];
+      const hasDropdown = allChildren.length > 0;
+
+      const dropdownHtml = hasDropdown ? `
+        <div class="nav-dropdown">
+          ${allChildren.map(c => {
+            const cHref  = c.link_value || '#';
+            const cLabel = lang === 'en' && c.label_en ? c.label_en : (c.label_cz || '');
+            return `<a href="${esc(cHref)}" data-nav="${esc(cHref)}">${esc(cLabel)}</a>`;
+          }).join('')}
+        </div>` : '';
+
+      return `<li>
+        <a href="${esc(href)}" data-nav="${esc(href)}">${esc(label)}${hasDropdown ? chevronSvg : ''}</a>
+        ${dropdownHtml}
+      </li>`;
+    }).join('');
+  }
+
+  // ── UI helpers ────────────────────────────────────────────────────────────
+
+  updateLangUI() {
+    const lang = getLang();
+    document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.langBtn === lang);
+    });
+  }
+
+  _updateTopbar() {
+    const s = this.settings;
+    const phoneEl = document.getElementById('topbarPhone');
+    const emailEl = document.getElementById('topbarEmail');
+    if (phoneEl && s.contact_phone) {
+      phoneEl.textContent = s.contact_phone;
+      phoneEl.closest('a')?.setAttribute('href', `tel:${s.contact_phone}`);
+    }
+    if (emailEl && s.contact_email) {
+      emailEl.textContent = s.contact_email;
+      emailEl.closest('a')?.setAttribute('href', `mailto:${s.contact_email}`);
+    }
+  }
+
+  _updateFooter() {
+    const s = this.settings;
+    const footerTextEl    = document.getElementById('footerText');
+    const footerPhoneEl   = document.getElementById('footerPhone');
+    const footerEmailEl   = document.getElementById('footerEmail');
+    const footerAddressEl = document.getElementById('footerAddress');
+    if (footerTextEl    && (s.footer_text_cz || s.footer_text_en)) footerTextEl.textContent = pick(s.footer_text_cz, s.footer_text_en);
+    if (footerPhoneEl   && s.contact_phone)   footerPhoneEl.textContent   = s.contact_phone;
+    if (footerEmailEl   && s.contact_email)   footerEmailEl.textContent   = s.contact_email;
+    if (footerAddressEl && s.contact_address) footerAddressEl.textContent = s.contact_address;
+  }
+
+  _bindLangSwitch() {
+    document.querySelectorAll('[data-lang-btn]').forEach(btn => {
+      btn.addEventListener('click', () => setLang(btn.dataset.langBtn));
+    });
+  }
+
+  _bindSearch() {
+    const overlay  = document.getElementById('search-overlay');
+    const input    = document.getElementById('search-input');
+    const openBtns = document.querySelectorAll('[data-open-search]');
+    const closeBtn = document.querySelector('.search-close');
+
+    openBtns.forEach(btn => btn.addEventListener('click', () => {
+      overlay?.classList.add('open'); input?.focus();
+    }));
+    closeBtn?.addEventListener('click', () => overlay?.classList.remove('open'));
+    overlay?.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') overlay?.classList.remove('open');
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault(); overlay?.classList.add('open'); input?.focus();
+      }
+    });
+
+    input?.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (q.length >= 2) this._doLiveSearch(q);
+      else document.getElementById('search-results').innerHTML = '';
+    });
+
+    input?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const q = input.value.trim();
+        if (q) { overlay?.classList.remove('open'); this.navigate(`/hledat?q=${encodeURIComponent(q)}`); }
+      }
+    });
+  }
+
+  async _doLiveSearch(q) {
+    const resultsEl = document.getElementById('search-results');
+    if (!resultsEl) return;
+    const ql = q.toLowerCase();
+
+    try {
+      const [prods, apps, news] = await Promise.allSettled([
+        safeFetch('/api/products'),
+        safeFetch('/api/applications'),
+        safeFetch('/api/news'),
+      ]);
+
+      const results = [
+        ...(prods.value || []).filter(p => pick(p.name_cz, p.name_en).toLowerCase().includes(ql))
+          .slice(0, 3).map(p => ({ type: t('nav.products'), title: pick(p.name_cz, p.name_en), href: `/produkty/${p.slug}` })),
+        ...(apps.value || []).filter(a => pick(a.name_cz, a.name_en).toLowerCase().includes(ql))
+          .slice(0, 3).map(a => ({ type: t('nav.applications'), title: pick(a.name_cz, a.name_en), href: `/aplikace/${a.slug}` })),
+        ...(news.value || []).filter(n => pick(n.title_cz, n.title_en).toLowerCase().includes(ql))
+          .slice(0, 2).map(n => ({ type: t('nav.news'), title: pick(n.title_cz, n.title_en), href: `/novinky/${n.slug}` })),
+      ];
+
+      if (!results.length) {
+        resultsEl.innerHTML = `<div class="search-no-results">${t('search.no_results')}</div>`;
+        return;
+      }
+
+      resultsEl.innerHTML = results.map(r => `
+        <a class="search-result-item" href="${esc(r.href)}" data-nav="${esc(r.href)}">
+          <span class="search-result-item-type">${esc(r.type)}</span>
+          <span class="search-result-item-title">${esc(r.title)}</span>
+        </a>`).join('');
+
+      resultsEl.querySelectorAll('[data-nav]').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          document.getElementById('search-overlay')?.classList.remove('open');
+          this.navigate(link.dataset.nav);
+        });
+      });
+    } catch { /* non-critical */ }
+  }
+
+  _bindMobileMenu() {
+    const toggle = document.getElementById('mobileMenuToggle');
+    const nav    = document.getElementById('main-nav');
+    if (!toggle || !nav) return;
+    toggle.addEventListener('click', () => nav.classList.toggle('mobile-open'));
+  }
+
+  // ── Cache helpers ─────────────────────────────────────────────────────────
+
+  async _getCategories() {
+    if (!this._categories) {
+      try { this._categories = await safeFetch('/api/product-categories'); }
+      catch { this._categories = []; }
+    }
+    return this._categories;
+  }
+
+  async _getAppGroups() {
+    if (!this._appGroups) {
+      try { this._appGroups = await safeFetch('/api/application-groups'); }
+      catch { this._appGroups = []; }
+    }
+    return this._appGroups;
+  }
+}
+
+const app = new PublicApp();
+window.app = app;
+app.init();
