@@ -8,12 +8,102 @@ export class NewsManager {
     this.items      = [];
     this.categories = [];
     this._editing   = null;
+    this._selected  = new Set();
   }
 
   async init() {
     await this.loadCategories();
     await this.loadItems();
     this._bindButtons();
+    this._bindSelection();
+  }
+
+  _bindSelection() {
+    const selectAll = document.getElementById('newsSelectAll');
+    if (selectAll && !selectAll.dataset.bound) {
+      selectAll.dataset.bound = '1';
+      selectAll.addEventListener('change', (e) => {
+        this._selectAll(e.target.checked);
+      });
+    }
+  }
+
+  _selectAll(checked) {
+    this._selected.clear();
+    if (checked) {
+      this.items.forEach(item => this._selected.add(item.id));
+    }
+    this._renderCheckboxes();
+    this._updateDeleteButton();
+  }
+
+  _renderCheckboxes() {
+    const checkboxes = document.querySelectorAll('.news-row-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = this._selected.has(Number(cb.value));
+    });
+    const selectAll = document.getElementById('newsSelectAll');
+    if (selectAll) {
+      selectAll.checked = this._selected.size === this.items.length && this.items.length > 0;
+      selectAll.indeterminate = this._selected.size > 0 && this._selected.size < this.items.length;
+    }
+  }
+
+  _toggleSelection(id, checked) {
+    if (checked) {
+      this._selected.add(id);
+    } else {
+      this._selected.delete(id);
+    }
+    this._updateDeleteButton();
+    this._renderCheckboxes();
+  }
+
+  _updateDeleteButton() {
+    const btn = document.getElementById('btnDeleteSelectedNews');
+    if (btn) {
+      btn.disabled = this._selected.size === 0;
+    }
+  }
+
+  async deleteSelected() {
+    if (this._selected.size === 0) return;
+    const count = this._selected.size;
+    if (!confirm(`Smazat ${count} novink${count === 1 ? 'u' : count < 5 ? 'y' : ''}?`)) return;
+
+    const ids = Array.from(this._selected);
+    let deleted = 0;
+    let errors = [];
+
+    for (const id of ids) {
+      try {
+        const response = await fetch(`/api/news/admin/${id}`, {
+          method: 'DELETE',
+          headers: this.auth.getAuthHeaders()
+        });
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+          const err = contentType?.includes('application/json')
+            ? await response.json()
+            : { error: await response.text() };
+          errors.push(err.error || `ID ${id}: Chyba`);
+        } else {
+          deleted++;
+        }
+      } catch (err) {
+        errors.push(`ID ${id}: ${err.message}`);
+      }
+    }
+
+    this._selected.clear();
+    this._updateDeleteButton();
+    await this.loadItems();
+
+    if (errors.length > 0) {
+      window.admin?.showNotification(`Smazáno ${deleted}, chyby: ${errors.join(', ')}`, 'warning');
+    } else {
+      window.admin?.showNotification(`${deleted} novink${deleted === 1 ? 'a' : deleted < 5 ? 'y' : ''} smazána`, 'success');
+    }
   }
 
   async loadCategories() {
@@ -40,6 +130,11 @@ export class NewsManager {
     if (btn && !btn.dataset.bound) {
       btn.dataset.bound = '1';
       btn.addEventListener('click', () => this.showModal());
+    }
+    const btnDelete = document.getElementById('btnDeleteSelectedNews');
+    if (btnDelete && !btnDelete.dataset.bound) {
+      btnDelete.dataset.bound = '1';
+      btnDelete.addEventListener('click', () => this.deleteSelected());
     }
   }
 
@@ -68,8 +163,11 @@ export class NewsManager {
     const tbody = document.getElementById('newsTableBody');
     if (!tbody) return;
 
+    this._selected.clear();
+    this._updateDeleteButton();
+
     if (!this.items.length) {
-      tbody.innerHTML = `<tr><td colspan="6">
+      tbody.innerHTML = `<tr><td colspan="7">
         <div class="table-empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Z"/>
@@ -83,6 +181,9 @@ export class NewsManager {
     tbody.innerHTML = this.items.map(item => {
       const date = item.created_at ? new Date(item.created_at).toLocaleDateString('cs-CZ') : '–';
       return `<tr>
+        <td class="col-checkbox">
+          <input type="checkbox" class="news-row-checkbox" value="${item.id}" onchange="admin.news._toggleSelection(${item.id}, this.checked)">
+        </td>
         <td class="col-id">${item.id}</td>
         <td>
           <div class="table-title">${esc(item.title_cz || '–')}</div>
@@ -121,6 +222,9 @@ export class NewsManager {
         </td>
       </tr>`;
     }).join('');
+
+    const selectAll = document.getElementById('newsSelectAll');
+    if (selectAll) selectAll.checked = false;
   }
 
   showModal(id = null) {

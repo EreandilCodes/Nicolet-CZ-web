@@ -370,6 +370,10 @@ img { max-width: 100%; display: block; }
 .admin-table tbody tr:hover td { background: var(--bg-subtle); }
 
 .admin-table .col-id { width: 56px; color: var(--text-3); font-size: 0.78rem; }
+.admin-table .col-checkbox { width: 40px; }
+.admin-table .col-checkbox input[type="checkbox"] {
+  width: 16px; height: 16px; cursor: pointer; accent-color: var(--blue);
+}
 .admin-table .col-order { width: 60px; }
 .admin-table .col-actions { width: 120px; text-align: right; }
 .admin-table .col-status { width: 90px; }
