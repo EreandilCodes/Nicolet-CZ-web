@@ -7,11 +7,24 @@ export class ButtonsManager {
     this.auth     = auth;
     this.items    = [];
     this._editing = null;
+    this._forms   = [];  // for form selector dropdown
   }
 
   async init() {
-    await this.loadItems();
+    await Promise.all([this.loadItems(), this._loadForms()]);
     this._bindButtons();
+  }
+
+  async _loadForms() {
+    try {
+      const response = await fetch('/api/forms/admin/all', {
+        headers: this.auth.getAuthHeaders()
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) return;
+      if (!contentType?.includes('application/json')) return;
+      this._forms = await response.json();
+    } catch { this._forms = []; }
   }
 
   _bindButtons() {
@@ -19,6 +32,33 @@ export class ButtonsManager {
     if (btn && !btn.dataset.bound) {
       btn.dataset.bound = '1';
       btn.addEventListener('click', () => this.showModal());
+    }
+
+    // React to link_type change
+    const linkTypeEl = document.getElementById('btnLinkType');
+    if (linkTypeEl && !linkTypeEl.dataset.bound) {
+      linkTypeEl.dataset.bound = '1';
+      linkTypeEl.addEventListener('change', () => this._toggleLinkValueUI(linkTypeEl.value));
+    }
+  }
+
+  _toggleLinkValueUI(linkType) {
+    const inputWrap  = document.getElementById('btnLinkValueWrap');
+    const selectWrap = document.getElementById('btnFormSelectWrap');
+    if (!inputWrap || !selectWrap) return;
+
+    if (linkType === 'form') {
+      inputWrap.style.display  = 'none';
+      selectWrap.style.display = '';
+      // Populate form select if empty
+      const sel = document.getElementById('btnFormSelect');
+      if (sel && !sel.children.length) {
+        sel.innerHTML = `<option value="">– Vyberte formulář –</option>` +
+          this._forms.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+      }
+    } else {
+      inputWrap.style.display  = '';
+      selectWrap.style.display = 'none';
     }
   }
 
@@ -63,6 +103,12 @@ export class ButtonsManager {
     const styleLabels    = { primary: 'Primární', secondary: 'Sekundární', outline: 'Outline' };
 
     tbody.innerHTML = this.items.map(item => {
+      // If link_type=form, show form name instead of raw ID
+      let linkValueDisplay = esc(item.link_value || '–');
+      if (item.link_type === 'form' && item.link_value) {
+        const form = this._forms.find(f => String(f.id) === String(item.link_value));
+        linkValueDisplay = form ? esc(form.name) : `Formulář #${item.link_value}`;
+      }
       return `<tr>
         <td class="col-id">${item.id}</td>
         <td>
@@ -72,6 +118,7 @@ export class ButtonsManager {
         <td class="col-status">
           <span class="badge badge-neutral">${esc(linkTypeLabels[item.link_type] || item.link_type || '–')}</span>
         </td>
+        <td style="font-size:12px;color:var(--text-2);">${linkValueDisplay}</td>
         <td class="col-status">
           <span class="badge badge-neutral">${esc(styleLabels[item.style] || item.style || '–')}</span>
         </td>
@@ -115,6 +162,19 @@ export class ButtonsManager {
     document.getElementById('btnStyle').value      = item?.style      || 'primary';
     document.getElementById('btnActive').checked   = item?.is_active  ?? true;
 
+    // Setup form select
+    const sel = document.getElementById('btnFormSelect');
+    if (sel) {
+      sel.innerHTML = `<option value="">– Vyberte formulář –</option>` +
+        this._forms.map(f => `<option value="${f.id}">${esc(f.name)}</option>`).join('');
+      if (item?.link_type === 'form' && item?.link_value) {
+        sel.value = item.link_value;
+      }
+    }
+
+    // Show/hide correct UI for link_type
+    this._toggleLinkValueUI(item?.link_type || 'internal');
+
     document.getElementById('buttonsModal').classList.remove('hidden');
 
     const form = document.getElementById('buttonsForm');
@@ -124,6 +184,13 @@ export class ButtonsManager {
         e.preventDefault();
         this.saveItem();
       });
+    }
+
+    // Bind link type change
+    const linkTypeEl = document.getElementById('btnLinkType');
+    if (linkTypeEl && !linkTypeEl.dataset.changeBound) {
+      linkTypeEl.dataset.changeBound = '1';
+      linkTypeEl.addEventListener('change', () => this._toggleLinkValueUI(linkTypeEl.value));
     }
   }
 
@@ -139,11 +206,19 @@ export class ButtonsManager {
       return;
     }
 
+    const linkType = document.getElementById('btnLinkType').value || 'internal';
+    let linkValue;
+    if (linkType === 'form') {
+      linkValue = document.getElementById('btnFormSelect')?.value || null;
+    } else {
+      linkValue = document.getElementById('btnLinkValue').value.trim() || null;
+    }
+
     const data = {
       label_cz,
       label_en:   document.getElementById('btnLabelEn').value.trim()  || null,
-      link_type:  document.getElementById('btnLinkType').value        || 'internal',
-      link_value: document.getElementById('btnLinkValue').value.trim() || null,
+      link_type:  linkType,
+      link_value: linkValue,
       style:      document.getElementById('btnStyle').value           || 'primary',
       is_active:  document.getElementById('btnActive').checked ? 1 : 0,
     };

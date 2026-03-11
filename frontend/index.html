@@ -51,8 +51,9 @@
   <div class="container header-inner">
 
     <!-- Logo -->
-    <a href="/" class="site-logo">
-      <div class="site-logo-text">
+    <a href="/" class="site-logo" id="headerLogo">
+      <img id="headerLogoImg" src="" alt="Logo" style="display:none;max-height:44px;max-width:160px;object-fit:contain;">
+      <div class="site-logo-text" id="headerLogoText">
         <span class="site-logo-name">Nicolet CZ</span>
         <span class="site-logo-tagline">Molekulová spektroskopie</span>
       </div>
@@ -135,8 +136,9 @@
     <div class="footer-grid">
 
       <div class="footer-brand">
-        <div class="site-logo" style="margin-bottom:16px">
-          <div class="site-logo-text">
+        <div class="site-logo" style="margin-bottom:16px" id="footerLogo">
+          <img id="footerLogoImg" src="" alt="Logo" style="display:none;max-height:44px;max-width:160px;object-fit:contain;">
+          <div class="site-logo-text" id="footerLogoText">
             <span class="site-logo-name">Nicolet CZ</span>
             <span class="site-logo-tagline">Molekulová spektroskopie</span>
           </div>
@@ -198,6 +200,25 @@
     </div>
   </div>
 </footer>
+
+<!-- ══ FORM MODAL ═══════════════════════════════════════════════════════ -->
+<div id="publicFormModal" class="pform-overlay" style="display:none;" aria-modal="true" role="dialog">
+  <div class="pform-dialog">
+    <div class="pform-bg" id="publicFormBg"></div>
+    <button class="pform-close" id="publicFormClose" aria-label="Zavřít">&times;</button>
+    <div class="pform-content">
+      <h2 class="pform-title" id="publicFormTitle"></h2>
+      <p class="pform-desc" id="publicFormDesc"></p>
+      <form id="publicFormEl" class="pform-form" novalidate>
+        <input type="text" name="_hp" style="display:none;" tabindex="-1" autocomplete="off">
+        <input type="hidden" name="_ts" id="publicFormTs">
+        <div id="publicFormFields"></div>
+        <button type="submit" id="publicFormSubmit" class="btn-pform-submit">Odeslat</button>
+      </form>
+      <div id="publicFormSuccess" style="display:none;" class="pform-success"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ══ SEARCH OVERLAY ════════════════════════════════════════════════════ -->
 <div id="search-overlay">

@@ -136,15 +136,23 @@ class PublicApp {
     await this._renderNav();
     this._updateTopbar();
     this._updateFooter();
+    this._updateLogo();
     this.updateLangUI();
     this._bindLangSwitch();
     this._bindSearch();
+    this._bindFormModalButtons();
     this._bindMobileMenu();
 
     window.addEventListener('popstate', () => this.route());
     document.addEventListener('click', (e) => {
       const link = e.target.closest('[data-nav]');
-      if (link) { e.preventDefault(); this.navigate(link.dataset.nav); }
+      if (link) {
+        const href = link.dataset.nav;
+        const isExternal = href.startsWith('http://') || href.startsWith('https://');
+        if (isExternal) return;
+        e.preventDefault();
+        this.navigate(href);
+      }
     });
 
     await this.route();
@@ -264,7 +272,7 @@ class PublicApp {
     const go = (n) => {
       slides[current].classList.remove('active');
       dots[current]?.classList.remove('active');
-      current = (n + slides.length) % slides.length;
+      current = ((n % slides.length) + slides.length) % slides.length;
       slides[current].classList.add('active');
       dots[current]?.classList.add('active');
     };
@@ -375,25 +383,62 @@ class PublicApp {
   // ── NEWS ──────────────────────────────────────────────────────────────────
 
   async renderNewsList(el) {
-    const posts = await safeFetch('/api/news');
+    const [posts, cats] = await Promise.all([
+      safeFetch('/api/news'),
+      safeFetch('/api/news-categories').catch(() => []),
+    ]);
+
+    // Show newest categories first
+    const sortedCats = [...cats].sort((a, b) => b.display_order - a.display_order);
+
+    const filterHtml = sortedCats.length ? `
+      <div class="filter-bar-pub">
+        <button class="filter-chip active" data-cat-filter="">
+          ${getLang() === 'en' ? 'All' : 'Vše'}
+        </button>
+        ${sortedCats.map(c => `<button class="filter-chip" data-cat-filter="${c.id}">${esc(pick(c.name_cz, c.name_en))}</button>`).join('')}
+      </div>` : '';
+
+    const cards = posts.map(p => `
+      <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}" data-news-cat="${p.category_id || ''}">
+        ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
+        <div class="news-card-body">
+          <div class="news-card-date">${fmtDate(p.published_at)}</div>
+          <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
+          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
+          <span class="news-card-link">${t('common.read_more')} →</span>
+        </div>
+      </a>`).join('');
+
     el.innerHTML = `
       <div class="container section">
         <div class="section-header">
           <h1 class="page-title">${t('nav.news')}</h1>
         </div>
-        ${!posts.length
-          ? `<p class="empty-state">${t('common.no_items')}</p>`
-          : `<div class="news-grid news-grid-full">${posts.map(p => `
-              <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
-                ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
-                <div class="news-card-body">
-                  <div class="news-card-date">${fmtDate(p.published_at)}</div>
-                  <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
-                  ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
-                  <span class="news-card-link">${t('common.read_more')} →</span>
-                </div>
-              </a>`).join('')}</div>`}
+        ${filterHtml}
+        <div class="news-grid news-grid-full">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
       </div>`;
+
+    el.querySelectorAll('.filter-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const catId = btn.dataset.catFilter;
+        el.querySelectorAll('.news-card').forEach(card => {
+          card.style.display = (!catId || String(card.dataset.newsCat) === catId) ? '' : 'none';
+        });
+      });
+    });
+
+    // Pre-select filter from URL ?kategorie=slug (set by menu entity picker)
+    const slugParam = new URLSearchParams(window.location.search).get('kategorie');
+    if (slugParam) {
+      const matched = cats.find(c => c.slug === slugParam);
+      if (matched) {
+        const chip = el.querySelector(`.filter-chip[data-cat-filter="${matched.id}"]`);
+        if (chip) chip.click();
+      }
+    }
   }
 
   async renderNewsDetail(el, slug) {
@@ -464,6 +509,16 @@ class PublicApp {
         });
       });
     });
+
+    // Pre-select filter from URL ?kategorie=slug (set by menu entity picker)
+    const slugParam = new URLSearchParams(window.location.search).get('kategorie');
+    if (slugParam) {
+      const matched = cats.find(c => c.slug === slugParam);
+      if (matched) {
+        const chip = el.querySelector(`.filter-chip[data-cat-filter="${matched.id}"]`);
+        if (chip) chip.click();
+      }
+    }
   }
 
   async renderProductDetail(el, slug) {
@@ -579,6 +634,16 @@ class PublicApp {
         });
       });
     });
+
+    // Pre-select filter from URL ?skupina=slug (set by menu entity picker)
+    const skupinaParam = new URLSearchParams(window.location.search).get('skupina');
+    if (skupinaParam) {
+      const matched = groups.find(g => g.slug === skupinaParam);
+      if (matched) {
+        const chip = el.querySelector(`.filter-chip[data-group-filter="${matched.id}"]`);
+        if (chip) chip.click();
+      }
+    }
   }
 
   async renderApplicationDetail(el, slug) {
@@ -638,8 +703,17 @@ class PublicApp {
   // ── TRAININGS ─────────────────────────────────────────────────────────────
 
   async renderTrainings(el) {
-    const trainings = await safeFetch('/api/trainings');
-    const rows = trainings.map(tr => `
+    const [trainings, buttons] = await Promise.all([
+      safeFetch('/api/trainings'),
+      safeFetch('/api/buttons').catch(() => []),
+    ]);
+
+    const btnMap = {};
+    (buttons || []).forEach(b => { btnMap[b.id] = b; });
+
+    const rows = trainings.map(tr => {
+      const ctaBtn = tr.cta_button_id ? btnMap[tr.cta_button_id] : null;
+      return `
       <div class="training-card">
         <div class="training-card-dates">
           <div class="training-date-from">
@@ -655,8 +729,10 @@ class PublicApp {
           <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
           ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
           ${tr.content_cz ? `<div class="training-card-desc">${pick(tr.content_cz, tr.content_en)}</div>` : ''}
+          ${ctaBtn ? `<div class="training-card-cta">${this._renderCtaButton(ctaBtn)}</div>` : ''}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     el.innerHTML = `
       <div class="container section">
@@ -755,17 +831,13 @@ class PublicApp {
 
   // ── Navigation from DB menu ────────────────────────────────────────────────
 
-  async _renderNav() {
+  _renderNav() {
     const nav = document.getElementById('main-nav');
     if (!nav) return;
 
     // Keep static fallback if API failed or returned suspiciously few root items
     const rootCount = this.menuItems.filter(i => !i.parent_id).length;
     if (rootCount < 3) return;
-
-    // Load news categories for injection into Novinky dropdown
-    let newsCategories = [];
-    try { newsCategories = await safeFetch('/api/news-categories'); } catch {}
 
     const lang = getLang();
     const roots    = this.menuItems.filter(i => !i.parent_id).sort((a, b) => a.display_order - b.display_order);
@@ -781,21 +853,11 @@ class PublicApp {
         .filter(c => c.parent_id === item.id)
         .sort((a, b) => a.display_order - b.display_order);
 
-      // Inject news categories under any item linking to /novinky
-      const extraChildren = (item.link_value === '/novinky' && newsCategories.length)
-        ? newsCategories.map(cat => ({
-            label_cz:   cat.name_cz,
-            label_en:   cat.name_en || cat.name_cz,
-            link_value: `/novinky?kategorie=${cat.slug}`,
-          }))
-        : [];
-
-      const allChildren = [...itemChildren, ...extraChildren];
-      const hasDropdown = allChildren.length > 0;
+      const hasDropdown = itemChildren.length > 0;
 
       const dropdownHtml = hasDropdown ? `
         <div class="nav-dropdown">
-          ${allChildren.map(c => {
+          ${itemChildren.map(c => {
             const cHref  = c.link_value || '#';
             const cLabel = lang === 'en' && c.label_en ? c.label_en : (c.label_cz || '');
             return `<a href="${esc(cHref)}" data-nav="${esc(cHref)}">${esc(cLabel)}</a>`;
@@ -842,6 +904,26 @@ class PublicApp {
     if (footerPhoneEl   && s.contact_phone)   footerPhoneEl.textContent   = s.contact_phone;
     if (footerEmailEl   && s.contact_email)   footerEmailEl.textContent   = s.contact_email;
     if (footerAddressEl && s.contact_address) footerAddressEl.textContent = s.contact_address;
+  }
+
+  _updateLogo() {
+    const logoUrl = this.settings.logo_url || '';
+    this._applyLogoEl('headerLogoImg', 'headerLogoText', logoUrl);
+    this._applyLogoEl('footerLogoImg',  'footerLogoText',  logoUrl);
+  }
+
+  _applyLogoEl(imgId, textId, logoUrl) {
+    const imgEl  = document.getElementById(imgId);
+    const textEl = document.getElementById(textId);
+    if (!imgEl || !textEl) return;
+    if (logoUrl) {
+      imgEl.src            = logoUrl;
+      imgEl.style.display  = '';
+      textEl.style.display = 'none';
+    } else {
+      imgEl.style.display  = 'none';
+      textEl.style.display = '';
+    }
   }
 
   _bindLangSwitch() {
@@ -948,6 +1030,171 @@ class PublicApp {
       catch { this._appGroups = []; }
     }
     return this._appGroups;
+  }
+
+  // ── FORM MODAL ────────────────────────────────────────────────────────────
+
+  _bindFormModalButtons() {
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-open-form]');
+      if (btn) {
+        e.preventDefault();
+        this.openFormModal(btn.dataset.openForm);
+      }
+    });
+    document.getElementById('publicFormClose')?.addEventListener('click', () => this.closeFormModal());
+    document.getElementById('publicFormModal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) this.closeFormModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.closeFormModal();
+    });
+  }
+
+  async openFormModal(formId) {
+    if (!formId) return;
+    try {
+      const form = await safeFetch(`/api/forms/${formId}`);
+      this._renderFormModal(form);
+      const modal = document.getElementById('publicFormModal');
+      if (modal) { modal.style.display = ''; document.body.style.overflow = 'hidden'; }
+    } catch (err) {
+      console.error('Form modal load error:', err);
+    }
+  }
+
+  _renderFormModal(form) {
+    const lang = getLang();
+    const title = lang === 'en' ? (form.title_en || form.title_cz || form.name) : (form.title_cz || form.name);
+    const desc  = lang === 'en' ? (form.description_en || form.description_cz || '') : (form.description_cz || '');
+    const submitLabel = lang === 'en' ? (form.submit_label_en || 'Submit') : (form.submit_label_cz || 'Odeslat');
+
+    const titleEl  = document.getElementById('publicFormTitle');
+    const descEl   = document.getElementById('publicFormDesc');
+    const submitEl = document.getElementById('publicFormSubmit');
+    const fieldsEl = document.getElementById('publicFormFields');
+    const successEl= document.getElementById('publicFormSuccess');
+    const bgEl     = document.getElementById('publicFormBg');
+    const tsEl     = document.getElementById('publicFormTs');
+
+    if (titleEl) titleEl.textContent = title;
+    if (descEl)  { descEl.textContent = desc; descEl.style.display = desc ? '' : 'none'; }
+    if (submitEl) submitEl.textContent = submitLabel;
+    if (successEl) successEl.style.display = 'none';
+    if (tsEl) tsEl.value = Math.floor(Date.now() / 1000);
+
+    // Background image
+    if (bgEl) {
+      if (form.background_image) {
+        bgEl.style.backgroundImage = `url('${form.background_image}')`;
+        bgEl.style.display = '';
+      } else {
+        bgEl.style.backgroundImage = '';
+        bgEl.style.display = 'none';
+      }
+    }
+
+    // Render fields
+    if (fieldsEl) {
+      const fields = Array.isArray(form.fields_json) ? form.fields_json : [];
+      fieldsEl.innerHTML = fields.map(f => {
+        const label = lang === 'en' ? (f.label_en || f.label_cz) : (f.label_cz || f.label_en);
+        const req   = f.required ? 'required' : '';
+        const reqMark = f.required ? ' <span class="pform-required">*</span>' : '';
+
+        if (f.type === 'checkbox') {
+          return `<label class="pform-checkbox-label">
+            <input type="checkbox" name="${esc(f.name)}" ${req}>
+            <span>${esc(label)}${reqMark}</span>
+          </label>`;
+        }
+        if (f.type === 'textarea') {
+          return `<div class="pform-field">
+            <label class="pform-label">${esc(label)}${reqMark}</label>
+            <textarea name="${esc(f.name)}" class="pform-textarea" rows="4" ${req} placeholder="${esc(label)}"></textarea>
+          </div>`;
+        }
+        return `<div class="pform-field">
+          <label class="pform-label">${esc(label)}${reqMark}</label>
+          <input type="${esc(f.type || 'text')}" name="${esc(f.name)}" class="pform-input" ${req} placeholder="${esc(label)}">
+        </div>`;
+      }).join('');
+    }
+
+    // Show/hide form
+    const formEl = document.getElementById('publicFormEl');
+    if (formEl) {
+      formEl.style.display = '';
+      formEl.dataset.formId = form.id;
+      // Bind submit (once per form load)
+      formEl.onsubmit = (e) => {
+        e.preventDefault();
+        this._submitFormModal(form);
+      };
+    }
+  }
+
+  async _submitFormModal(form) {
+    const formEl   = document.getElementById('publicFormEl');
+    const submitEl = document.getElementById('publicFormSubmit');
+    const successEl= document.getElementById('publicFormSuccess');
+    if (!formEl) return;
+
+    const data = {};
+    new FormData(formEl).forEach((val, key) => {
+      if (key !== '_hp' && key !== '_ts') data[key] = val;
+    });
+
+    // Add honeypot + timestamp
+    data._ts = document.getElementById('publicFormTs')?.value || Math.floor(Date.now() / 1000);
+
+    if (submitEl) { submitEl.disabled = true; submitEl.textContent = '…'; }
+
+    try {
+      const response = await fetch(`/api/forms/${form.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json') ? await response.json() : { error: await response.text() };
+        throw new Error(err.error || 'Chyba odeslání');
+      }
+
+      const lang = getLang();
+      const msg = lang === 'en'
+        ? (form.success_msg_en || 'Thank you. We will get back to you shortly.')
+        : (form.success_msg_cz || 'Děkujeme za zprávu. Brzy se ozveme.');
+
+      formEl.style.display = 'none';
+      if (successEl) { successEl.textContent = msg; successEl.style.display = ''; }
+    } catch (err) {
+      alert(err.message || 'Chyba při odeslání formuláře');
+    } finally {
+      if (submitEl) { submitEl.disabled = false; }
+    }
+  }
+
+  closeFormModal() {
+    const modal = document.getElementById('publicFormModal');
+    if (modal) { modal.style.display = 'none'; document.body.style.overflow = ''; }
+  }
+
+  _renderCtaButton(btn) {
+    if (!btn || !btn.is_active) return '';
+    const lang = getLang();
+    const label = lang === 'en' ? (btn.label_en || btn.label_cz) : (btn.label_cz || btn.label_en);
+    const styleMap = { primary: 'btn-cta-primary', secondary: 'btn-cta-secondary', outline: 'btn-cta-outline' };
+    const cls = styleMap[btn.style] || 'btn-cta-primary';
+
+    if (btn.link_type === 'form' && btn.link_value) {
+      return `<button type="button" class="training-cta-btn ${cls}" data-open-form="${esc(btn.link_value)}">${esc(label)}</button>`;
+    }
+    if (btn.link_type === 'external') {
+      return `<a href="${esc(btn.link_value || '#')}" target="_blank" rel="noopener" class="training-cta-btn ${cls}">${esc(label)}</a>`;
+    }
+    return `<a href="${esc(btn.link_value || '#')}" data-nav="${esc(btn.link_value || '#')}" class="training-cta-btn ${cls}">${esc(label)}</a>`;
   }
 }
 

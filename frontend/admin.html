@@ -13,14 +13,14 @@
   <!-- ══ HEADER ════════════════════════════════════════════════════════════ -->
   <header id="admin-header">
     <a href="/admin" class="admin-brand">
-      <div class="admin-brand-logo">
+      <div class="admin-brand-logo" id="adminBrandLogo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2L2 7l10 5 10-5-10-5z"/>
           <path d="M2 17l10 5 10-5"/>
           <path d="M2 12l10 5 10-5"/>
         </svg>
       </div>
-      <div class="admin-brand-text">
+      <div class="admin-brand-text" id="adminBrandText">
         <span class="admin-brand-name">Nicolet CZ</span>
         <span class="admin-brand-sub">Admin</span>
       </div>
@@ -93,10 +93,48 @@
             <span>Stránky</span>
           </a>
         </li>
+        <li class="sidebar-nav-item">
+          <a data-section="products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+            </svg>
+            <span>Produkty</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="applications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            <span>Aplikace</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="trainings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+            </svg>
+            <span>Školení</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
+          <a data-section="gallery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>Galerie</span>
+          </a>
+        </li>
       </ul>
 
-      <!-- Produkty -->
-      <div class="sidebar-group-label">Produkty</div>
+      <!-- Struktura a funkce -->
+      <div class="sidebar-group-label">Struktura a funkce</div>
       <ul class="sidebar-nav">
         <li class="sidebar-nav-item">
           <a data-section="productCategories">
@@ -108,58 +146,14 @@
           </a>
         </li>
         <li class="sidebar-nav-item">
-          <a data-section="products">
+          <a data-section="menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
-            <span>Produkty</span>
+            <span>Menu</span>
           </a>
         </li>
-      </ul>
-
-      <!-- Aplikace -->
-      <div class="sidebar-group-label">Aplikace</div>
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-item">
-          <a data-section="appGroups">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-              <polyline points="9 22 9 12 15 12 15 22"/>
-            </svg>
-            <span>Skupiny</span>
-          </a>
-        </li>
-        <li class="sidebar-nav-item">
-          <a data-section="applications">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-            </svg>
-            <span>Aplikace</span>
-          </a>
-        </li>
-      </ul>
-
-      <div class="sidebar-divider"></div>
-
-      <!-- Školení -->
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-item">
-          <a data-section="trainings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-              <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
-            </svg>
-            <span>Školení</span>
-          </a>
-        </li>
-      </ul>
-
-      <!-- Formuláře -->
-      <div class="sidebar-group-label">Formuláře</div>
-      <ul class="sidebar-nav">
         <li class="sidebar-nav-item">
           <a data-section="forms">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -179,6 +173,13 @@
             <span>Tlačítka</span>
           </a>
         </li>
+      </ul>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Správa -->
+      <div class="sidebar-group-label">Správa</div>
+      <ul class="sidebar-nav">
         <li class="sidebar-nav-item">
           <a data-section="submissions">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -188,38 +189,6 @@
             <span>Odpovědi</span>
           </a>
         </li>
-      </ul>
-
-      <div class="sidebar-divider"></div>
-
-      <!-- Galerie & Menu -->
-      <ul class="sidebar-nav">
-        <li class="sidebar-nav-item">
-          <a data-section="gallery">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <polyline points="21 15 16 10 5 21"/>
-            </svg>
-            <span>Galerie</span>
-          </a>
-        </li>
-        <li class="sidebar-nav-item">
-          <a data-section="menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-            <span>Menu</span>
-          </a>
-        </li>
-      </ul>
-
-      <div class="sidebar-divider"></div>
-
-      <!-- Nastavení -->
-      <div class="sidebar-group-label">Správa</div>
-      <ul class="sidebar-nav">
         <li class="sidebar-nav-item">
           <a data-section="contacts">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -397,6 +366,12 @@
           </button>
         </div>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="newsSearch" class="filter-input" placeholder="Hledat v novinkách…" oninput="admin.news.filterItems()">
+        <select id="newsCategoryFilter" class="filter-select" onchange="admin.news.filterItems()">
+          <option value="">Všechny roky</option>
+        </select>
+      </div>
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
@@ -463,6 +438,10 @@
           style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;">
           Sekce novinek
         </button>
+        <button id="catTabAppGroups" onclick="admin._switchCatTab('appGroups')"
+          style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;">
+          Okruhy aplikací
+        </button>
       </div>
 
       <!-- Product categories tab -->
@@ -528,6 +507,38 @@
           </table>
         </div>
       </div>
+
+      <!-- App groups (Okruhy aplikací) tab -->
+      <div id="catPanelAppGroups" style="display:none;">
+        <div class="section-header-row">
+          <h2>Okruhy aplikací</h2>
+          <div class="section-toolbar">
+            <button id="btnAddAppGroup" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Přidat okruh
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th>Název</th>
+                <th>Slug</th>
+                <th class="col-order">Pořadí</th>
+                <th class="col-status">Stav</th>
+                <th class="col-actions">Akce</th>
+              </tr>
+            </thead>
+            <tbody id="appGroupsTableBody">
+              <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ── PRODUCTS ───────────────────────────────────────────────────────── -->
@@ -535,6 +546,15 @@
       <div class="section-header-row">
         <h2>Produkty</h2>
         <div class="section-toolbar">
+          <button id="btnDeleteSelectedProducts" class="btn btn-danger" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+            Smazat vybrané
+          </button>
           <button id="btnAddProduct" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -543,10 +563,19 @@
           </button>
         </div>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="productsSearch" class="filter-input" placeholder="Hledat v produktech…" oninput="admin.products.filterItems()">
+        <select id="productsCategoryFilter" class="filter-select" onchange="admin.products.filterItems()">
+          <option value="">Všechny kategorie</option>
+        </select>
+      </div>
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
+              <th class="col-checkbox">
+                <input type="checkbox" id="productsSelectAll" title="Vybrat vše">
+              </th>
               <th class="col-id">ID</th>
               <th>Název</th>
               <th>Kategorie</th>
@@ -557,39 +586,7 @@
             </tr>
           </thead>
           <tbody id="productsTableBody">
-            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ── APP GROUPS ─────────────────────────────────────────────────────── -->
-    <section id="appGroupsSection" class="admin-section">
-      <div class="section-header-row">
-        <h2>Skupiny aplikací</h2>
-        <div class="section-toolbar">
-          <button id="btnAddAppGroup" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Přidat skupinu
-          </button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th class="col-id">ID</th>
-              <th>Název</th>
-              <th>Slug</th>
-              <th class="col-order">Pořadí</th>
-              <th class="col-status">Stav</th>
-              <th class="col-actions">Akce</th>
-            </tr>
-          </thead>
-          <tbody id="appGroupsTableBody">
-            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            <tr><td colspan="8"><div class="table-empty"><p>Načítám…</p></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -600,6 +597,15 @@
       <div class="section-header-row">
         <h2>Aplikace</h2>
         <div class="section-toolbar">
+          <button id="btnDeleteSelectedApps" class="btn btn-danger" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14H6L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+              <path d="M9 6V4h6v2"/>
+            </svg>
+            Smazat vybrané
+          </button>
           <button id="btnAddApplication" class="btn btn-primary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -608,10 +614,19 @@
           </button>
         </div>
       </div>
+      <div class="filter-bar">
+        <input type="text" id="appsSearch" class="filter-input" placeholder="Hledat v aplikacích…" oninput="admin.apps.filterItems()">
+        <select id="appsGroupFilter" class="filter-select" onchange="admin.apps.filterItems()">
+          <option value="">Všechny skupiny</option>
+        </select>
+      </div>
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
             <tr>
+              <th class="col-checkbox">
+                <input type="checkbox" id="appsSelectAll" title="Vybrat vše">
+              </th>
               <th class="col-id">ID</th>
               <th>Název</th>
               <th>Skupina</th>
@@ -622,7 +637,7 @@
             </tr>
           </thead>
           <tbody id="applicationsTableBody">
-            <tr><td colspan="7"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            <tr><td colspan="8"><div class="table-empty"><p>Načítám…</p></div></td></tr>
           </tbody>
         </table>
       </div>
@@ -712,6 +727,7 @@
               <th class="col-id">ID</th>
               <th>Popis</th>
               <th class="col-status">Typ odkazu</th>
+              <th>Cíl</th>
               <th class="col-status">Styl</th>
               <th class="col-status">Stav</th>
               <th class="col-actions">Akce</th>
@@ -788,11 +804,19 @@
             </svg>
             Obnovit výchozí
           </button>
-          <button id="btnAddMenuItem" class="btn btn-primary">
+          <button id="btnAddMenuItem" class="btn btn-secondary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Přidat položku
+          </button>
+          <button id="btnSaveMenuChanges" class="btn btn-primary" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span class="btn-save-label">Uložit změny</span>
           </button>
         </div>
       </div>
@@ -980,6 +1004,24 @@
           <button class="btn btn-primary" onclick="admin.settings.saveMedia()">Uložit</button>
         </div>
 
+        <!-- Logo -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Logo
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Logo webu / adminu</label>
+            <div class="img-picker-wrap">
+              <input type="text" id="settingLogoUrl" class="form-input" placeholder="/uploads/gallery/…">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('settingLogoUrl','settingLogoPreview')">Vybrat z galerie</button>
+            </div>
+            <img id="settingLogoPreview" src="" alt="" style="display:none;max-height:60px;margin-top:8px;border-radius:4px;" onerror="this.style.display='none'">
+            <div class="form-hint">Zobrazí se v levém horním rohu adminu místo výchozí ikony.</div>
+          </div>
+          <button class="btn btn-primary" onclick="admin.settings.saveLogo()">Uložit</button>
+        </div>
+
       </div>
     </section>
 
@@ -1004,9 +1046,10 @@
           </div>
           <img id="carouselImagePreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
         </div>
-        <div class="form-group">
+        <div class="form-group autocomplete-picker">
           <label class="form-label">Odkaz (URL)</label>
-          <input type="text" id="carouselLinkUrl" class="form-input" placeholder="/produkty nebo https://…">
+          <input type="text" id="carouselLinkUrl" class="form-input" placeholder="/produkty nebo https://…" oninput="admin.carousel.filterLinkSuggestions(this.value)">
+          <div id="carouselLinkSuggestions" class="autocomplete-list" style="display:none;"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group">
@@ -1026,12 +1069,6 @@
           <div class="form-group">
             <label class="form-label">Podtitulek (EN)</label>
             <input type="text" id="carouselSubtitleEn" class="form-input" placeholder="Subtitle">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="form-group">
-            <label class="form-label">Pořadí</label>
-            <input type="number" id="carouselOrder" class="form-input" value="0" min="0">
           </div>
         </div>
         <div style="display:flex;gap:24px;margin-top:4px;">
@@ -1237,14 +1274,62 @@
             <textarea id="pagesExcerptEn" class="form-textarea" rows="3" placeholder="Short description…"></textarea>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="form-group">
-            <label class="form-label">Obsah (CZ)</label>
-            <textarea id="pagesContentCz" class="form-textarea" rows="8" placeholder="Obsah stránky (HTML)…"></textarea>
+        <!-- CZ / EN language tabs for content -->
+        <div class="form-group">
+          <label class="form-label">Obsah</label>
+          <div class="lang-tab-bar">
+            <button type="button" id="pagesTabCz" class="lang-tab-btn lang-tab-active" onclick="switchPagesLang('cz')">CZ</button>
+            <button type="button" id="pagesTabEn" class="lang-tab-btn" onclick="switchPagesLang('en')">EN</button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Obsah (EN)</label>
-            <textarea id="pagesContentEn" class="form-textarea" rows="8" placeholder="Page content (HTML)…"></textarea>
+          <div id="pagesContentCzPanel" class="lang-tab-panel">
+            <div class="editor-wrap">
+              <div class="editor-top-bar">
+                <div class="editor-mode-toggle">
+                  <button type="button" class="editor-mode-btn active" onclick="setEditorMode('pagesContentCz','text')">Text</button>
+                  <button type="button" class="editor-mode-btn" onclick="setEditorMode('pagesContentCz','html')">HTML</button>
+                </div>
+                <div class="editor-toolbar">
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','h1')" title="Nadpis 1">H1</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','h2')" title="Nadpis 2">H2</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','h3')" title="Nadpis 3">H3</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','bold')" title="Tučné"><b>B</b></button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','italic')" title="Kurzíva"><i>I</i></button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','ul')" title="Seznam">•</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','ol')" title="Číslovaný">1.</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentCz','link')" title="Odkaz">🔗</button>
+                </div>
+              </div>
+              <div id="pagesContentCz_view" class="editor-content-view" contenteditable="true"></div>
+              <textarea id="pagesContentCz" class="form-textarea" rows="10" style="display:none;" placeholder="Obsah stránky (HTML)…"></textarea>
+            </div>
+          </div>
+          <div id="pagesContentEnPanel" class="lang-tab-panel" style="display:none;">
+            <div class="editor-wrap">
+              <div class="editor-top-bar">
+                <div class="editor-mode-toggle">
+                  <button type="button" class="editor-mode-btn active" onclick="setEditorMode('pagesContentEn','text')">Text</button>
+                  <button type="button" class="editor-mode-btn" onclick="setEditorMode('pagesContentEn','html')">HTML</button>
+                </div>
+                <div class="editor-toolbar">
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','h1')" title="Heading 1">H1</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','h2')" title="Heading 2">H2</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','h3')" title="Heading 3">H3</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','bold')" title="Bold"><b>B</b></button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','italic')" title="Italic"><i>I</i></button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','ul')" title="Bullet list">•</button>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','ol')" title="Number list">1.</button>
+                  <span class="editor-sep"></span>
+                  <button type="button" class="editor-btn" onclick="insertFormat('pagesContentEn','link')" title="Link">🔗</button>
+                </div>
+              </div>
+              <div id="pagesContentEn_view" class="editor-content-view" contenteditable="true"></div>
+              <textarea id="pagesContentEn" class="form-textarea" rows="10" style="display:none;" placeholder="Page content (HTML)…"></textarea>
+            </div>
           </div>
         </div>
         <div class="form-group">
@@ -1565,7 +1650,7 @@
 <div id="agModal" class="modal-overlay hidden">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="agModalTitle">Přidat skupinu</h3>
+      <h3 id="agModalTitle">Přidat okruh aplikací</h3>
       <button class="modal-close" onclick="admin.appGroups.closeModal()">&times;</button>
     </div>
     <form id="agForm">
@@ -1900,9 +1985,15 @@
             </select>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Cíl (URL / slug formuláře)</label>
-          <input type="text" id="btnLinkValue" class="form-input" placeholder="/produkty nebo https://… nebo slug formuláře">
+        <div class="form-group" id="btnLinkValueWrap">
+          <label class="form-label">Cíl (URL / interní cesta)</label>
+          <input type="text" id="btnLinkValue" class="form-input" placeholder="/produkty nebo https://…">
+        </div>
+        <div class="form-group" id="btnFormSelectWrap" style="display:none;">
+          <label class="form-label">Formulář</label>
+          <select id="btnFormSelect" class="form-select">
+            <option value="">– Vyberte formulář –</option>
+          </select>
         </div>
         <label class="toggle-wrap">
           <div class="toggle">
@@ -1930,22 +2021,40 @@
     <form id="formsFormEl">
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Název formuláře <span class="required">*</span></label>
+          <label class="form-label">Interní název <span class="required">*</span></label>
           <input type="text" id="formName" class="form-input" placeholder="Kontaktní formulář" required>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group">
-            <label class="form-label">Popis (CZ)</label>
-            <textarea id="formDescCz" class="form-textarea" rows="3" placeholder="Popis formuláře…"></textarea>
+            <label class="form-label">Titulek (CZ)</label>
+            <input type="text" id="formTitleCz" class="form-input" placeholder="Kontaktujte nás">
           </div>
           <div class="form-group">
-            <label class="form-label">Popis (EN)</label>
-            <textarea id="formDescEn" class="form-textarea" rows="3" placeholder="Form description…"></textarea>
+            <label class="form-label">Titulek (EN)</label>
+            <input type="text" id="formTitleEn" class="form-input" placeholder="Contact Us">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Podtitulek / text (CZ)</label>
+            <textarea id="formDescCz" class="form-textarea" rows="2" placeholder="Popis formuláře…"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Podtitulek / text (EN)</label>
+            <textarea id="formDescEn" class="form-textarea" rows="2" placeholder="Form description…"></textarea>
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">Obrázek pozadí (URL z galerie)</label>
+          <div class="input-with-btn">
+            <input type="text" id="formBackgroundImage" class="form-input" placeholder="/uploads/gallery/…">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPicker('formBackgroundImage','formBgPreview')">Galerie</button>
+          </div>
+          <img id="formBgPreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
+        </div>
+        <div class="form-group">
           <label class="form-label">Příjemci emailů (oddělte čárkou)</label>
-          <input type="text" id="formEmailRecipients" class="form-input" placeholder="info@nicoletcz.cz, obchod@nicoletcz.cz">
+          <input type="text" id="formEmailRecipients" class="form-input" placeholder="info@nicoletcz.cz">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group">
@@ -1967,17 +2076,22 @@
             <textarea id="formSuccessMsgEn" class="form-textarea" rows="2" placeholder="Thank you, we will contact you."></textarea>
           </div>
         </div>
+
+        <!-- Field Builder -->
         <div class="form-group">
-          <label class="form-label">Obrázek pozadí (URL z galerie)</label>
-          <input type="text" id="formBackgroundImage" class="form-input" placeholder="/uploads/gallery/…">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Pole formuláře (JSON)</label>
-          <textarea id="formFieldsJson" class="form-textarea" rows="8" placeholder='[{"name":"jmeno","label_cz":"Jméno","label_en":"Name","type":"text","required":true,"options":[]}]'></textarea>
-          <div class="form-hint">
-            Každé pole: <code>{"name":"pole","label_cz":"Popis CZ","label_en":"Popis EN","type":"text|email|tel|textarea|checkbox|select","required":true,"options":[]}</code>
+          <label class="form-label">Pole formuláře</label>
+          <div id="formFieldList" class="field-list"></div>
+          <div class="field-builder-actions">
+            <span class="field-builder-label">Přidat pole:</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="admin.forms.addField('text')">+ Text</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="admin.forms.addField('email')">+ Email</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="admin.forms.addField('tel')">+ Telefon</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="admin.forms.addField('textarea')">+ Textarea</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="admin.forms.addField('checkbox')">+ Checkbox</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="admin.forms.addField('gdpr')" title="GDPR souhlas">+ GDPR</button>
           </div>
         </div>
+
         <label class="toggle-wrap">
           <div class="toggle">
             <input type="checkbox" id="formActive" checked>
@@ -2170,20 +2284,18 @@
             <option value="internal">Interní URL</option>
             <option value="page">Stránka</option>
             <option value="category">Kategorie produktů</option>
+            <option value="news_category">Rubrika novinek</option>
+            <option value="app_group">Okruhy aplikací</option>
             <option value="product">Produkt</option>
             <option value="application">Aplikace</option>
             <option value="external">Externí URL</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Vybrat entitu</label>
+          <label class="form-label">Cíl odkazu</label>
           <select id="menuEntityPicker" class="form-select" style="display:none;">
             <option value="">— Vyberte —</option>
           </select>
-          <div class="form-hint">Výběrem se automaticky vyplní odkaz níže.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cíl (URL / slug)</label>
           <input type="text" id="menuLinkValue" class="form-input" placeholder="/o-nas nebo https://…">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
@@ -2275,7 +2387,7 @@
 <!-- Toast container -->
 <div id="admin-toast"></div>
 
-<script type="module" src="/js/admin.js"></script>
+<script type="module" src="/js/admin.js?v=2"></script>
 
 <style>
   .hidden { display: none !important; }
@@ -2332,6 +2444,9 @@
   <div class="gallery-picker-modal">
     <div class="gallery-picker-modal-header">
       <h3 style="margin:0;font-size:16px;font-weight:600;">Vybrat obrázek z galerie</h3>
+      <select id="galPickerFolder" class="gallery-picker-folder form-select" onchange="filterGalleryPickerByFolder()">
+        <option value="">Všechny složky</option>
+      </select>
       <input type="text" id="galPickerSearch" class="gallery-picker-search form-input"
         placeholder="Hledat…" oninput="filterGalleryPicker(this.value)">
       <button class="modal-close" onclick="closeGalleryPicker()" style="position:static;margin-left:8px;">&times;</button>
@@ -2540,28 +2655,88 @@ function switchAppLang(lang) {
   document.getElementById('appTabEn').classList.toggle('lang-tab-active', lang === 'en');
 }
 
+// ── Pages language tabs (CZ / EN) ────────────────────────────────────────────
+
+let _pagesCurrentLang = 'cz';
+
+function resetPagesLangTabs() {
+  _pagesCurrentLang = 'cz';
+  const czPanel = document.getElementById('pagesContentCzPanel');
+  const enPanel = document.getElementById('pagesContentEnPanel');
+  const czTab   = document.getElementById('pagesTabCz');
+  const enTab   = document.getElementById('pagesTabEn');
+  if (czPanel) czPanel.style.display = '';
+  if (enPanel) enPanel.style.display = 'none';
+  if (czTab)   czTab.classList.add('lang-tab-active');
+  if (enTab)   enTab.classList.remove('lang-tab-active');
+}
+
+function switchPagesLang(lang) {
+  if (_pagesCurrentLang === 'cz') syncEditorToHtml('pagesContentCz');
+  else                             syncEditorToHtml('pagesContentEn');
+  _pagesCurrentLang = lang;
+  document.getElementById('pagesContentCzPanel').style.display = lang === 'cz' ? '' : 'none';
+  document.getElementById('pagesContentEnPanel').style.display = lang === 'en' ? '' : 'none';
+  document.getElementById('pagesTabCz').classList.toggle('lang-tab-active', lang === 'cz');
+  document.getElementById('pagesTabEn').classList.toggle('lang-tab-active', lang === 'en');
+}
+
 // ── Gallery Picker ────────────────────────────────────────────────────────────
 
 let _galPickerTarget  = null;
 let _galPickerPreview = null;
 let _galAllImages     = [];
+let _galAllFolders   = [];
+let _galCurrentFolder = '';
 
 async function openGalleryPicker(targetInputId, previewImgId) {
   _galPickerTarget  = targetInputId;
   _galPickerPreview = previewImgId || null;
   const searchEl = document.getElementById('galPickerSearch');
   if (searchEl) searchEl.value = '';
+  const folderEl = document.getElementById('galPickerFolder');
+  if (folderEl) folderEl.value = '';
+  _galCurrentFolder = '';
+  await _loadGalleryFolders();
   document.getElementById('galleryPickerModal').classList.remove('hidden');
   await _loadGalleryPickerImages();
 }
 
 // Called from products.js for picking into _imagesState
-function openGalleryPickerMulti(prefix) {
+async function openGalleryPickerMulti(prefix) {
   _galPickerTarget  = '__multi__' + prefix;
   _galPickerPreview = null;
   const searchEl = document.getElementById('galPickerSearch');
   if (searchEl) searchEl.value = '';
+  const folderEl = document.getElementById('galPickerFolder');
+  if (folderEl) folderEl.value = '';
+  _galCurrentFolder = '';
+  await _loadGalleryFolders();
   document.getElementById('galleryPickerModal').classList.remove('hidden');
+  await _loadGalleryPickerImages();
+}
+
+async function _loadGalleryFolders() {
+  const select = document.getElementById('galPickerFolder');
+  if (!select) return;
+  try {
+    const token = localStorage.getItem('nicolet_token');
+    const res = await fetch('/api/gallery/folders/admin/all', {
+      headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : {}
+    });
+    const ct = res.headers.get('content-type');
+    if (!res.ok) return;
+    _galAllFolders = ct?.includes('application/json') ? await res.json() : [];
+    select.innerHTML = '<option value="">Všechny složky</option>' +
+      _galAllFolders.map(f => `<option value="${f.id}">${_esc(f.name_cz || f.name_en || 'Složka ' + f.id)}</option>`).join('');
+  } catch (err) {
+    console.error('Failed to load gallery folders:', err);
+  }
+}
+
+function filterGalleryPickerByFolder() {
+  const folderEl = document.getElementById('galPickerFolder');
+  _galCurrentFolder = folderEl ? folderEl.value : '';
   _loadGalleryPickerImages();
 }
 
@@ -2571,7 +2746,11 @@ async function _loadGalleryPickerImages() {
   grid.innerHTML = '<p style="padding:20px;color:#6b7280;grid-column:1/-1;">Načítám obrázky…</p>';
   try {
     const token = localStorage.getItem('nicolet_token');
-    const res = await fetch('/api/gallery/images/admin/all', {
+    let url = '/api/gallery/images/admin/all';
+    if (_galCurrentFolder) {
+      url += '?folder_id=' + _galCurrentFolder;
+    }
+    const res = await fetch(url, {
       headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : {}
     });
     const ct = res.headers.get('content-type');
@@ -2596,13 +2775,15 @@ function _renderGalleryPickerImages(images) {
     return;
   }
   grid.innerHTML = images.map(img => {
-    const url  = img.image_url || img.identifier || '';
+    const url  = img.image_url || '';
     const name = _esc(img.title_cz || img.identifier || '–');
     const sel  = url === currentUrl ? ' selected' : '';
-    return `<div class="gallery-picker-item${sel}" onclick="selectGalleryImage('${_esc(url)}')">
-      <img src="${_esc(url)}" alt="${name}"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <div style="display:none;height:90px;background:#f1f5f9;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;">no preview</div>
+    return `<div class="gallery-picker-item${sel}" data-url="${_esc(url)}" onclick="selectGalleryImage(this.dataset.url)">
+      <div class="gallery-picker-item-image">
+        <img src="${_esc(url)}" alt="${name}"
+          onerror="this.style.display='none'">
+        <div style="display:none;width:100%;height:90px;background:#f1f5f9;align-items:center;justify-content:center;color:#94a3b8;font-size:11px;">no preview</div>
+      </div>
       <div class="gallery-picker-item-name">${name}</div>
     </div>`;
   }).join('');
@@ -2665,9 +2846,17 @@ async function uploadImage(input, targetId) {
  window.admin?.showNotification('Obrázek nahrán', 'success');
  } catch (err) {
  console.error('Upload error:', err);
- window.admin?.showNotification('Chyba nahrávání: ' + err.message, 'error');
- }
+  window.admin?.showNotification('Chyba nahrávání: ' + err.message, 'error');
+  }
 }
+
+// Attach gallery picker functions to window for inline onclick handlers
+window.openGalleryPicker = openGalleryPicker;
+window.openGalleryPickerMulti = openGalleryPickerMulti;
+window.closeGalleryPicker = closeGalleryPicker;
+window.filterGalleryPicker = filterGalleryPicker;
+window.selectGalleryImage = selectGalleryImage;
+window.uploadImage = uploadImage;
 </script>
 
 </body>

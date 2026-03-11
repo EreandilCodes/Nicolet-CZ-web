@@ -794,6 +794,94 @@ img { max-width: 100%; display: block; }
 .gallery-image-card .gal-card-title { font-size: 0.76rem; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gallery-image-card .gal-card-actions { display: flex; gap: 4px; margin-top: 6px; }
 
+/* ── Gallery Picker Modal ────────────────────────────────────────────────── */
+.gallery-picker-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(15,23,42,0.5);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.gallery-picker-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  width: 100%; max-width: 800px;
+  max-height: calc(100vh - 48px);
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.gallery-picker-modal-header {
+  display: flex; align-items: center;
+  gap: 12px; padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.gallery-picker-modal-header h3 { font-size: 1rem; font-weight: 600; color: var(--text-0); margin: 0; }
+.gallery-picker-folder {
+  max-width: 160px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+.gallery-picker-search {
+  flex: 1; min-width: 120px; max-width: 240px;
+  padding: 6px 12px; font-size: 0.85rem;
+}
+.gallery-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 280px;
+  max-height: 450px;
+}
+.gallery-picker-item {
+  display: flex; flex-direction: column;
+  border: 2px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--t);
+  position: relative;
+  background: var(--bg-card);
+  min-height: 120px;
+}
+.gallery-picker-item:hover { border-color: var(--blue); }
+.gallery-picker-item.selected { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+.gallery-picker-item-image {
+  width: 100%;
+  height: 90px;
+  flex-shrink: 0;
+  background: var(--bg-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gallery-picker-item img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  display: block;
+}
+.gallery-picker-item-name {
+  padding: 8px;
+  font-size: 0.75rem;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+.gallery-picker-footer {
+  display: flex; justify-content: flex-end;
+  gap: 10px; padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+
 /* ── Login ────────────────────────────────────────────────────────────────── */
 .login-page {
   min-height: 100vh; display: flex; align-items: center;
@@ -950,4 +1038,58 @@ img { max-width: 100%; display: block; }
   display: inline-block;
   vertical-align: middle;
   margin: 0 2px;
+}
+
+/* ── Forms Field Builder ──────────────────────────────────────────────────── */
+.field-list {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-bottom: 12px;
+  min-height: 60px;
+}
+
+.field-empty-state {
+  padding: 24px; text-align: center;
+  color: var(--text-3); font-size: 0.82rem;
+}
+
+.field-row {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.field-row:last-child { border-bottom: none; }
+
+.field-row-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+}
+
+.field-type-badge {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--blue); background: var(--blue-pale);
+  padding: 2px 8px; border-radius: 100px;
+}
+
+.field-row-actions { display: flex; align-items: center; gap: 4px; }
+
+.field-row-body { padding: 10px 12px; }
+
+.field-row-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 6px;
+}
+
+.form-input-sm { font-size: 0.8rem; padding: 5px 9px; }
+
+.field-builder-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+
+.field-builder-label {
+  font-size: 0.78rem; font-weight: 600; color: var(--text-3);
+  margin-right: 4px;
 }

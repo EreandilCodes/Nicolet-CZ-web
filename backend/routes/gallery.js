@@ -159,11 +159,11 @@ router.get('/images', async (req, res) => {
     let rows;
     if (req.query.folder_id) {
       rows = await db.prepare(
-        'SELECT * FROM gallery_images WHERE folder_id = ? ORDER BY display_order, id'
+        'SELECT * FROM gallery_images WHERE folder_id = ? ORDER BY id DESC'
       ).all(req.query.folder_id);
     } else {
       rows = await db.prepare(
-        'SELECT * FROM gallery_images ORDER BY display_order, id'
+        'SELECT * FROM gallery_images ORDER BY id DESC'
       ).all();
     }
     res.json(rows);
@@ -179,11 +179,11 @@ router.get('/images/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.admin
     if (req.query.folder_id !== undefined) {
       const fid = req.query.folder_id;
       rows = await db.prepare(
-        'SELECT * FROM gallery_images WHERE folder_id = ? ORDER BY display_order, id'
+        'SELECT * FROM gallery_images WHERE folder_id = ? ORDER BY id DESC'
       ).all(fid || null);
     } else {
       rows = await db.prepare(
-        'SELECT * FROM gallery_images ORDER BY display_order, id'
+        'SELECT * FROM gallery_images ORDER BY id DESC'
       ).all();
     }
     res.json(rows);

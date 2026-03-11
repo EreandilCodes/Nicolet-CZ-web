@@ -94,6 +94,7 @@ export async function initDatabase() {
     ['seo_desc_default_en',  ''],
     ['gtag_id',           ''],
     ['default_thumbnail', ''],
+    ['logo_url',          ''],
   ];
   for (const [key, value] of defaultSettings) {
     await db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`).run(key, value);
@@ -325,6 +326,10 @@ export async function initDatabase() {
       updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // ── Forms: migrate title columns if they don't exist ──────────────────────
+  try { await db.exec(`ALTER TABLE forms ADD COLUMN title_cz TEXT`); } catch {}
+  try { await db.exec(`ALTER TABLE forms ADD COLUMN title_en TEXT`); } catch {}
 
   // ── Form submissions ──────────────────────────────────────────────────────
   await db.exec(`

@@ -148,7 +148,7 @@ router.post('/:id/submit', async (req, res) => {
 router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
   try {
     const {
-      name, description_cz, description_en, fields_json, background_image,
+      name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
       email_recipients, submit_label_cz, submit_label_en,
       success_msg_cz, success_msg_en, is_active
     } = req.body;
@@ -156,11 +156,13 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
     if (!name?.trim()) return res.status(400).json({ error: 'name je povinné' });
 
     const result = await db.prepare(`
-      INSERT INTO forms (name, description_cz, description_en, fields_json, background_image,
+      INSERT INTO forms (name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
         email_recipients, submit_label_cz, submit_label_en, success_msg_cz, success_msg_en, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       name.trim(),
+      title_cz?.trim() || null,
+      title_en?.trim() || null,
       description_cz?.trim() || null,
       description_en?.trim() || null,
       typeof fields_json === 'string' ? fields_json : JSON.stringify(fields_json || []),
@@ -186,7 +188,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
   try {
     const { id } = req.params;
     const {
-      name, description_cz, description_en, fields_json, background_image,
+      name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
       email_recipients, submit_label_cz, submit_label_en,
       success_msg_cz, success_msg_en, is_active
     } = req.body;
@@ -195,12 +197,14 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
 
     const result = await db.prepare(`
       UPDATE forms
-      SET name = ?, description_cz = ?, description_en = ?, fields_json = ?, background_image = ?,
+      SET name = ?, title_cz = ?, title_en = ?, description_cz = ?, description_en = ?, fields_json = ?, background_image = ?,
           email_recipients = ?, submit_label_cz = ?, submit_label_en = ?,
           success_msg_cz = ?, success_msg_en = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       name.trim(),
+      title_cz?.trim() || null,
+      title_en?.trim() || null,
       description_cz?.trim() || null,
       description_en?.trim() || null,
       typeof fields_json === 'string' ? fields_json : JSON.stringify(fields_json || []),
