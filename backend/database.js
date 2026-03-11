@@ -94,7 +94,10 @@ export async function initDatabase() {
     ['seo_desc_default_en',  ''],
     ['gtag_id',           ''],
     ['default_thumbnail', ''],
-    ['logo_url',          ''],
+    ['logo_url',                    ''],
+    ['news_default_button_id',      ''],
+    ['product_default_button_id',   ''],
+    ['training_default_button_id',  ''],
   ];
   for (const [key, value] of defaultSettings) {
     await db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)`).run(key, value);

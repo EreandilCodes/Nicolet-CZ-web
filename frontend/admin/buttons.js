@@ -4,15 +4,17 @@
  */
 export class ButtonsManager {
   constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
-    this._editing = null;
-    this._forms   = [];  // for form selector dropdown
+    this.auth            = auth;
+    this.items           = [];
+    this._editing        = null;
+    this._forms          = [];  // for form selector dropdown
+    this._defaultSettings = {};
   }
 
   async init() {
     await Promise.all([this.loadItems(), this._loadForms()]);
     this._bindButtons();
+    await this._loadAndRenderDefaultButtons();
   }
 
   async _loadForms() {
@@ -245,6 +247,60 @@ export class ButtonsManager {
       window.admin?.showNotification(isEdit ? 'Tlačítko upraveno' : 'Tlačítko přidáno', 'success');
     } catch (err) {
       console.error('Buttons save error:', err);
+      window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    }
+  }
+
+  async _loadAndRenderDefaultButtons() {
+    try {
+      const response = await fetch('/api/settings', {
+        headers: this.auth.getAuthHeaders()
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok || !contentType?.includes('application/json')) return;
+      this._defaultSettings = await response.json();
+    } catch { this._defaultSettings = {}; }
+    this._renderDefaultButtonSelects();
+  }
+
+  _renderDefaultButtonSelects() {
+    const opts = `<option value="">– Žádné –</option>` +
+      this.items.map(b => `<option value="${b.id}">${esc(b.label_cz)}${b.label_en ? ' / ' + esc(b.label_en) : ''}</option>`).join('');
+
+    const selNews      = document.getElementById('defaultBtnNews');
+    const selProducts  = document.getElementById('defaultBtnProducts');
+    const selTrainings = document.getElementById('defaultBtnTrainings');
+
+    if (selNews)      { selNews.innerHTML      = opts; selNews.value      = this._defaultSettings.news_default_button_id      || ''; }
+    if (selProducts)  { selProducts.innerHTML  = opts; selProducts.value  = this._defaultSettings.product_default_button_id   || ''; }
+    if (selTrainings) { selTrainings.innerHTML = opts; selTrainings.value = this._defaultSettings.training_default_button_id  || ''; }
+  }
+
+  async saveDefaultButtons() {
+    const data = {
+      news_default_button_id:     document.getElementById('defaultBtnNews')?.value      || '',
+      product_default_button_id:  document.getElementById('defaultBtnProducts')?.value  || '',
+      training_default_button_id: document.getElementById('defaultBtnTrainings')?.value || '',
+    };
+
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: this.auth.getAuthHeaders(),
+        body: JSON.stringify(data)
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json')
+          ? await response.json()
+          : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      // Reload from server to confirm what was actually persisted
+      await this._loadAndRenderDefaultButtons();
+      window.admin?.showNotification('Defaultní tlačítka uložena', 'success');
+    } catch (err) {
+      console.error('Default buttons save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
     }
   }

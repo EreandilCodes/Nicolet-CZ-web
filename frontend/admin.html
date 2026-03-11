@@ -738,6 +738,36 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Defaultní tlačítka -->
+      <div class="settings-card" style="margin-top:24px;">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;margin-right:8px;vertical-align:middle;">
+            <rect x="1" y="9" width="22" height="6" rx="3"/>
+          </svg>
+          Defaultní tlačítka
+        </h3>
+        <p style="font-size:13px;color:var(--text-2);margin:0 0 16px;">Tlačítko zobrazené na konci stránky daného typu (novinky, produkt, školení). Pokud má školení vlastní CTA tlačítko, má přednost.</p>
+        <div class="form-group">
+          <label class="form-label">Novinky – výchozí tlačítko</label>
+          <select id="defaultBtnNews" class="form-input">
+            <option value="">– Žádné –</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Produkty – výchozí tlačítko</label>
+          <select id="defaultBtnProducts" class="form-input">
+            <option value="">– Žádné –</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Školení – výchozí tlačítko</label>
+          <select id="defaultBtnTrainings" class="form-input">
+            <option value="">– Žádné –</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="admin.buttons.saveDefaultButtons()">Uložit defaultní tlačítka</button>
+      </div>
     </section>
 
     <!-- ── SUBMISSIONS ────────────────────────────────────────────────────── -->

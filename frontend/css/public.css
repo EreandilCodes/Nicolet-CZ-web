@@ -1763,6 +1763,7 @@ p { color: var(--text-1); }
 }
 
 .training-card-cta { margin-top: 16px; }
+.article-cta { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
 .training-cta-btn {
   display: inline-block; padding: 10px 22px;
   border-radius: var(--r-md); font-family: var(--font);

@@ -15,6 +15,10 @@ const ALLOWED_KEYS = new Set([
   'seo_desc_default_cz', 'seo_desc_default_en',
   'gtag_id',
   'default_thumbnail',
+  'logo_url',
+  'news_default_button_id',
+  'product_default_button_id',
+  'training_default_button_id',
 ]);
 
 // GET /api/settings (admin only – returns all as object)
@@ -38,6 +42,10 @@ const PUBLIC_KEYS = new Set([
   'seo_title_default_cz', 'seo_title_default_en',
   'seo_desc_default_cz', 'seo_desc_default_en',
   'default_thumbnail',
+  'logo_url',
+  'news_default_button_id',
+  'product_default_button_id',
+  'training_default_button_id',
 ]);
 
 router.get('/public', async (req, res) => {

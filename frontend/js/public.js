@@ -442,7 +442,17 @@ class PublicApp {
   }
 
   async renderNewsDetail(el, slug) {
-    const post = await safeFetch(`/api/news/${slug}`);
+    const [post, buttons] = await Promise.all([
+      safeFetch(`/api/news/${slug}`),
+      this._getButtons(),
+    ]);
+    const btnMap = {};
+    (buttons || []).forEach(b => { btnMap[b.id] = b; });
+    const defaultBtn = this.settings.news_default_button_id
+      ? (btnMap[this.settings.news_default_button_id] || null)
+      : null;
+    const ctaHtml = defaultBtn ? `<div class="article-cta">${this._renderCtaButton(defaultBtn)}</div>` : '';
+
     el.innerHTML = `
       <article class="container section article-body">
         <div class="article-meta">
@@ -453,6 +463,7 @@ class PublicApp {
         <h1 class="article-title">${esc(pick(post.title_cz, post.title_en))}</h1>
         ${post.excerpt_cz ? `<p class="article-excerpt">${esc(pick(post.excerpt_cz, post.excerpt_en))}</p>` : ''}
         <div class="article-content">${pick(post.content_cz, post.content_en) || ''}</div>
+        ${ctaHtml}
       </article>`;
   }
 
@@ -522,7 +533,17 @@ class PublicApp {
   }
 
   async renderProductDetail(el, slug) {
-    const p = await safeFetch(`/api/products/${slug}`);
+    const [p, buttons] = await Promise.all([
+      safeFetch(`/api/products/${slug}`),
+      this._getButtons(),
+    ]);
+    const btnMap = {};
+    (buttons || []).forEach(b => { btnMap[b.id] = b; });
+    const defaultBtn = this.settings.product_default_button_id
+      ? (btnMap[this.settings.product_default_button_id] || null)
+      : null;
+    const productCtaHtml = defaultBtn ? `<div class="article-cta">${this._renderCtaButton(defaultBtn)}</div>` : '';
+
     let images = [];
     try {
       const raw = JSON.parse(p.images_json || '[]');
@@ -569,6 +590,7 @@ class PublicApp {
             ${cats ? `<div class="product-detail-cats">${esc(cats)}</div>` : ''}
             <h1 class="product-detail-name">${esc(pick(p.name_cz, p.name_en))}</h1>
             ${tabContentDesc}
+            ${productCtaHtml}
           </div>
           <div class="detail-tab-panel" data-panel="apps" style="display:none;">${tabContentApps}</div>
         </div>
@@ -702,17 +724,30 @@ class PublicApp {
 
   // ── TRAININGS ─────────────────────────────────────────────────────────────
 
+  async _getButtons() {
+    if (!this._buttonsCache) {
+      this._buttonsCache = await safeFetch('/api/buttons').catch(() => []);
+    }
+    return this._buttonsCache;
+  }
+
   async renderTrainings(el) {
     const [trainings, buttons] = await Promise.all([
       safeFetch('/api/trainings'),
-      safeFetch('/api/buttons').catch(() => []),
+      this._getButtons(),
     ]);
 
     const btnMap = {};
     (buttons || []).forEach(b => { btnMap[b.id] = b; });
 
+    const defaultTrainingBtn = this.settings.training_default_button_id
+      ? (btnMap[this.settings.training_default_button_id] || null)
+      : null;
+
     const rows = trainings.map(tr => {
-      const ctaBtn = tr.cta_button_id ? btnMap[tr.cta_button_id] : null;
+      const ctaBtn = tr.cta_button_id
+        ? (btnMap[tr.cta_button_id] || null)
+        : defaultTrainingBtn;
       return `
       <div class="training-card">
         <div class="training-card-dates">
