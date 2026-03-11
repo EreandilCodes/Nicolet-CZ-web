@@ -101,6 +101,7 @@ export class FormsManager {
   // ── Field Builder ──────────────────────────────────────────────────────────
 
   addField(type) {
+    this._syncFieldsFromDOM();   // preserve values already typed in existing fields
     this._fieldCounter++;
     const name = type === 'gdpr' ? 'gdpr_consent' : `${type}_${this._fieldCounter}`;
     const field = {
@@ -115,6 +116,7 @@ export class FormsManager {
   }
 
   removeField(idx) {
+    this._syncFieldsFromDOM();   // preserve values in remaining fields before removing
     this._fields.splice(idx, 1);
     this._renderFieldBuilder();
   }
