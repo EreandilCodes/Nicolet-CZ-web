@@ -48,6 +48,14 @@ export class SettingsManager {
     this._setVal('settingGtagId',             s.gtag_id);
     this._setVal('settingDefaultThumbnail',   s.default_thumbnail);
 
+    // Logo
+    this._setVal('settingLogoUrl',           s.logo_url);
+    const logoPreview = document.getElementById('settingLogoPreview');
+    if (logoPreview) {
+      if (s.logo_url) { logoPreview.src = s.logo_url; logoPreview.style.display = ''; }
+      else { logoPreview.style.display = 'none'; }
+    }
+
     // SEO
     this._setVal('settingSeoTitleCz',  s.seo_title_default_cz);
     this._setVal('settingSeoTitleEn',  s.seo_title_default_en);
@@ -92,7 +100,12 @@ export class SettingsManager {
     });
   }
 
-  async _save(data) {
+  async _save(data, _callerBtn) {
+    // Find the calling button for visual feedback
+    const btn = _callerBtn || document.activeElement;
+    const origText = btn?.tagName === 'BUTTON' ? btn.textContent : null;
+    if (origText) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
+
     try {
       const response = await fetch('/api/settings', {
         method: 'PUT',
@@ -112,7 +125,16 @@ export class SettingsManager {
     } catch (err) {
       console.error('Settings save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+      if (origText) { btn.disabled = false; btn.textContent = origText; }
     }
+  }
+
+  async saveLogo() {
+    const url = this._getVal('settingLogoUrl');
+    // Cache for instant display on public site (no extra API round-trip)
+    try { localStorage.setItem('nicolet_logo_url', url); } catch { /* quota */ }
+    await this._save({ logo_url: url });
   }
 
   async saveMedia() {

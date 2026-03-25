@@ -6,9 +6,11 @@ Nicolet CZ is a presentation + B2B product website for Nicolet spectroscopy inst
 Built on the KanjoWin/Eolite Node.js architecture.
 
 - **Port:** 3003
-- **DB:** `backend/nicolet.db` (SQLite via sqlite3 async wrapper)
-- **Admin:** admin@nicolet.cz / admin123
-- **Stack:** Node.js + Express + SQLite + Vanilla JS (no frontend framework)
+- **DB:** PostgreSQL (Neon) via `DB_PROVIDER=postgres` in `.env`; SQLite fallback when `DB_PROVIDER=sqlite`
+- **Admin:** admin@nicolet.cz / admin123 (must change on first login — `must_change_password` flag)
+- **Stack:** Node.js + Express + PostgreSQL/SQLite dual-mode + Vanilla JS (no frontend framework)
+- **Tests:** 223 tests (vitest + supertest), `npm test` to run
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) — lint + test on Node 20/22
 
 ---
 
@@ -17,11 +19,14 @@ Built on the KanjoWin/Eolite Node.js architecture.
 ```
 backend/
   server.js          – Express app, all routes mounted here
-  database.js        – Schema + initDatabase(), all tables defined here
+  config.js          – JWT_SECRET export (shared by auth.js + middleware/auth.js)
+  database.js        – Schema + initDatabase() + closeDatabase(), PG/SQLite dual-mode
+  logger.js          – Structured logging with secret scrubbing
   middleware/
-    auth.js          – JWT auth (AuthMiddleware.verifyToken, .adminOnly)
+    auth.js          – JWT auth (AuthMiddleware.verifyToken, .adminOnly) + token blacklist
+    request-logger.js – Request tracing middleware
   routes/
-    auth.js          – POST /api/auth/login, /logout, /me
+    auth.js          – POST /api/auth/login, /logout, /refresh, /change-password, GET /me
     settings.js      – GET/PUT /api/settings
     contacts.js      – CRUD /api/contacts
     carousel.js      – CRUD /api/carousel
@@ -46,8 +51,11 @@ frontend/
     public.css       – Public website styles
   js/
     admin.js         – AdminController (loads section managers)
-    auth.js          – AuthManager (JWT storage, headers)
-    public.js        – Public SPA router + views
+    auth.js          – AuthManager (JWT storage, headers, auto-refresh)
+    public.js        – Public SPA router + views + dynamic meta tags
+    aurora.js        – WebGL aurora background animation
+  js/vendor/
+    purify.es.mjs    – Self-hosted DOMPurify (no CDN dependency)
   admin/             – Admin section managers (one file per section)
     settings.js, contacts.js, carousel.js, news.js, pages.js,
     products.js, product-categories.js, applications.js, app-groups.js,
@@ -106,6 +114,29 @@ frontend/
 
 See AGENTS.md for Safe Fetch, DB migration, Admin Manager, security, Text/HTML editor toggle, and gallery picker rules.
 
+### Promise.all Destructuring (CRITICAL)
+When using `Promise.all` with `_loadDOMPurify()`, the DOMPurify result must be skipped in destructuring:
+```javascript
+// CORRECT — skip slot for DOMPurify
+const [data, , buttons] = await Promise.all([
+  safeFetch(url),
+  _loadDOMPurify(),
+  this._getButtons(),
+]);
+
+// WRONG — buttons gets DOMPurify module, .forEach crashes
+const [data, buttons] = await Promise.all([
+  safeFetch(url), _loadDOMPurify(),
+  this._getButtons(),
+]);
+```
+
+### CSP and Inline Scripts
+- `script-src` includes `'unsafe-inline'` because admin.html has a large inline `<script>` block
+- `upgrade-insecure-requests` and HSTS only enabled when `NODE_ENV=production`
+- DOMPurify is self-hosted at `/js/vendor/purify.es.mjs` — no CDN in CSP needed
+- Footer year logic is in public.js (not inline script) to comply with CSP
+
 ### Text/HTML Editor Toggle
 - All rich-text admin fields (content_cz, content_en in News, Products, Applications, Trainings) use dual-mode editor
 - Default: **Text mode** (contenteditable div) — HTML mode shows the textarea
@@ -145,8 +176,9 @@ All three editors use top CZ/EN tab buttons. Same pattern for all three:
 
 - DB seed in `database.js` → `initDatabase()` ensures 6 default root items + children on server start
 - Admin "Obnovit výchozí" button → `POST /api/menu/admin/seed-defaults` re-seeds missing items without server restart
-- Menu admin: ordering (up/down), parent/child hierarchy, link types: internal/page/category/product/application/external
-- Entity pickers in admin modal auto-fill link_value from pages/products/applications/categories
+- Menu admin: ordering (up/down), parent/child hierarchy, link types: internal/page/category/news_category/app_group/product/application/external
+- Menu link value input has autocomplete suggestions (pages, products, apps, categories, news categories, app groups)
+- Entity pickers in admin modal auto-fill link_value from pages/products/applications/categories/news-categories/app-groups
 
 ### FE Detail Page Layout (Product and Application)
 Both Product and Application detail pages use the same single-column layout:
@@ -161,6 +193,66 @@ Both Product and Application detail pages use the same single-column layout:
 
 ## Environment
 
-- `JWT_SECRET` – JWT signing secret (set in .env)
+- `JWT_SECRET` – JWT signing secret (required in production, fails fast if missing)
+- `DB_PROVIDER` – `postgres` or `sqlite` (default: sqlite)
+- `DATABASE_URL` – PostgreSQL connection string (when DB_PROVIDER=postgres)
+- `CORS_ORIGIN` – Comma-separated allowed origins (default: `http://localhost:PORT`)
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` – email (optional)
 - `PORT` – default 3003
+
+---
+
+## Security
+
+- **Headers:** helmet.js — CSP, HSTS, X-Frame-Options, Referrer-Policy, Permissions-Policy
+- **XSS:** DOMPurify self-hosted (`/js/vendor/purify.es.mjs`), safe fallback strips HTML if load fails
+- **CORS:** Restricted to `CORS_ORIGIN` whitelist; same-origin requests always allowed
+- **JWT:** 1h expiry + auto-refresh, JTI-based token blacklist on logout, centralized in `backend/config.js`
+- **Auth:** Account lockout (5 failures → 15min lock), email format validation, password policy (8+ chars, uppercase + number)
+- **Rate limiting:** express-rate-limit — 100 req/min general, 30 req/min writes, custom limits on login + form submit
+- **Input:** `express.json({ limit: '1mb' })`, numeric `:id` param validation via `app.param()`
+- **SQL:** All queries use parameterized statements
+- **Uploads:** MIME type + extension validation, `path.basename()` for path traversal prevention
+- **Shutdown:** Graceful SIGTERM/SIGINT handling with DB connection cleanup
+- **Timeouts:** 30s request, 65s keepAlive
+
+---
+
+## Homepage Sections (public.js renderHome)
+
+Order: Carousel → Products (4, featured or fallback all) → Applications (4, featured or fallback all) → Upcoming Trainings (3, date >= today) → News (3) → Contact Banner
+
+### Logo Caching
+`logo_url` is cached in `localStorage` (`nicolet_logo_url`) and applied instantly in the constructor before the settings API call. Updated on each settings load and on admin save.
+
+### Lightweight API for Lists
+`GET /api/products?fields=list` and `GET /api/applications?fields=list` return reduced payloads (no spec, no SEO, truncated descriptions, no linked relations for apps). Used by homepage, list pages, and search. Detail endpoints (`/:slug`) return full data.
+
+### Categories Section (Admin)
+The "Kategorie & Sekce" admin section (`productCategories`) has 3 tabs: product categories, news categories (sekce novinek), and app groups (okruhy aplikací). `_switchCatTab()` in admin.js handles all 3. `loadSection('productCategories')` initializes `prodCats`, `newsCats`, AND `appGroups` managers.
+
+### Cache Busting
+JS files use `?v=N` query params in HTML script tags. Bump version when changing public.js or admin.js.
+
+### Double-Submit Prevention
+Forms admin (`forms.js`) uses `this._saving` flag + button disable. Gallery uses `this._uploading`. Settings uses button disable during save. Apply same pattern to any new save operations.
+
+---
+
+## Testing
+
+- **Framework:** vitest v1 + supertest, config in `vitest.config.js`
+- **Run:** `npm test` (or `npm run test:watch`)
+- **Lint:** `npm run lint` (ESLint, `eslint.config.js`)
+- **CI:** GitHub Actions on push/PR to main, Node 20+22 matrix
+- **Test DB:** Each test file gets isolated SQLite via `tests/setup.js`
+- **Pool:** Single fork (`singleFork: true`) — required by sqlite3 native module
+
+| File | Tests | Coverage |
+|------|-------|---------|
+| `tests/api/crud.test.js` | 177 | All 14 CRUD routes |
+| `tests/api/auth.test.js` | 19 | Login, refresh, logout, blacklist, change-password |
+| `tests/api/security.test.js` | 9 | Headers, ID validation, body limits |
+| `tests/unit/helpers.test.js` | 18 | esc, settled, sanitize fallback, URL validation |
+
+When adding new routes, add corresponding tests to `crud.test.js`.

@@ -11,6 +11,8 @@ export class MenuManager {
     this._products = [];
     this._apps     = [];
     this._cats     = [];
+    this._newsCats = [];
+    this._appGroups = [];
   }
 
   async init() {
@@ -42,11 +44,13 @@ export class MenuManager {
         return r.json();
       } catch { return []; }
     };
-    [this._pages, this._products, this._apps, this._cats] = await Promise.all([
+    [this._pages, this._products, this._apps, this._cats, this._newsCats, this._appGroups] = await Promise.all([
       safeLoad('/api/pages/admin/all'),
       safeLoad('/api/products/admin/all'),
       safeLoad('/api/applications/admin/all'),
       safeLoad('/api/product-categories/admin/all'),
+      safeLoad('/api/news-categories/admin/all'),
+      safeLoad('/api/application-groups/admin/all'),
     ]);
   }
 
@@ -215,42 +219,49 @@ export class MenuManager {
     linkTypeEl.onchange = () => this._updateEntityPicker(linkTypeEl.value, '');
   }
 
+  _getAllLinkOptions() {
+    return [
+      ...this._pages.map(p => ({ label: `Stránka: ${p.title_cz || p.slug}`, value: `/stranka/${p.slug}` })),
+      ...this._products.map(p => ({ label: `Produkt: ${p.name_cz}`, value: `/produkty/${p.slug}` })),
+      ...this._apps.map(a => ({ label: `Aplikace: ${a.name_cz}`, value: `/aplikace/${a.slug}` })),
+      ...this._cats.map(c => ({ label: `Kategorie: ${c.name_cz}`, value: `/produkty?kategorie=${c.slug}` })),
+      ...this._newsCats.map(c => ({ label: `Rubrika: ${c.name_cz}`, value: `/novinky?rubrika=${c.slug}` })),
+      ...this._appGroups.map(g => ({ label: `Okruh aplikací: ${g.name_cz}`, value: `/aplikace?okruh=${g.slug}` })),
+      { label: 'Novinky', value: '/novinky' },
+      { label: 'Produkty', value: '/produkty' },
+      { label: 'Aplikace', value: '/aplikace' },
+      { label: 'Školení', value: '/skoleni' },
+      { label: 'O nás', value: '/stranka/o-nas' },
+      { label: 'Kontakt', value: '/stranka/kontakt' },
+    ];
+  }
+
+  _getOptionsForType(linkType) {
+    switch (linkType) {
+      case 'page':          return this._pages.map(p => ({ label: p.title_cz || p.slug, value: `/stranka/${p.slug}` }));
+      case 'product':       return this._products.map(p => ({ label: p.name_cz, value: `/produkty/${p.slug}` }));
+      case 'application':   return this._apps.map(a => ({ label: a.name_cz, value: `/aplikace/${a.slug}` }));
+      case 'category':      return this._cats.map(c => ({ label: c.name_cz, value: `/produkty?kategorie=${c.slug}` }));
+      case 'news_category': return this._newsCats.map(c => ({ label: c.name_cz, value: `/novinky?rubrika=${c.slug}` }));
+      case 'app_group':     return this._appGroups.map(g => ({ label: g.name_cz, value: `/aplikace?okruh=${g.slug}` }));
+      default:              return [];
+    }
+  }
+
   _updateEntityPicker(linkType, currentValue) {
     const picker = document.getElementById('menuEntityPicker');
     const valueInput = document.getElementById('menuLinkValue');
+    const suggestionsEl = document.getElementById('menuLinkSuggestions');
     if (!picker) return;
 
-    let options = [];
-    if (linkType === 'page') {
-      options = this._pages.map(p => ({
-        label: `${p.title_cz || p.slug} (${p.slug})`,
-        value: `/stranka/${p.slug}`
-      }));
-    } else if (linkType === 'product') {
-      options = this._products.map(p => ({
-        label: `${p.name_cz} (${p.slug})`,
-        value: `/produkty/${p.slug}`
-      }));
-    } else if (linkType === 'application') {
-      options = this._apps.map(a => ({
-        label: `${a.name_cz} (${a.slug})`,
-        value: `/aplikace/${a.slug}`
-      }));
-    } else if (linkType === 'category') {
-      options = this._cats.map(c => ({
-        label: `${c.name_cz} (${c.slug})`,
-        value: `/produkty?kategorie=${c.slug}`
-      }));
-    }
+    const options = this._getOptionsForType(linkType);
 
+    // For entity types, show the select dropdown too
     if (options.length) {
       picker.style.display = '';
       picker.innerHTML = `<option value="">— Vyberte —</option>` +
         options.map(o => `<option value="${esc(o.value)}"${currentValue === o.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
-      picker.onchange = () => {
-        if (picker.value) valueInput.value = picker.value;
-      };
-      // Pre-select if currentValue matches
+      picker.onchange = () => { if (picker.value) valueInput.value = picker.value; };
       if (currentValue) {
         const match = options.find(o => o.value === currentValue);
         if (match) picker.value = currentValue;
@@ -258,6 +269,42 @@ export class MenuManager {
     } else {
       picker.style.display = 'none';
     }
+
+    // Bind autocomplete on the text input (all link types)
+    if (!valueInput.dataset.acBound) {
+      valueInput.dataset.acBound = '1';
+      valueInput.addEventListener('input', () => this._showLinkSuggestions(valueInput.value));
+      valueInput.addEventListener('blur', () => setTimeout(() => { if (suggestionsEl) suggestionsEl.style.display = 'none'; }, 150));
+      valueInput.addEventListener('focus', () => { if (valueInput.value) this._showLinkSuggestions(valueInput.value); });
+    }
+  }
+
+  _showLinkSuggestions(q) {
+    const suggestionsEl = document.getElementById('menuLinkSuggestions');
+    const valueInput = document.getElementById('menuLinkValue');
+    if (!suggestionsEl || !valueInput) return;
+
+    if (!q.trim()) { suggestionsEl.style.display = 'none'; return; }
+
+    const ql = q.toLowerCase();
+    const matches = this._getAllLinkOptions()
+      .filter(o => o.label.toLowerCase().includes(ql) || o.value.toLowerCase().includes(ql))
+      .slice(0, 8);
+
+    if (!matches.length) { suggestionsEl.style.display = 'none'; return; }
+
+    suggestionsEl.style.display = '';
+    suggestionsEl.innerHTML = matches.map(o =>
+      `<div class="autocomplete-item" data-value="${esc(o.value)}">${esc(o.label)} <span style="color:#9ca3af;font-size:11px">${esc(o.value)}</span></div>`
+    ).join('');
+
+    suggestionsEl.querySelectorAll('.autocomplete-item').forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        valueInput.value = el.dataset.value;
+        suggestionsEl.style.display = 'none';
+      });
+    });
   }
 
   closeModal() {

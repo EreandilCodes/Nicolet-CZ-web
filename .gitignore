@@ -9,3 +9,4 @@ frontend/uploads/gallery/*.jpeg
 frontend/uploads/gallery/*.png
 frontend/uploads/gallery/*.webp
 frontend/uploads/gallery/*.gif
+.test-dbs/

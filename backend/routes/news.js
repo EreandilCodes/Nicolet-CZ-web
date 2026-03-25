@@ -8,11 +8,14 @@ function generateSlug(title) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
-// GET /api/news – public, published posts with category info
+// GET /api/news – public, published posts with category info (no full content)
 router.get('/', async (req, res) => {
   try {
     const rows = await db.prepare(`
-      SELECT n.*, nc.name_cz AS category_name_cz, nc.name_en AS category_name_en
+      SELECT n.id, n.slug, n.title_cz, n.title_en,
+             n.excerpt_cz, n.excerpt_en, n.cover_image,
+             n.category_id, n.is_published, n.published_at, n.created_at,
+             nc.name_cz AS category_name_cz, nc.name_en AS category_name_en
       FROM news_posts n
       LEFT JOIN news_categories nc ON nc.id = n.category_id
       WHERE n.is_published = 1 ORDER BY n.published_at DESC, n.id DESC

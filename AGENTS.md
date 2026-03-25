@@ -259,12 +259,31 @@ export class XManager {
 ### 6. No required on hidden fields
 Never put `required` on HTML form fields that may be hidden (HTML5 bug).
 
+### 8. Admin Modal Element IDs Must Match JS
+Every `document.getElementById('someId')` in a manager's `showModal()` / `saveItem()` MUST have a corresponding `id="someId"` in admin.html. A missing element causes `null.value` crash → modal never opens. When adding/removing form fields, update both files.
+
+### 9. Double-Submit Prevention
+All admin save operations MUST use a `this._saving` flag + button disable pattern to prevent duplicate creates on double-click. Check the flag at the top of `saveItem()`, set it before fetch, clear in `finally`.
+
+### 10. Cache Busting
+When changing `public.js` or `admin.js`, bump the `?v=N` query parameter in the corresponding HTML `<script>` tag. Static assets are cached for 1 day by Express.
+
 ### 7. Security
 - Use `esc()` for all DB string fields rendered in innerHTML templates
 - Never log credentials
 - Upload whitelist: MIME + extension both checked
-- Rate limiting on form submissions (5/IP/10min)
+- Rate limiting: express-rate-limit (100/min general, 30/min writes), form submissions (5/IP/10min), login (10/IP/15min)
 - Honeypot + time check on public form submissions
+- helmet.js for security headers (CSP with `useDefaults: false`, HSTS only in production)
+- JWT 1h expiry + auto-refresh + JTI blacklist on logout
+- Account lockout: 5 failed logins → 15min lock per email
+- DOMPurify self-hosted at `/js/vendor/purify.es.mjs` — no CDN dependency
+- Password policy: min 8 chars, requires uppercase + number
+- Graceful shutdown on SIGTERM/SIGINT
+
+### 8. Promise.all with _loadDOMPurify
+When `_loadDOMPurify()` is in a `Promise.all`, always skip its slot in destructuring:
+`const [data, , buttons] = await Promise.all([fetch, _loadDOMPurify(), getButtons()]);`
 
 ---
 

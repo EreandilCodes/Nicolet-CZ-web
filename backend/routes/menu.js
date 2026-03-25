@@ -116,7 +116,7 @@ router.post('/admin/seed-defaults', AuthMiddleware.verifyToken, AuthMiddleware.a
     for (const item of defaultRootItems) {
       const exists = await db.prepare('SELECT id FROM menu_items WHERE link_value = ? AND parent_id IS NULL').get(item.link_value);
       if (!exists) {
-        await db.prepare('INSERT INTO menu_items (label_cz, label_en, link_type, link_value, display_order, is_active) VALUES (?,?,"internal",?,?,1)').run(item.label_cz, item.label_en, item.link_value, item.order);
+        await db.prepare(`INSERT INTO menu_items (label_cz, label_en, link_type, link_value, display_order, is_active) VALUES (?,?,'internal',?,?,1)`).run(item.label_cz, item.label_en, item.link_value, item.order);
         inserted++;
       }
     }
@@ -133,7 +133,7 @@ router.post('/admin/seed-defaults', AuthMiddleware.verifyToken, AuthMiddleware.a
       if (!parent) continue;
       const childExists = await db.prepare('SELECT id FROM menu_items WHERE parent_id = ? AND link_value = ?').get(parent.id, child.link_value);
       if (!childExists) {
-        await db.prepare('INSERT INTO menu_items (parent_id, label_cz, label_en, link_type, link_value, display_order, is_active) VALUES (?,?,?,"internal",?,?,1)').run(parent.id, child.label_cz, child.label_en, child.link_value, child.order);
+        await db.prepare(`INSERT INTO menu_items (parent_id, label_cz, label_en, link_type, link_value, display_order, is_active) VALUES (?,?,?,'internal',?,?,1)`).run(parent.id, child.label_cz, child.label_en, child.link_value, child.order);
         inserted++;
       }
     }

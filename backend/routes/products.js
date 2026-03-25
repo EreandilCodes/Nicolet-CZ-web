@@ -9,6 +9,46 @@ function generateSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
+// Batch-load categories and applications for a list of products (3 queries total)
+async function batchAttachRelations(products) {
+  if (!products.length) return products;
+  const ids = products.map(p => p.id);
+  const ph = ids.map(() => '?').join(',');
+
+  const catRows = await db.prepare(`
+    SELECT m.product_id, pc.id, pc.slug, pc.name_cz, pc.name_en, pc.display_order, pc.parent_id, pc.is_active
+    FROM product_categories pc
+    JOIN product_categories_map m ON m.category_id = pc.id
+    WHERE m.product_id IN (${ph})
+    ORDER BY pc.display_order, pc.id
+  `).all(...ids);
+
+  const appRows = await db.prepare(`
+    SELECT m.product_id, a.id, a.slug, a.name_cz, a.name_en
+    FROM applications a
+    JOIN product_applications_map m ON m.application_id = a.id
+    WHERE m.product_id IN (${ph})
+    ORDER BY a.display_order, a.id
+  `).all(...ids);
+
+  const catsByProduct = {};
+  const appsByProduct = {};
+  for (const row of catRows) {
+    const { product_id, ...cat } = row;
+    (catsByProduct[product_id] ||= []).push(cat);
+  }
+  for (const row of appRows) {
+    const { product_id, ...app } = row;
+    (appsByProduct[product_id] ||= []).push(app);
+  }
+
+  return products.map(p => ({
+    ...p,
+    categories:   catsByProduct[p.id] || [],
+    applications: appsByProduct[p.id] || [],
+  }));
+}
+
 async function getProductCategories(productId) {
   return db.prepare(`
     SELECT pc.* FROM product_categories pc
@@ -141,16 +181,16 @@ categoriesRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware
 // GET /api/products – public, published products with categories
 router.get('/', async (req, res) => {
   try {
+    // ?fields=list returns lightweight payload for list views (no spec, no SEO, truncated desc)
+    const listMode = req.query.fields === 'list';
+    const cols = listMode
+      ? 'id, slug, name_cz, name_en, thumbnail_url, images_json, is_featured, display_order, SUBSTR(description_cz, 1, 300) AS description_cz, SUBSTR(description_en, 1, 300) AS description_en'
+      : '*';
     const products = await db.prepare(
-      'SELECT * FROM products WHERE is_published = 1 ORDER BY display_order, id'
+      `SELECT ${cols} FROM products WHERE is_published = 1 ORDER BY display_order, id`
     ).all();
 
-    const result = await Promise.all(products.map(async (p) => ({
-      ...p,
-      categories:    await getProductCategories(p.id),
-      applications:  await getProductApplications(p.id),
-    })));
-
+    const result = await batchAttachRelations(products);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
@@ -165,12 +205,7 @@ router.get('/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       'SELECT * FROM products ORDER BY display_order, id'
     ).all();
 
-    const result = await Promise.all(products.map(async (p) => ({
-      ...p,
-      categories:   await getProductCategories(p.id),
-      applications: await getProductApplications(p.id),
-    })));
-
+    const result = await batchAttachRelations(products);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });

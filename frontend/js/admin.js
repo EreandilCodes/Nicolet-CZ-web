@@ -115,7 +115,7 @@ class AdminController {
       case 'carousel':          this.carousel.init();        break;
       case 'news':              this.news.init();            break;
       case 'pages':             this.pages.init();           break;
-      case 'productCategories': this.prodCats.init(); this.newsCats.init(); break;
+      case 'productCategories': this.prodCats.init(); this.newsCats.init(); this.appGroups.init(); break;
       case 'products':          this.products.init();        break;
       case 'appGroups':         this.appGroups.init();       break;
       case 'applications':      this.apps.init();            break;
@@ -129,8 +129,8 @@ class AdminController {
   }
 
   _switchCatTab(tab) {
-    const panels = { prod: document.getElementById('catPanelProd'), news: document.getElementById('catPanelNews') };
-    const tabs   = { prod: document.getElementById('catTabProd'),   news: document.getElementById('catTabNews') };
+    const panels = { prod: document.getElementById('catPanelProd'), news: document.getElementById('catPanelNews'), appGroups: document.getElementById('catPanelAppGroups') };
+    const tabs   = { prod: document.getElementById('catTabProd'),   news: document.getElementById('catTabNews'),   appGroups: document.getElementById('catTabAppGroups') };
     Object.keys(panels).forEach(key => {
       if (panels[key]) panels[key].style.display = key === tab ? '' : 'none';
       if (tabs[key]) {

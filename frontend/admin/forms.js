@@ -253,6 +253,8 @@ export class FormsManager {
   }
 
   async saveItem() {
+    if (this._saving) return;
+
     const name = document.getElementById('formName').value.trim();
     if (!name) {
       window.admin?.showNotification('Název formuláře je povinný', 'error');
@@ -282,6 +284,10 @@ export class FormsManager {
     const url    = isEdit ? `/api/forms/admin/${this._editing.id}` : '/api/forms/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
+    this._saving = true;
+    const saveBtn = document.querySelector('#formsFormEl button[type="submit"]');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Ukládám…'; }
+
     try {
       const response = await fetch(url, {
         method,
@@ -301,6 +307,9 @@ export class FormsManager {
     } catch (err) {
       console.error('Forms save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+      this._saving = false;
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Uložit'; }
     }
   }
 

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import sharp from 'sharp';
 import db from '../database.js';
 import { AuthMiddleware } from '../middleware/auth.js';
 
@@ -210,7 +211,22 @@ router.post(
       if (!req.file) return res.status(400).json({ error: 'Žádný soubor nebyl nahrán' });
 
       const filename = req.file.filename;
-      const ext = path.extname(filename);
+      const ext = path.extname(filename).toLowerCase();
+      const filePath = path.join(UPLOAD_DIR, filename);
+
+      // Optimize: resize oversized images in place (keep original format)
+      if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+        try {
+          const meta = await sharp(filePath).metadata();
+          if (meta.width > 2048 || meta.height > 2048) {
+            const buf = await sharp(filePath)
+              .resize(2048, 2048, { fit: 'inside', withoutEnlargement: true })
+              .toBuffer();
+            fs.writeFileSync(filePath, buf);
+          }
+        } catch { /* keep original if sharp fails */ }
+      }
+
       const baseName = path.basename(filename, ext);
       const identifier = `${baseName}-${Date.now()}`;
       const image_url = `/uploads/gallery/${filename}`;

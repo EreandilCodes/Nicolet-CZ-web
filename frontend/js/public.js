@@ -3,6 +3,24 @@
  * Full implementation: homepage, carousel, products, applications, trainings, news, pages, search
  */
 
+/** Lazy-loaded DOMPurify — self-hosted, no CDN dependency. */
+let _DOMPurify = null;
+async function _loadDOMPurify() {
+  if (_DOMPurify) return _DOMPurify;
+  try {
+    const mod = await import('/js/vendor/purify.es.mjs');
+    _DOMPurify = mod.default;
+  } catch (err) {
+    console.error('DOMPurify failed to load:', err);
+  }
+  return _DOMPurify;
+}
+function sanitize(html) {
+  if (_DOMPurify) return _DOMPurify.sanitize(html || '', { USE_PROFILES: { html: true } });
+  // Safe fallback: strip all HTML tags if DOMPurify unavailable
+  return (html || '').replace(/<[^>]*>/g, '');
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function esc(str) {
   if (str == null) return '';
@@ -10,6 +28,20 @@ function esc(str) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;');
+}
+
+function stripHtml(str) {
+  return String(str || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Count grid columns by measuring how many items share the first row's offsetTop
+function gridColumns(grid, itemSel) {
+  const items = Array.from(grid.querySelectorAll(itemSel));
+  if (!items.length) return 3;
+  const firstTop = items[0].offsetTop; // forces synchronous layout
+  let cols = 0;
+  for (const item of items) { if (item.offsetTop > firstTop + 5) break; cols++; }
+  return Math.max(cols, 1);
 }
 
 function getLang() {
@@ -21,6 +53,11 @@ function setLang(lang) {
   app.route();
   app.updateLangUI();
   app._renderNav();
+}
+
+/** Extract fulfilled value from Promise.allSettled result, with fallback */
+function settled(result, fallback = []) {
+  return result.status === 'fulfilled' ? result.value : fallback;
 }
 
 function pick(czVal, enVal) {
@@ -50,6 +87,27 @@ async function safeFetch(url) {
   return response.json();
 }
 
+/** Update document title + meta tags for SPA route changes */
+function updateMeta({ title, description, ogImage, canonical }) {
+  const base = 'Nicolet CZ – Molekulová spektroskopie';
+  document.title = title ? `${title} – Nicolet CZ` : base;
+  const setMeta = (sel, content) => {
+    const el = document.querySelector(sel);
+    if (el && content) el.setAttribute('content', content);
+  };
+  const desc = description || '';
+  setMeta('meta[name="description"]', desc);
+  setMeta('meta[property="og:title"]', document.title);
+  setMeta('meta[property="og:description"]', desc);
+  setMeta('meta[name="twitter:title"]', document.title);
+  setMeta('meta[name="twitter:description"]', desc);
+  if (ogImage) setMeta('meta[property="og:image"]', ogImage);
+  const url = canonical || window.location.href;
+  setMeta('meta[property="og:url"]', url);
+  const canon = document.querySelector('link[rel="canonical"]');
+  if (canon) canon.setAttribute('href', url);
+}
+
 // ── Static UI texts ───────────────────────────────────────────────────────────
 const UI = {
   cz: {
@@ -63,10 +121,11 @@ const UI = {
       close: 'Zavřít', no_results: 'Žádné výsledky',
     },
     common: {
-      loading: 'Načítám…', read_more: 'Číst více', back: 'Zpět',
+      loading: 'Načítám…', read_more: 'Číst více', back: 'Zpět', load_more: 'Načíst více',
       published: 'Publikováno', date: 'Datum', contact: 'Kontakt',
       all_products: 'Všechny produkty', all_apps: 'Všechny aplikace',
-      all_news: 'Všechny novinky', trainings: 'Termíny školení',
+      all_news: 'Všechny novinky', trainings: 'Termíny školení', all_trainings: 'Všechna školení',
+      upcoming_trainings: 'Nejbližší školení',
       no_items: 'Žádné položky.', page_not_found: 'Stránka nenalezena',
       page_not_found_desc: 'Tato stránka neexistuje nebo byla přesunuta.',
       back_home: 'Zpět na hlavní stránku',
@@ -90,10 +149,11 @@ const UI = {
       close: 'Close', no_results: 'No results',
     },
     common: {
-      loading: 'Loading…', read_more: 'Read more', back: 'Back',
+      loading: 'Loading…', read_more: 'Read more', back: 'Back', load_more: 'Load more',
       published: 'Published', date: 'Date', contact: 'Contact',
       all_products: 'All products', all_apps: 'All applications',
-      all_news: 'All news', trainings: 'Training schedule',
+      all_news: 'All news', trainings: 'Training schedule', all_trainings: 'All trainings',
+      upcoming_trainings: 'Upcoming trainings',
       no_items: 'No items.', page_not_found: 'Page not found',
       page_not_found_desc: 'This page does not exist or has been moved.',
       back_home: 'Back to homepage',
@@ -123,6 +183,15 @@ class PublicApp {
     this.menuItems = [];
     this._categories = null;   // cached
     this._appGroups  = null;   // cached
+
+    // Apply cached logo instantly (avoids flash while settings API loads)
+    try {
+      const cachedLogo = localStorage.getItem('nicolet_logo_url') || '';
+      if (cachedLogo) {
+        this._applyLogoEl('headerLogoImg', 'headerLogoText', cachedLogo);
+        this._applyLogoEl('footerLogoImg',  'footerLogoText',  cachedLogo);
+      }
+    } catch { /* no cache available */ }
   }
 
   async init() {
@@ -205,22 +274,33 @@ class PublicApp {
   // ── HOME ──────────────────────────────────────────────────────────────────
 
   async renderHome(el) {
-    const [carouselItems, products, applications, newsPosts] = await Promise.allSettled([
+    updateMeta({ title: null, description: 'Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.' });
+    const [carouselItems, products, applications, newsPosts, trainingsRes] = await Promise.allSettled([
       safeFetch('/api/carousel'),
-      safeFetch('/api/products'),
-      safeFetch('/api/applications'),
+      safeFetch('/api/products?fields=list'),
+      safeFetch('/api/applications?fields=list'),
       safeFetch('/api/news'),
+      safeFetch('/api/trainings'),
     ]);
 
-    const carousel = carouselItems.value || [];
-    const prods    = (products.value || []).filter(p => p.is_featured);
-    const apps     = (applications.value || []).filter(a => a.is_featured);
-    const news     = (newsPosts.value || []).slice(0, 3);
+    const carousel = settled(carouselItems);
+    const allProds = settled(products);
+    const prods    = allProds.filter(p => p.is_featured);
+    const prodRow  = prods.length ? prods : allProds;
+    const allApps  = settled(applications);
+    const apps     = allApps.filter(a => a.is_featured);
+    const appRow   = apps.length ? apps : allApps;
+    const news     = settled(newsPosts).slice(0, 3);
+
+    // Upcoming trainings: filter future/today, already sorted ASC by date_start from API
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = settled(trainingsRes).filter(tr => tr.date_start >= today).slice(0, 3);
 
     el.innerHTML = `
       ${this._renderCarousel(carousel)}
-      ${prods.length ? this._renderFeaturedProducts(prods) : ''}
-      ${apps.length  ? this._renderFeaturedApplications(apps) : ''}
+      ${prodRow.length ? this._renderFeaturedProducts(prodRow) : ''}
+      ${appRow.length  ? this._renderFeaturedApplications(appRow) : ''}
+      ${upcoming.length ? this._renderTrainingsTeaser(upcoming) : ''}
       ${news.length  ? this._renderNewsTeaser(news) : ''}
       ${this._renderContactBanner()}
     `;
@@ -229,10 +309,10 @@ class PublicApp {
   _renderCarousel(items) {
     if (!items.length) {
       return `
-        <div class="carousel-wrap" style="height:480px;background:linear-gradient(135deg,var(--bg-0),var(--bg-3));display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border)">
-          <div style="text-align:center;color:var(--text-3)">
-            <div style="font-size:2.5rem;margin-bottom:12px">◈</div>
-            <div style="font-size:1rem;color:var(--text-2)">Nicolet CZ – Molekulová spektroskopie</div>
+        <div class="carousel-wrap carousel-wrap--empty">
+          <div class="carousel-empty-inner">
+            <div style="font-size:2.5rem;margin-bottom:12px;opacity:0.45">◈</div>
+            <div style="font-size:1rem;color:rgba(255,255,255,0.72)">Nicolet CZ – Molekulová spektroskopie</div>
           </div>
         </div>`;
     }
@@ -293,7 +373,7 @@ class PublicApp {
         ${p.images_json ? (() => { try { const imgs = JSON.parse(p.images_json); return imgs[0] ? `<div class="product-card-img"><img src="${esc(imgs[0])}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'; } catch { return '<div class="product-card-img product-card-img-empty"></div>'; } })() : '<div class="product-card-img product-card-img-empty"></div>'}
         <div class="product-card-body">
           <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
-          ${p.description_cz ? `<div class="product-card-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 120)}…</div>` : ''}
+          ${p.description_cz ? `<div class="product-card-desc">${esc(stripHtml(pick(p.description_cz, p.description_en))).substring(0, 120)}…</div>` : ''}
           <span class="product-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`).join('');
@@ -314,7 +394,7 @@ class PublicApp {
   }
 
   _renderFeaturedApplications(apps) {
-    const cards = apps.slice(0, 3).map(a => `
+    const cards = apps.slice(0, 4).map(a => `
       <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
         ${a.cover_image ? `<div class="app-card-img"><img src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
@@ -365,6 +445,40 @@ class PublicApp {
       </section>`;
   }
 
+  _renderTrainingsTeaser(trainings) {
+    const cards = trainings.map(tr => `
+      <div class="training-card">
+        <div class="training-card-dates">
+          <div class="training-date-from">
+            <span class="training-date-label">${t('common.date_from')}</span>
+            <span class="training-date-val">${fmtDate(tr.date_start)}</span>
+          </div>
+          ${tr.date_end ? `<div class="training-date-to">
+            <span class="training-date-label">${t('common.date_to')}</span>
+            <span class="training-date-val">${fmtDate(tr.date_end)}</span>
+          </div>` : ''}
+        </div>
+        <div class="training-card-body">
+          <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
+          ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    return `
+      <section class="section-block section-block-alt">
+        <div class="container">
+          <div class="section-header">
+            <div class="section-label">${t('common.upcoming_trainings')}</div>
+            <h2 class="section-title">${t('nav.training')}</h2>
+          </div>
+          <div class="trainings-list">${cards}</div>
+          <div style="text-align:center;margin-top:32px">
+            <a href="/skoleni" data-nav="/skoleni" class="btn-outline-pub">${t('common.all_trainings')}</a>
+          </div>
+        </div>
+      </section>`;
+  }
+
   _renderContactBanner() {
     const phone = this.settings.contact_phone || '';
     const email = this.settings.contact_email || '';
@@ -383,6 +497,7 @@ class PublicApp {
   // ── NEWS ──────────────────────────────────────────────────────────────────
 
   async renderNewsList(el) {
+    updateMeta({ title: getLang() === 'en' ? 'News' : 'Novinky' });
     const [posts, cats] = await Promise.all([
       safeFetch('/api/news'),
       safeFetch('/api/news-categories').catch(() => []),
@@ -416,21 +531,55 @@ class PublicApp {
           <h1 class="page-title">${t('nav.news')}</h1>
         </div>
         ${filterHtml}
-        <div class="news-grid news-grid-full">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+        <div class="news-grid news-grid-full" id="newsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+        <div id="newsLoadMore" style="text-align:center;margin-top:32px;display:none">
+          <button class="btn-outline-pub" id="newsLoadMoreBtn">${t('common.load_more')}</button>
+        </div>
       </div>`;
+
+    const newsGrid     = el.querySelector('#newsGrid');
+    const loadMoreWrap = el.querySelector('#newsLoadMore');
+    const loadMoreBtn  = el.querySelector('#newsLoadMoreBtn');
+
+    const PAGE_SIZE = gridColumns(newsGrid, '.news-card') * 2;
+
+    function applyFilter(catId) {
+      const all     = Array.from(newsGrid.querySelectorAll('.news-card'));
+      const matched = catId
+        ? all.filter(c => String(c.dataset.newsCat) === catId)
+        : all;
+      all.filter(c => !matched.includes(c)).forEach(c => { c.style.display = 'none'; });
+      matched.forEach((c, i) => { c.style.display = i < PAGE_SIZE ? '' : 'none'; });
+      const shown = Math.min(PAGE_SIZE, matched.length);
+      loadMoreBtn.dataset.catFilter = catId;
+      loadMoreBtn.dataset.shown     = String(shown);
+      loadMoreWrap.style.display    = matched.length > shown ? '' : 'none';
+    }
 
     el.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const catId = btn.dataset.catFilter;
-        el.querySelectorAll('.news-card').forEach(card => {
-          card.style.display = (!catId || String(card.dataset.newsCat) === catId) ? '' : 'none';
-        });
+        applyFilter(btn.dataset.catFilter);
       });
     });
 
-    // Pre-select filter from URL ?kategorie=slug (set by menu entity picker)
+    loadMoreBtn.addEventListener('click', () => {
+      const catId    = loadMoreBtn.dataset.catFilter;
+      const shown    = Number(loadMoreBtn.dataset.shown);
+      const all      = Array.from(newsGrid.querySelectorAll('.news-card'));
+      const matched  = catId
+        ? all.filter(c => String(c.dataset.newsCat) === catId)
+        : all;
+      const newShown = Math.min(shown + PAGE_SIZE, matched.length);
+      matched.slice(shown, newShown).forEach(c => { c.style.display = ''; });
+      loadMoreBtn.dataset.shown = String(newShown);
+      if (newShown >= matched.length) loadMoreWrap.style.display = 'none';
+    });
+
+    applyFilter('');
+
+    // Pre-select filter from URL ?kategorie=slug
     const slugParam = new URLSearchParams(window.location.search).get('kategorie');
     if (slugParam) {
       const matched = cats.find(c => c.slug === slugParam);
@@ -442,8 +591,9 @@ class PublicApp {
   }
 
   async renderNewsDetail(el, slug) {
-    const [post, buttons] = await Promise.all([
+    const [post, , buttons] = await Promise.all([
       safeFetch(`/api/news/${slug}`),
+      _loadDOMPurify(),
       this._getButtons(),
     ]);
     const btnMap = {};
@@ -462,16 +612,23 @@ class PublicApp {
         ${post.cover_image ? `<figure class="article-cover-wrap img-align--${esc(post.cover_align || 'center')}"><img class="article-cover" src="${esc(post.cover_image)}" alt="${esc(pick(post.title_cz, post.title_en))}">${post.cover_caption ? `<figcaption class="img-caption img-caption--${esc(post.cover_align || 'center')}">${esc(post.cover_caption)}</figcaption>` : ''}</figure>` : ''}
         <h1 class="article-title">${esc(pick(post.title_cz, post.title_en))}</h1>
         ${post.excerpt_cz ? `<p class="article-excerpt">${esc(pick(post.excerpt_cz, post.excerpt_en))}</p>` : ''}
-        <div class="article-content">${pick(post.content_cz, post.content_en) || ''}</div>
+        <div class="article-content">${sanitize(pick(post.content_cz, post.content_en))}</div>
         ${ctaHtml}
       </article>`;
+
+    updateMeta({
+      title: pick(post.seo_title_cz || post.title_cz, post.seo_title_en || post.title_en),
+      description: pick(post.seo_desc_cz || post.excerpt_cz, post.seo_desc_en || post.excerpt_en),
+      ogImage: post.cover_image || '',
+    });
   }
 
   // ── PRODUCTS ──────────────────────────────────────────────────────────────
 
   async renderProducts(el) {
+    updateMeta({ title: getLang() === 'en' ? 'Products' : 'Produkty' });
     const [prods, cats] = await Promise.all([
-      safeFetch('/api/products'),
+      safeFetch('/api/products?fields=list'),
       this._getCategories(),
     ]);
 
@@ -489,13 +646,14 @@ class PublicApp {
       let thumb = p.thumbnail_url || '';
       if (!thumb) { try { const imgs = JSON.parse(p.images_json || '[]'); thumb = (typeof imgs[0] === 'string' ? imgs[0] : imgs[0]?.url) || ''; } catch {} }
       if (!thumb) thumb = defaultThumb;
+      const desc = stripHtml(pick(p.description_cz, p.description_en));
       return `
         <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}" data-product-cats="${esc(catIds)}">
           ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
           <div class="product-card-body">
             ${p.is_featured ? `<span class="badge-featured">${t('common.featured')}</span>` : ''}
             <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
-            ${p.description_cz ? `<div class="product-card-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 120)}</div>` : ''}
+            ${desc ? `<div class="product-card-desc">${esc(desc).substring(0, 120)}</div>` : ''}
             <span class="product-card-link">${t('common.read_more')} →</span>
           </div>
         </a>`;
@@ -506,22 +664,55 @@ class PublicApp {
         <h1 class="page-title">${t('nav.products')}</h1>
         ${filterHtml}
         <div class="product-grid" id="productsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+        <div id="productsLoadMore" style="text-align:center;margin-top:32px;display:none">
+          <button class="btn-outline-pub" id="productsLoadMoreBtn">${t('common.load_more')}</button>
+        </div>
       </div>`;
 
-    // Category filter
+    const grid         = el.querySelector('#productsGrid');
+    const loadMoreWrap = el.querySelector('#productsLoadMore');
+    const loadMoreBtn  = el.querySelector('#productsLoadMoreBtn');
+
+    // Measure 2 rows worth of items based on actual rendered column count
+    const PAGE_SIZE = gridColumns(grid, '.product-card') * 2;
+
+    function applyFilter(catId) {
+      const all     = Array.from(grid.querySelectorAll('.product-card'));
+      const matched = catId
+        ? all.filter(c => (c.dataset.productCats || '').split(' ').includes(catId))
+        : all;
+      all.filter(c => !matched.includes(c)).forEach(c => { c.style.display = 'none'; });
+      matched.forEach((c, i) => { c.style.display = i < PAGE_SIZE ? '' : 'none'; });
+      const shown = Math.min(PAGE_SIZE, matched.length);
+      loadMoreBtn.dataset.catFilter = catId;
+      loadMoreBtn.dataset.shown     = String(shown);
+      loadMoreWrap.style.display    = matched.length > shown ? '' : 'none';
+    }
+
     el.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        const catId = btn.dataset.catFilter;
-        el.querySelectorAll('.product-card').forEach(card => {
-          const cats = card.dataset.productCats || '';
-          card.style.display = (!catId || cats.split(' ').includes(catId)) ? '' : 'none';
-        });
+        applyFilter(btn.dataset.catFilter);
       });
     });
 
-    // Pre-select filter from URL ?kategorie=slug (set by menu entity picker)
+    loadMoreBtn.addEventListener('click', () => {
+      const catId    = loadMoreBtn.dataset.catFilter;
+      const shown    = Number(loadMoreBtn.dataset.shown);
+      const all      = Array.from(grid.querySelectorAll('.product-card'));
+      const matched  = catId
+        ? all.filter(c => (c.dataset.productCats || '').split(' ').includes(catId))
+        : all;
+      const newShown = Math.min(shown + PAGE_SIZE, matched.length);
+      matched.slice(shown, newShown).forEach(c => { c.style.display = ''; });
+      loadMoreBtn.dataset.shown = String(newShown);
+      if (newShown >= matched.length) loadMoreWrap.style.display = 'none';
+    });
+
+    applyFilter('');
+
+    // Pre-select filter from URL ?kategorie=slug
     const slugParam = new URLSearchParams(window.location.search).get('kategorie');
     if (slugParam) {
       const matched = cats.find(c => c.slug === slugParam);
@@ -533,8 +724,9 @@ class PublicApp {
   }
 
   async renderProductDetail(el, slug) {
-    const [p, buttons] = await Promise.all([
+    const [p, , buttons] = await Promise.all([
       safeFetch(`/api/products/${slug}`),
+      _loadDOMPurify(),
       this._getButtons(),
     ]);
     const btnMap = {};
@@ -557,16 +749,15 @@ class PublicApp {
            <img id="prodMainImg" class="article-cover img-align--center" src="${esc(images[0].url)}" alt="${esc(pick(p.name_cz, p.name_en))}">
            ${images[0].caption ? `<p class="img-caption img-caption--${esc(images[0].align || 'center')}">${esc(images[0].caption)}</p>` : ''}
            ${images.length > 1 ? `<div class="product-thumbs">${images.map((img, i) => `
-             <img src="${esc(img.url)}" class="product-thumb ${i === 0 ? 'active' : ''}"
-               onclick="document.getElementById('prodMainImg').src='${esc(img.url)}';document.querySelectorAll('.product-thumb').forEach(t=>t.classList.remove('active'));this.classList.add('active')"
+             <img src="${esc(img.url)}" data-full-src="${esc(img.url)}" class="product-thumb ${i === 0 ? 'active' : ''}"
                loading="lazy">`).join('')}</div>` : ''}
          </div>`
       : '';
 
     const tabContentDesc = `
       <div class="product-detail-desc-wrap">
-        ${p.description_cz ? `<div class="product-detail-desc">${pick(p.description_cz, p.description_en)}</div>` : ''}
-        ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="product-spec-content">${pick(p.spec_cz, p.spec_en)}</div></div>` : ''}
+        ${p.description_cz ? `<div class="product-detail-desc">${sanitize(pick(p.description_cz, p.description_en))}</div>` : ''}
+        ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="product-spec-content">${sanitize(pick(p.spec_cz, p.spec_en))}</div></div>` : ''}
       </div>`;
 
     const tabContentApps = linkedApps.length
@@ -596,6 +787,16 @@ class PublicApp {
         </div>
       </article>`;
 
+    // Product thumbnail gallery — event delegation (no inline onclick)
+    el.querySelector('.product-thumbs')?.addEventListener('click', (e) => {
+      const thumb = e.target.closest('.product-thumb');
+      if (!thumb) return;
+      const mainImg = document.getElementById('prodMainImg');
+      if (mainImg) mainImg.src = thumb.dataset.fullSrc;
+      el.querySelectorAll('.product-thumb').forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+    });
+
     el.querySelectorAll('.detail-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         el.querySelectorAll('.detail-tab-btn').forEach(b => b.classList.remove('active'));
@@ -606,13 +807,20 @@ class PublicApp {
         });
       });
     });
+
+    updateMeta({
+      title: pick(p.seo_title_cz || p.name_cz, p.seo_title_en || p.name_en),
+      description: pick(p.seo_desc_cz, p.seo_desc_en) || stripHtml(pick(p.description_cz, p.description_en)).slice(0, 160),
+      ogImage: images[0]?.url || p.thumbnail_url || '',
+    });
   }
 
   // ── APPLICATIONS ──────────────────────────────────────────────────────────
 
   async renderApplications(el) {
+    updateMeta({ title: getLang() === 'en' ? 'Applications' : 'Aplikace' });
     const [apps, groups] = await Promise.all([
-      safeFetch('/api/applications'),
+      safeFetch('/api/applications?fields=list'),
       this._getAppGroups(),
     ]);
 
@@ -669,7 +877,7 @@ class PublicApp {
   }
 
   async renderApplicationDetail(el, slug) {
-    const a = await safeFetch(`/api/applications/${slug}`);
+    const [a] = await Promise.all([safeFetch(`/api/applications/${slug}`), _loadDOMPurify()]);
     const linkedProds = a.products || [];
 
     const coverHtml = a.cover_image
@@ -679,7 +887,7 @@ class PublicApp {
          </div>`
       : '';
 
-    const tabContentDesc = `<div class="article-content">${pick(a.content_cz, a.content_en) || ''}</div>`;
+    const tabContentDesc = `<div class="article-content">${sanitize(pick(a.content_cz, a.content_en))}</div>`;
 
     const tabContentProds = linkedProds.length
       ? `<div class="linked-items-grid">${linkedProds.map(p => `
@@ -720,6 +928,12 @@ class PublicApp {
         });
       });
     });
+
+    updateMeta({
+      title: pick(a.seo_title_cz || a.name_cz, a.seo_title_en || a.name_en),
+      description: pick(a.seo_desc_cz, a.seo_desc_en) || stripHtml(pick(a.content_cz, a.content_en)).slice(0, 160),
+      ogImage: a.cover_image || a.thumbnail_url || '',
+    });
   }
 
   // ── TRAININGS ─────────────────────────────────────────────────────────────
@@ -732,8 +946,10 @@ class PublicApp {
   }
 
   async renderTrainings(el) {
-    const [trainings, buttons] = await Promise.all([
+    updateMeta({ title: getLang() === 'en' ? 'Trainings' : 'Školení a kurzy' });
+    const [trainings, , buttons] = await Promise.all([
       safeFetch('/api/trainings'),
+      _loadDOMPurify(),
       this._getButtons(),
     ]);
 
@@ -763,7 +979,7 @@ class PublicApp {
         <div class="training-card-body">
           <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
           ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
-          ${tr.content_cz ? `<div class="training-card-desc">${pick(tr.content_cz, tr.content_en)}</div>` : ''}
+          ${tr.content_cz ? `<div class="training-card-desc">${sanitize(pick(tr.content_cz, tr.content_en))}</div>` : ''}
           ${ctaBtn ? `<div class="training-card-cta">${this._renderCtaButton(ctaBtn)}</div>` : ''}
         </div>
       </div>`;
@@ -781,14 +997,20 @@ class PublicApp {
   // ── PAGES ─────────────────────────────────────────────────────────────────
 
   async renderPage(el, slug) {
-    const page = await safeFetch(`/api/pages/${slug}`);
+    const [page] = await Promise.all([safeFetch(`/api/pages/${slug}`), _loadDOMPurify()]);
     el.innerHTML = `
       <article class="container section article-body">
         ${page.cover_image ? `<img class="article-cover" src="${esc(page.cover_image)}" alt="${esc(pick(page.title_cz, page.title_en))}">` : ''}
         <h1 class="article-title">${esc(pick(page.title_cz, page.title_en))}</h1>
         ${page.excerpt_cz ? `<p class="article-excerpt">${esc(pick(page.excerpt_cz, page.excerpt_en))}</p>` : ''}
-        <div class="article-content">${pick(page.content_cz, page.content_en) || ''}</div>
+        <div class="article-content">${sanitize(pick(page.content_cz, page.content_en))}</div>
       </article>`;
+
+    updateMeta({
+      title: pick(page.seo_title_cz || page.title_cz, page.seo_title_en || page.title_en),
+      description: pick(page.seo_desc_cz || page.excerpt_cz, page.seo_desc_en || page.excerpt_en),
+      ogImage: page.cover_image || '',
+    });
   }
 
   // ── SEARCH ────────────────────────────────────────────────────────────────
@@ -802,20 +1024,20 @@ class PublicApp {
 
     const ql = q.toLowerCase();
     const [prods, apps, news] = await Promise.allSettled([
-      safeFetch('/api/products'),
-      safeFetch('/api/applications'),
+      safeFetch('/api/products?fields=list'),
+      safeFetch('/api/applications?fields=list'),
       safeFetch('/api/news'),
     ]);
 
-    const matchProd = (prods.value || []).filter(p =>
+    const matchProd = settled(prods).filter(p =>
       pick(p.name_cz, p.name_en).toLowerCase().includes(ql) ||
       pick(p.description_cz, p.description_en).toLowerCase().includes(ql)
     );
-    const matchApp = (apps.value || []).filter(a =>
+    const matchApp = settled(apps).filter(a =>
       pick(a.name_cz, a.name_en).toLowerCase().includes(ql) ||
       pick(a.content_cz, a.content_en).toLowerCase().includes(ql)
     );
-    const matchNews = (news.value || []).filter(n =>
+    const matchNews = settled(news).filter(n =>
       pick(n.title_cz, n.title_en).toLowerCase().includes(ql) ||
       pick(n.excerpt_cz, n.excerpt_en).toLowerCase().includes(ql)
     );
@@ -945,6 +1167,8 @@ class PublicApp {
     const logoUrl = this.settings.logo_url || '';
     this._applyLogoEl('headerLogoImg', 'headerLogoText', logoUrl);
     this._applyLogoEl('footerLogoImg',  'footerLogoText',  logoUrl);
+    // Cache for instant display on next page load
+    try { localStorage.setItem('nicolet_logo_url', logoUrl); } catch { /* quota */ }
   }
 
   _applyLogoEl(imgId, textId, logoUrl) {
@@ -986,10 +1210,15 @@ class PublicApp {
       }
     });
 
+    let _searchTimer = null;
     input?.addEventListener('input', () => {
       const q = input.value.trim();
-      if (q.length >= 2) this._doLiveSearch(q);
-      else document.getElementById('search-results').innerHTML = '';
+      clearTimeout(_searchTimer);
+      if (q.length >= 2) {
+        _searchTimer = setTimeout(() => this._doLiveSearch(q), 200);
+      } else {
+        document.getElementById('search-results').innerHTML = '';
+      }
     });
 
     input?.addEventListener('keydown', e => {
@@ -1006,18 +1235,27 @@ class PublicApp {
     const ql = q.toLowerCase();
 
     try {
-      const [prods, apps, news] = await Promise.allSettled([
-        safeFetch('/api/products'),
-        safeFetch('/api/applications'),
-        safeFetch('/api/news'),
-      ]);
+      // Cache search data for the session (lightweight list endpoints)
+      if (!this._searchData) {
+        const [prods, apps, news] = await Promise.allSettled([
+          safeFetch('/api/products?fields=list'),
+          safeFetch('/api/applications?fields=list'),
+          safeFetch('/api/news'),
+        ]);
+        this._searchData = {
+          prods: settled(prods),
+          apps:  settled(apps),
+          news:  settled(news),
+        };
+      }
+      const { prods, apps, news } = this._searchData;
 
       const results = [
-        ...(prods.value || []).filter(p => pick(p.name_cz, p.name_en).toLowerCase().includes(ql))
+        ...prods.filter(p => pick(p.name_cz, p.name_en).toLowerCase().includes(ql))
           .slice(0, 3).map(p => ({ type: t('nav.products'), title: pick(p.name_cz, p.name_en), href: `/produkty/${p.slug}` })),
-        ...(apps.value || []).filter(a => pick(a.name_cz, a.name_en).toLowerCase().includes(ql))
+        ...apps.filter(a => pick(a.name_cz, a.name_en).toLowerCase().includes(ql))
           .slice(0, 3).map(a => ({ type: t('nav.applications'), title: pick(a.name_cz, a.name_en), href: `/aplikace/${a.slug}` })),
-        ...(news.value || []).filter(n => pick(n.title_cz, n.title_en).toLowerCase().includes(ql))
+        ...news.filter(n => pick(n.title_cz, n.title_en).toLowerCase().includes(ql))
           .slice(0, 2).map(n => ({ type: t('nav.news'), title: pick(n.title_cz, n.title_en), href: `/novinky/${n.slug}` })),
       ];
 
@@ -1116,17 +1354,21 @@ class PublicApp {
     if (descEl)  { descEl.textContent = desc; descEl.style.display = desc ? '' : 'none'; }
     if (submitEl) submitEl.textContent = submitLabel;
     if (successEl) successEl.style.display = 'none';
+    const errorEl = document.getElementById('publicFormError');
+    if (errorEl) errorEl.style.display = 'none';
     if (tsEl) tsEl.value = Math.floor(Date.now() / 1000);
 
-    // Background image
+    // Background image (validate URL to prevent CSS injection)
     if (bgEl) {
+      let safeBg = '';
       if (form.background_image) {
-        bgEl.style.backgroundImage = `url('${form.background_image}')`;
-        bgEl.style.display = '';
-      } else {
-        bgEl.style.backgroundImage = '';
-        bgEl.style.display = 'none';
+        try {
+          const bgUrl = new URL(form.background_image, window.location.origin);
+          if (bgUrl.protocol === 'http:' || bgUrl.protocol === 'https:') safeBg = bgUrl.href;
+        } catch { /* invalid URL — skip */ }
       }
+      bgEl.style.backgroundImage = safeBg ? `url("${safeBg}")` : '';
+      bgEl.style.display = safeBg ? '' : 'none';
     }
 
     // Render fields
@@ -1143,15 +1385,16 @@ class PublicApp {
             <span>${esc(label)}${reqMark}</span>
           </label>`;
         }
+        const fieldId = `pf_${esc(f.name)}`;
         if (f.type === 'textarea') {
           return `<div class="pform-field">
-            <label class="pform-label">${esc(label)}${reqMark}</label>
-            <textarea name="${esc(f.name)}" class="pform-textarea" rows="4" ${req} placeholder="${esc(label)}"></textarea>
+            <label class="pform-label" for="${fieldId}">${esc(label)}${reqMark}</label>
+            <textarea id="${fieldId}" name="${esc(f.name)}" class="pform-textarea" rows="4" ${req} placeholder="${esc(label)}"></textarea>
           </div>`;
         }
         return `<div class="pform-field">
-          <label class="pform-label">${esc(label)}${reqMark}</label>
-          <input type="${esc(f.type || 'text')}" name="${esc(f.name)}" class="pform-input" ${req} placeholder="${esc(label)}">
+          <label class="pform-label" for="${fieldId}">${esc(label)}${reqMark}</label>
+          <input id="${fieldId}" type="${esc(f.type || 'text')}" name="${esc(f.name)}" class="pform-input" ${req} placeholder="${esc(label)}">
         </div>`;
       }).join('');
     }
@@ -1205,7 +1448,12 @@ class PublicApp {
       formEl.style.display = 'none';
       if (successEl) { successEl.textContent = msg; successEl.style.display = ''; }
     } catch (err) {
-      alert(err.message || 'Chyba při odeslání formuláře');
+      const errorEl = document.getElementById('publicFormError');
+      if (errorEl) {
+        errorEl.textContent = err.message || 'Chyba při odeslání formuláře';
+        errorEl.style.display = '';
+        setTimeout(() => { errorEl.style.display = 'none'; }, 6000);
+      }
     } finally {
       if (submitEl) { submitEl.disabled = false; }
     }
@@ -1232,6 +1480,10 @@ class PublicApp {
     return `<a href="${esc(btn.link_value || '#')}" data-nav="${esc(btn.link_value || '#')}" class="training-cta-btn ${cls}">${esc(label)}</a>`;
   }
 }
+
+// Footer year (moved from inline script to satisfy CSP)
+const footerYearEl = document.getElementById('footerYear');
+if (footerYearEl) footerYearEl.textContent = new Date().getFullYear();
 
 const app = new PublicApp();
 window.app = app;

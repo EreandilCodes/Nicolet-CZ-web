@@ -5,22 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nicolet CZ – Molekulová spektroskopie</title>
   <meta name="description" content="Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="/images/favicon.ico" sizes="any">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Nicolet CZ – Molekulová spektroskopie">
+  <meta property="og:description" content="Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nicolet CZ – Molekulová spektroskopie">
+  <meta name="twitter:description" content="Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.">
+  <link rel="canonical" href="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/css/public.css">
 </head>
 <body>
+
+<!-- ══ AURORA LAYER — behind all content, pointer-events:none ═══════════ -->
+<div class="aurora-layer" aria-hidden="true">
+  <div class="aurora-blob aurora-blob--primary"></div>
+  <div class="aurora-blob aurora-blob--secondary"></div>
+  <div class="aurora-blob aurora-blob--tertiary"></div>
+</div>
 
 <!-- ══ TOP CONTACT BAR ════════════════════════════════════════════════════ -->
 <div id="topbar">
   <div class="container topbar-inner">
     <div class="topbar-contact">
-      <a href="tel:">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <a href="tel:" id="topbarPhoneLink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8a16 16 0 0 0 6 6l.27-.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
         </svg>
         <span id="topbarPhone">+420 xxx xxx xxx</span>
       </a>
-      <a href="mailto:">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <a href="mailto:" id="topbarEmailLink">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>
         </svg>
@@ -36,8 +57,8 @@
       </div>
 
       <!-- Search trigger -->
-      <button class="topbar-search" data-open-search>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button class="topbar-search" data-open-search aria-label="Hledat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
         Hledat
@@ -61,6 +82,7 @@
 
     <!-- Main navigation -->
     <!-- Navigation: populated from Admin menu by public.js; static items serve as fallback -->
+    <nav aria-label="Hlavní navigace">
     <ul id="main-nav">
       <li>
         <a href="/novinky" data-nav="/novinky">
@@ -112,10 +134,11 @@
         </div>
       </li>
     </ul>
+    </nav>
 
     <!-- Mobile menu toggle -->
-    <button id="mobileMenuToggle" class="nav-mobile-toggle">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <button id="mobileMenuToggle" class="nav-mobile-toggle" aria-label="Menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <line x1="3" y1="6" x2="21" y2="6"/>
         <line x1="3" y1="12" x2="21" y2="12"/>
         <line x1="3" y1="18" x2="21" y2="18"/>
@@ -166,20 +189,20 @@
       <div class="footer-col">
         <h4>Kontakt</h4>
         <div class="footer-contact-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12"/>
           </svg>
           <span id="footerPhone">–</span>
         </div>
         <div class="footer-contact-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
             <polyline points="22,6 12,13 2,6"/>
           </svg>
           <span id="footerEmail">–</span>
         </div>
         <div class="footer-contact-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
             <circle cx="12" cy="10" r="3"/>
           </svg>
@@ -215,6 +238,7 @@
         <div id="publicFormFields"></div>
         <button type="submit" id="publicFormSubmit" class="btn-pform-submit">Odeslat</button>
       </form>
+      <div id="publicFormError" style="display:none;" class="pform-error"></div>
       <div id="publicFormSuccess" style="display:none;" class="pform-success"></div>
     </div>
   </div>
@@ -224,21 +248,18 @@
 <div id="search-overlay">
   <div class="search-box">
     <div class="search-input-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" id="search-input" placeholder="Hledat produkty, aplikace, novinky…" autocomplete="off">
-      <button class="search-close">&times;</button>
+      <input type="text" id="search-input" placeholder="Hledat produkty, aplikace, novinky…" autocomplete="off" aria-label="Vyhledávání">
+      <button class="search-close" aria-label="Zavřít vyhledávání">&times;</button>
     </div>
     <div id="search-results"></div>
   </div>
 </div>
 
-<script>
-  // Set footer year
-  document.getElementById('footerYear').textContent = new Date().getFullYear();
-</script>
-<script type="module" src="/js/public.js"></script>
+<script type="module" src="/js/public.js?v=7"></script>
+<script src="/js/aurora.js" defer></script>
 
 </body>
 </html>

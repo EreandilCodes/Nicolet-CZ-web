@@ -9,6 +9,29 @@ function generateSlug(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
+// Batch-load products for a list of applications (2 queries total)
+async function batchAttachProducts(applications) {
+  if (!applications.length) return applications;
+  const ids = applications.map(a => a.id);
+  const ph = ids.map(() => '?').join(',');
+
+  const rows = await db.prepare(`
+    SELECT m.application_id, p.id, p.slug, p.name_cz, p.name_en
+    FROM products p
+    JOIN product_applications_map m ON m.product_id = p.id
+    WHERE m.application_id IN (${ph})
+    ORDER BY p.display_order, p.id
+  `).all(...ids);
+
+  const byApp = {};
+  for (const row of rows) {
+    const { application_id, ...prod } = row;
+    (byApp[application_id] ||= []).push(prod);
+  }
+
+  return applications.map(a => ({ ...a, products: byApp[a.id] || [] }));
+}
+
 async function getApplicationProducts(applicationId) {
   return db.prepare(`
     SELECT p.id, p.slug, p.name_cz, p.name_en FROM products p
@@ -130,14 +153,16 @@ groupsRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adm
 // GET /api/applications – public, published applications
 router.get('/', async (req, res) => {
   try {
+    // ?fields=list returns lightweight payload (no content, no SEO)
+    const listMode = req.query.fields === 'list';
+    const cols = listMode
+      ? 'id, group_id, slug, name_cz, name_en, cover_image, thumbnail_url, is_featured, is_published, display_order, SUBSTR(content_cz, 1, 300) AS content_cz, SUBSTR(content_en, 1, 300) AS content_en'
+      : '*';
     const rows = await db.prepare(
-      'SELECT * FROM applications WHERE is_published = 1 ORDER BY display_order, id'
+      `SELECT ${cols} FROM applications WHERE is_published = 1 ORDER BY display_order, id`
     ).all();
-    const result = await Promise.all(rows.map(async (a) => ({
-      ...a,
-      products: await getApplicationProducts(a.id),
-    })));
-    res.json(result);
+    // Skip batch-loading linked products in list mode (not displayed)
+    res.json(listMode ? rows : await batchAttachProducts(rows));
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
@@ -150,11 +175,7 @@ router.get('/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const rows = await db.prepare(
       'SELECT * FROM applications ORDER BY display_order, id'
     ).all();
-    const result = await Promise.all(rows.map(async (a) => ({
-      ...a,
-      products: await getApplicationProducts(a.id),
-    })));
-    res.json(result);
+    res.json(await batchAttachProducts(rows));
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
