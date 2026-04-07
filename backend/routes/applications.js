@@ -46,7 +46,7 @@ async function syncApplicationProducts(applicationId, productIds) {
   if (!Array.isArray(productIds)) return;
   for (const pid of productIds) {
     try {
-      await db.prepare('INSERT OR IGNORE INTO product_applications_map (product_id, application_id) VALUES (?, ?)').run(pid, applicationId);
+      await db.prepare('INSERT INTO product_applications_map (product_id, application_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(pid, applicationId);
     } catch { /* ignore */ }
   }
 }

@@ -376,25 +376,25 @@ export class ProductsManager {
 
     const data = {
       name_cz,
-      name_en:          document.getElementById('prodNameEn').value.trim()     || null,
-      slug:             document.getElementById('prodSlug').value.trim()       || null,
-      description_cz:   document.getElementById('prodDescCz').value.trim()     || null,
-      description_en:   document.getElementById('prodDescEn').value.trim()     || null,
-      thumbnail_url:    document.getElementById('prodThumbnailUrl').value.trim() || null,
-      images_json:      JSON.stringify(this._imagesState),
-      is_featured:      document.getElementById('prodFeatured').checked ? 1 : 0,
-      is_published:     document.getElementById('prodPublished').checked ? 1 : 0,
-      display_order:    Number(document.getElementById('prodOrder').value)     || 0,
-      seo_title_cz:     document.getElementById('prodSeoTitleCz').value.trim() || null,
-      seo_title_en:     document.getElementById('prodSeoTitleEn').value.trim() || null,
-      seo_desc_cz:      document.getElementById('prodSeoDescCz').value.trim()  || null,
-      seo_desc_en:      document.getElementById('prodSeoDescEn').value.trim()  || null,
-      category_ids:     checkedCats,
-      application_ids:  [...this._selectedAppIds],
+      name_en: document.getElementById('prodNameEn').value.trim() || null,
+      slug: document.getElementById('prodSlug').value.trim() || null,
+      description_cz: document.getElementById('prodDescCz').value.trim() || null,
+      description_en: document.getElementById('prodDescEn').value.trim() || null,
+      thumbnail_url: document.getElementById('prodThumbnailUrl').value.trim() || null,
+      images_json: JSON.stringify(this._imagesState),
+      is_featured: document.getElementById('prodFeatured').checked ? 1 : 0,
+      is_published: document.getElementById('prodPublished').checked ? 1 : 0,
+      display_order: Number(document.getElementById('prodOrder').value) || 0,
+      seo_title_cz: document.getElementById('prodSeoTitleCz').value.trim() || null,
+      seo_title_en: document.getElementById('prodSeoTitleEn').value.trim() || null,
+      seo_desc_cz: document.getElementById('prodSeoDescCz').value.trim() || null,
+      seo_desc_en: document.getElementById('prodSeoDescEn').value.trim() || null,
+      category_ids: checkedCats,
+      application_ids: [...this._selectedAppIds],
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/products/admin/${this._editing.id}` : '/api/products/admin';
+    const url = isEdit ? `/api/products/admin/${this._editing.id}` : '/api/products/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {

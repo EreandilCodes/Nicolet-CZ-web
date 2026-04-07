@@ -72,7 +72,7 @@ async function syncProductApplications(productId, applicationIds) {
   if (!Array.isArray(applicationIds)) return;
   for (const appId of applicationIds) {
     try {
-      await db.prepare('INSERT OR IGNORE INTO product_applications_map (product_id, application_id) VALUES (?, ?)').run(productId, appId);
+      await db.prepare('INSERT INTO product_applications_map (product_id, application_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(productId, appId);
     } catch { /* ignore */ }
   }
 }
@@ -271,7 +271,7 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
     if (Array.isArray(category_ids) && category_ids.length > 0) {
       for (const catId of category_ids) {
         try {
-          await db.prepare('INSERT OR IGNORE INTO product_categories_map (product_id, category_id) VALUES (?, ?)').run(productId, catId);
+          await db.prepare('INSERT INTO product_categories_map (product_id, category_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(productId, catId);
         } catch (e) { /* ignore */ }
       }
     }
@@ -337,7 +337,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       await db.prepare('DELETE FROM product_categories_map WHERE product_id = ?').run(id);
       for (const catId of category_ids) {
         try {
-          await db.prepare('INSERT OR IGNORE INTO product_categories_map (product_id, category_id) VALUES (?, ?)').run(id, catId);
+          await db.prepare('INSERT INTO product_categories_map (product_id, category_id) VALUES (?, ?) ON CONFLICT DO NOTHING').run(id, catId);
         } catch (e) { /* ignore */ }
       }
     }
