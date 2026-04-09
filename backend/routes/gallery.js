@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max, will be compressed after upload
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (ALLOWED_MIME.has(file.mimetype) && ALLOWED_EXT.has(ext)) {
@@ -214,17 +214,53 @@ router.post(
       const ext = path.extname(filename).toLowerCase();
       const filePath = path.join(UPLOAD_DIR, filename);
 
-      // Optimize: resize oversized images in place (keep original format)
+      // Optimize: resize and compress images for web
       if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
         try {
+          const fileStats = fs.statSync(filePath);
+          const fileSizeMB = fileStats.size / (1024 * 1024);
           const meta = await sharp(filePath).metadata();
-          if (meta.width > 2048 || meta.height > 2048) {
-            const buf = await sharp(filePath)
-              .resize(2048, 2048, { fit: 'inside', withoutEnlargement: true })
+          let sharpInstance = sharp(filePath);
+
+          // If file > 8MB, always resize to max 2000px
+          if (fileSizeMB > 8 || meta.width > 2000) {
+            sharpInstance = sharpInstance.resize(2000, null, { fit: 'inside', withoutEnlargement: true });
+          }
+
+          let finalFilename = filename;
+
+          // Compress based on format
+          if (ext === '.png') {
+            // Convert PNG to optimized WebP (much smaller, transparent support)
+            finalFilename = baseName + '.webp';
+            const webpPath = path.join(UPLOAD_DIR, finalFilename);
+            await sharpInstance
+              .webp({ quality: 90 })
+              .toFile(webpPath);
+            // Remove original PNG
+            fs.unlinkSync(filePath);
+          } else if (ext === '.jpeg' || ext === '.jpg') {
+            // Optimize JPEG: quality 85 gives excellent quality at ~60-70% size reduction
+            const buf = await sharpInstance
+              .jpeg({ quality: 85, progressive: true, mozjpeg: true })
+              .toBuffer();
+            fs.writeFileSync(filePath, buf);
+          } else if (ext === '.webp') {
+            // Optimize WebP
+            const buf = await sharpInstance
+              .webp({ quality: 90 })
               .toBuffer();
             fs.writeFileSync(filePath, buf);
           }
-        } catch { /* keep original if sharp fails */ }
+
+          // Update filename for DB if PNG was converted to WebP
+          if (finalFilename !== filename) {
+            filename = finalFilename;
+          }
+        } catch (err) {
+          console.error('Image optimization error:', err.message);
+          /* keep original if optimization fails */
+        }
       }
 
       const baseName = path.basename(filename, ext);

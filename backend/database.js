@@ -243,6 +243,24 @@ export async function initDatabase() {
   `);
   console.log('✅ pages table ready');
 
+  // ── FAQ ─────────────────────────────────────────────────────────────────────
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS faqs (
+      id            ${pk},
+      category_cz  TEXT NOT NULL DEFAULT '',
+      category_en  TEXT NOT NULL DEFAULT '',
+      question_cz  TEXT NOT NULL,
+      question_en  TEXT,
+      answer_cz    TEXT NOT NULL,
+      answer_en    TEXT,
+      display_order INTEGER DEFAULT 0,
+      is_active    INTEGER DEFAULT 1,
+      created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  console.log('✅ faqs table ready');
+
   // ── News categories (before news_posts — FK dependency) ───────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS news_categories (
@@ -421,12 +439,34 @@ export async function initDatabase() {
       submit_label_en  TEXT DEFAULT 'Submit',
       success_msg_cz   TEXT DEFAULT 'Děkujeme za zprávu. Brzy se ozveme.',
       success_msg_en   TEXT DEFAULT 'Thank you. We will get back to you shortly.',
+      label_color      TEXT DEFAULT 'white',
       is_active        INTEGER DEFAULT 1,
       created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
   console.log('✅ forms table ready');
+
+  // Add label_color column to existing forms tables (with check for SQLite)
+  try {
+    let hasLabelColor = false;
+    try {
+      const cols = await db.prepare('PRAGMA table_info(forms)').all();
+      hasLabelColor = cols.some(c => c.name === 'label_color');
+    } catch { /* PRAGMA might not be supported */ }
+    
+    if (!hasLabelColor) {
+      await db.exec(`ALTER TABLE forms ADD COLUMN label_color TEXT DEFAULT 'white'`);
+      console.log('✅ forms.label_color column added');
+    }
+    
+    try {
+      await db.exec(`UPDATE forms SET label_color = 'white' WHERE label_color IS NULL`);
+    } catch { /* UPDATE might fail if column doesn't exist */ }
+    console.log('✅ forms.label_color column ready');
+  } catch (err) {
+    console.log('⚠️ label_color migration:', err.message);
+  }
 
   // ── Form submissions ───────────────────────────────────────────────────────
   await db.exec(`
@@ -524,6 +564,10 @@ export async function initDatabase() {
     { parentLink: '/produkty', label_cz: 'Všechny produkty', label_en: 'All products',      link_value: '/produkty',        order: 10 },
     { parentLink: '/o-nas',    label_cz: 'O společnosti',    label_en: 'About us',          link_value: '/stranka/o-nas',   order: 10 },
     { parentLink: '/o-nas',    label_cz: 'Kontakt',          label_en: 'Contact',           link_value: '/stranka/kontakt', order: 20 },
+    { parentLink: '/o-nas',    label_cz: 'Časté dotazy',     label_en: 'FAQ',               link_value: '/stranka/caste-dotazy', order: 30 },
+    { parentLink: '/o-nas',    label_cz: 'GDPR',             label_en: 'GDPR',              link_value: '/stranka/gdpr',    order: 40 },
+    { parentLink: '/o-nas',    label_cz: 'Certifikace výrobce', label_en: 'Manufacturer cert.', link_value: '/stranka/certifikace-vyrobce', order: 50 },
+    { parentLink: '/o-nas',    label_cz: 'Certifikace prodejce', label_en: 'Seller cert.',    link_value: '/stranka/certifikace-prodejce', order: 60 },
     { parentLink: '/skoleni',  label_cz: 'Termíny školení',  label_en: 'Training schedule', link_value: '/skoleni',         order: 10 },
     { parentLink: '/aplikace', label_cz: 'Všechny aplikace', label_en: 'All applications',  link_value: '/aplikace',        order: 10 },
   ];
@@ -545,6 +589,209 @@ export async function initDatabase() {
     }
   }
   console.log('✅ Default menu items ensured');
+
+  // ── Seed default pages ──────────────────────────────────────────────────────
+  const defaultPages = [
+{
+      slug: 'o-nas',
+      title_cz: 'O nás',
+      title_en: 'About us',
+      excerpt_cz: 'Společnost Nicolet CZ s.r.o. je výhradním dodavatelem spektrometrů pro molekulovou spektrometrii americké společnosti Thermo Scientific v České republice.',
+      content_cz: `<p>Společnost Nicolet CZ s.r.o. je výhradním dodavatelem spektrometrů pro molekulovou spektrometrii americké společnosti <a href="https://www.thermofisher.com/cz/en/home/industrial/spectroscopy-elemental-isotope-analysis/molecular-spectroscopy.html" target="_blank" rel="noopener">Thermo Scientific</a> v České republiky.</p>
+<p>Společnost Thermo Scientific je předním světovým výrobcem infračervených a Ramanových spektrometrů s Fourierovou transformací (<a href="https://www.thermofisher.com/cz/en/home/industrial/spectroscopy-elemental-isotope-analysis/molecular-spectroscopy/fourier-transform-infrared-ftir-spectroscopy.html">FT-IR</a>, <a href="https://www.thermofisher.com/cz/en/home/industrial/spectroscopy-elemental-isotope-analysis/molecular-spectroscopy/near-infrared-nir-spectroscopy.html">FT-NIR</a> a <a href="https://nicoletcz.cz/produkt/ft-ramanuv-modul/">FT-Raman</a>), dále disperzních <a href="https://www.thermofisher.com/cz/en/home/industrial/spectroscopy-elemental-isotope-analysis/molecular-spectroscopy/raman-spectroscopy.html">Ramanových spektrometrů</a> a veškerého příslušenství k těmto systémům. Tyto přístroje jsou určeny k chemické analýze nebo fyzikálnímu měření.</p>
+<h3>Dále společnost Nicolet CZ zastupuje v České republice:</h3>
+<p><strong><a href="https://www.iris-eng.com/">IRIS Technology:</a></strong> Procesní a ruční NIR, Raman a hyperspektrální spektrometry. Výroba a integrace komplexních řešení včetně implementace umělé inteligence. Hlavní aplikace: potravinářský, farmaceutický, chemický, plastikářský, dřevozpracující průmysl a další odvětví.</p>
+<p><strong><a href="https://www.timegate.com/">Timegate</a>:</strong> Kompaktní Ramanovy spektrometry s reálně potlačenou fluorescencí pro průmyslové provozy i špičkové vědecké laboratoře.</p>
+<p><strong><a href="https://nicoletcz.cz/produkt/si-spectroscopy/">S+I Spectroscopy and Imaging GmBH</a>:</strong> Vysoce vědecké Ramanovy spektrometry, Raman-AFM, monochromátory.</p>
+<p><strong><a href="https://nicoletcz.cz/modelova-rada/ftir-spektroskopie/neaspec/">Attocube (dříve Neaspec)</a>:</strong> Vysoce vědecké mikrospektrometry pro IR-SNOM experimenty v blízkém poli s velmi vysokým rozlišením.</p>
+<p><strong><a href="https://nicoletcz.cz/modelova-rada/linkam/">LINKAM Scientific Instruments</a>:</strong> Specializované mikroskopické stolky (vysoké/nízké teploty a tlaky), cely pro charakterizaci materiálů při různých podmínkách.</p>
+<p><strong><a href="https://m-oem.com/pages/raman-spectroscopy">m-OEM systémy</a>:</strong> Přenosné Ramanovy a NIR spektrometry postavené na míru pro vaši aplikaci.</p>
+<p><strong><a href="https://nicoletcz.cz/produkt/remote-sensing/">Designs & Prototypes d.b.a. D&P Instruments</a>:</strong> Přenosné FT-IR spektrometry pro tzv. "remote sensing" experimenty.</p>
+<p><strong><a href="https://nicoletcz.cz/modelova-rada/raman/photon-systems/">Photon Systems, Inc.</a>:</strong> UV-Raman spektroskopie/mikroskopie, UV a deep UV lasery.</p>
+<p>Společnost Nicolet CZ s.r.o. dále nabízí všem svým zákazníkům servis spektrometrů námi zastupovaných společností, jejich certifikaci a testování dle platných norem a předpisů, zakázkový vývoj analytických metod, specializované knihovny infračervených a Ramanových spekter a vývoj software pro Vaše aplikace.</p>
+<p>Společnost Nicolet CZ s.r.o. v neposlední řadě organizuje každoročně přibližně třináct specializovaných kurzů infračervené a Ramanovy spektroskopie/mikroskopie (teoretických i praktických), z nichž některé ve spolupráci s českou Spektroskopickou společností Jana Marka Marci.</p>
+<p>Možnosti zpětného odběru námi dodávaných elektrozařízení <a href="https://nicoletcz.cz/app/uploads/2025/11/addf5bed-1.docx">naleznete zde</a>.</p>`,
+      is_published: 1,
+      display_order: 1
+    },
+    {
+      slug: 'kontakt',
+      title_cz: 'Kontakt',
+      title_en: 'Contact',
+      excerpt_cz: 'Kontaktní údaje a adresy společnosti Nicolet CZ.',
+      content_cz: `<h3>Sídlo a fakturační adresa</h3>
+<p>Klapálkova 2242/9, Česká Republika – 149 00, Praha 4</p>
+<p>Nicolet CZ s.r.o.<br>IČ: 26422182, DIČ: CZ26422182<br>Spisová značka 80993 C, Městský soud v Praze</p>
+
+<h3>Servisní a aplikační středisko</h3>
+<p>Křelovická 970, Česká Republika – 104 00, Praha 10</p>
+
+<h3>Stálá aplikační a poradenská služba</h3>
+<p>Pondělí až Pátek – 8:30 – 17:00</p>
+<ul>
+<li>Tel: <a href="tel:+420272760432">+420 272 760 432</a></li>
+<li>Email: <a href="mailto:info@nicoletcz.cz">info@nicoletcz.cz</a></li>
+</ul>
+
+<h3>Mobilní telefon – kdykoliv</h3>
+<ul>
+<li>+420 602 325 829 (JP)</li>
+<li>+420 728 087 223 (MH)</li>
+<li>+420 603 554 788 (FK)</li>
+<li>+420 606 726 245 (MS)</li>
+<li>+420 605 825 817 (KŠ)</li>
+<li>+420 603 725 812 (LT)</li>
+<li>+420 775 749 807 (LV)</li>
+</ul>
+
+<p>Vaše dotazy nám můžete poslat také pomocí <a href="/stranka/kontakt">kontaktního formuláře</a>.</p>`,
+      is_published: 1,
+      display_order: 2
+    },
+    {
+      slug: 'certifikace-vyrobce',
+      title_cz: 'Certifikace výrobce',
+      title_en: 'Manufacturer Certification',
+      excerpt_cz: 'Certifikace výrobce Thermo Scientific podle ISO 9001:2016.',
+      content_cz: `<p>Společnost Thermo Fischer Scientific je certifikována podle ISO 9001:2016, což je dnes v rámci správné výrobní praxe (current Good Manufacturing Practices – cGMP) nezbytností. Tato skutečnost umožňuje bezproblémovou kvalifikaci spektrometrů pro konečného uživatele v rámci DQ (Design Qualification).</p>
+<p><strong>Certifikát ke stažení:</strong> <a href="https://nicoletcz.cz/app/uploads/2024/10/d00d66a1.pdf" target="_blank">Certifikát ISO Thermo Scientific</a></p>`,
+      is_published: 1,
+      display_order: 3
+    },
+    {
+      slug: 'certifikace-prodejce',
+      title_cz: 'Certifikace prodejce',
+      title_en: 'Seller Certification',
+      excerpt_cz: 'Certifikace společnosti Nicolet CZ podle ISO 9001:2016.',
+      content_cz: `<p>Precizní práce pracovníků naší společnosti v rámci systému jakosti byla korunována v roce 2007 získáním certifikátu jakosti ISO 9001, aktuálně certifikátem 9001:2016.</p>
+<p>Pro více informací nás neváhejte <a href="/stranka/kontakt">kontaktovat</a>.</p>
+<p><strong>Certifikáty ke stažení:</strong></p>
+<ul>
+<li><a href="https://nicoletcz.cz/app/uploads/2025/11/7adb62de.pdf" target="_blank">Certifikát ISO CQS_CZ</a></li>
+<li><a href="https://nicoletcz.cz/app/uploads/2025/11/e69c5a10.pdf" target="_blank">Certifikát ISO CQS_EN</a></li>
+<li><a href="https://nicoletcz.cz/app/uploads/2025/11/a349d738.pdf" target="_blank">Certifikát ISO_CZ</a></li>
+<li><a href="https://nicoletcz.cz/app/uploads/2025/11/8c6b43bc.pdf" target="_blank">Certifikát ISO_EN</a></li>
+<li><a href="https://nicoletcz.cz/app/uploads/2025/11/296fdf94.pdf" target="_blank">Certifikát IQNET_EN</a></li>
+</ul>
+<p><strong>Informace pro posledního prodejce elektroniky:</strong> <a href="https://nicoletcz.cz/app/uploads/2021/08/633b8ecb.pdf" target="_blank">zde</a></p>
+<p>Nicolet CZ s.r.o.<br>Křelovická 970<br>104 00 Praha 10</p>
+<p><strong>Sběrné místo zpětného odběru (v rámci zákona o elektro-odpadech):</strong></p>
+<p>Nicolet CZ s.r.o.<br>Křelovická 970<br>104 00 Praha 10</p>`,
+      is_published: 1,
+      display_order: 4
+    },
+    {
+      slug: 'gdpr',
+      title_cz: 'GDPR',
+      title_en: 'GDPR',
+      excerpt_cz: 'Zásady zpracování osobních údajů společnosti Nicolet CZ.',
+      content_cz: `<h3>e-newsletter společnosti Nicolet CZ s.r.o. – podmínky zpracování osobních údajů</h3>
+<ul>
+<li>Správcem osobních údajů podle Nařízení (EU) 2016/679 (GDPR) je společnost <a href="/stranka/kontakt">Nicolet CZ s.r.o.</a></li>
+<li>Ochrana osobních údajů odpovídá požadavkům Nařízení (EU) 2016/679 (GDPR).</li>
+<li>Předmětem zpracování je <strong>pouze e-mailová adresa</strong>. Uvedený osobní údaj za tímto účelem budeme uchovávat maximálně 15 let.</li>
+<li>Vaše osobní údaje neposkytneme žádné třetí osobě s výjimkou institucí k tomu zmocněných zákonem.</li>
+<li>Kdykoliv máte právo odvolat svůj souhlas se zpracováním osobních údajů, jejich opravu nebo výmaz. Odvolání souhlasu a žádost o změnu je třeba zaslat na email <a href="mailto:info@nicoletcz.cz">info@nicoletcz.cz</a>.</li>
+</ul>
+
+<h3>Obecné podmínky zpracování osobních údajů – zákazníci</h3>
+<ul>
+<li>Správcem osobních údajů je společnost <a href="/stranka/kontakt">Nicolet CZ s.r.o.</a></li>
+<li>Vaše osobní údaje zpracováváme z důvodu vyřízení Vašich objednávek a k řešení reklamací.</li>
+<li>Zpracováváme Vaše jméno a příjmení, doručovací adresu, e-mail, telefonní číslo, číslo bankovního účtu, objednané zboží a jeho cenu.</li>
+<li>Právním důvodem tohoto zpracování je plnění smlouvy.</li>
+<li>Při zpracování Vašich osobních údajů nebude docházet k automatizovanému rozhodování ani k profilování.</li>
+</ul>
+
+<p>V případě jakýchkoliv dotazů nás neváhejte <a href="/stranka/kontakt">kontaktovat</a>.</p>`,
+      is_published: 1,
+      display_order: 5
+    },
+    {
+      slug: 'caste-dotazy',
+      title_cz: 'Časté dotazy',
+      title_en: 'FAQ',
+      excerpt_cz: 'Často kladené dotazy o spektroskopii a našich službách.',
+      content_cz: `<div id="faq-page-root" data-view="faq"></div>`,
+      is_published: 1,
+      display_order: 6
+    },
+    {
+      slug: 'vedecke-projekty',
+      title_cz: 'Vědecké projekty',
+      title_en: 'Research Projects',
+      excerpt_cz: 'Vědecké projekty, kterých se společnost Nicolet CZ účastní.',
+      content_cz: `<p>Kromě prodeje a servisu spektrometrů se účastníme rovněž vědeckých projektů:</p>
+
+<h3>Vývoj metod analýz čistoty vodíku s využitím infračervené spektrometrie s Fourierovou transformací</h3>
+<p><strong>Číslo projektu:</strong> CL01000071<br><strong>Doba řešení:</strong> 01/2024 – 06/2026</p>
+
+<h4>Představení projektu</h4>
+<p>Vodík má jako alternativní zdroj čisté energie a palivo velký potenciál. Používání vodíkového paliva v dopravě povede ke snížení emisí a tím i ke snížení negativních dopadů dopravy na životní prostředí.</p>
+<p>Projekt řeší vývoj a zavedení analytické metody pro stanovení sedmi nečistot ve vodíkovém palivu pomocí infračervené spektroskopie s Fourierovou transformací (FTIR).</p>
+<p>Cílem projektu je zavedení metodiky pro stanovení nečistot v laboratořích Centra dopravního výzkumu a její následná akreditace.</p>
+
+<h4>Koordinátor projektu</h4>
+<p>Centrum dopravního výzkumu, v. v. i.</p>
+
+<h4>Partneři projektu</h4>
+<ul>
+<li>Centrum dopravního výzkumu, v. v. i.</li>
+<li>Nicolet CZ s. r. o.</li>
+</ul>
+
+<p>Tento projekt je spolufinancován se státní podporou Technologické agentury ČR a Ministerstva dopravy ČR v rámci Programu DOPRAVA 2030.</p>`,
+      is_published: 1,
+      display_order: 6
+    }
+  ];
+
+  for (const page of defaultPages) {
+    const existing = await db.prepare('SELECT id FROM pages WHERE slug = ?').get(page.slug);
+    if (!existing) {
+      await db.prepare(`
+        INSERT INTO pages (slug, title_cz, title_en, excerpt_cz, content_cz, is_published, display_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(page.slug, page.title_cz, page.title_en, page.excerpt_cz, page.content_cz, page.is_published, page.display_order);
+    }
+  }
+  console.log('✅ Default pages ensured');
+
+  // ── Seed default FAQs ────────────────────────────────────────────────────────
+  const defaultFaqs = [
+    // Obecné otázky
+    { category_cz: 'Obecné otázky', category_en: 'General Questions', question_cz: 'FT-IR, FT-NIR, Ramanova spektroskopie… Co to znamená?', question_en: 'FT-IR, FT-NIR, Raman spectroscopy… What does it mean?', answer_cz: 'Všechny tyto metody spočívají v interakci vzorku s elektromagnetickým zářením o jedné konkrétní vlnové délce (Ramanova spektroskopie) nebo v daném intervalu (infračervená spektroskopie) a mluvíme o nich obecně jako o metodách molekulové spektroskopie. Výstupem této analýzy je pak spektrum, které je unikátní pro každou sloučeninu.', answer_en: 'All these methods are based on the interaction of a sample with electromagnetic radiation at one specific wavelength (Raman spectroscopy) or in a given interval (infrared spectroscopy).', order: 1 },
+    { category_cz: 'Obecné otázky', category_en: 'General Questions', question_cz: 'Jaký typ analýzy můžu provádět?', question_en: 'What type of analysis can I perform?', answer_cz: 'Pomocí Ramanových a infračervených spektrometrů lze provádět jak kvalitativní analýzu (identifikaci a verifikaci látek), tak i kvantitativní měření, a to včetně analýzy směsí.', answer_en: 'Using Raman and infrared spectrometers, you can perform both qualitative analysis (identification and verification of substances) and quantitative measurements, including mixture analysis.', order: 2 },
+    { category_cz: 'Obecné otázky', category_en: 'General Questions', question_cz: 'Jaké výhody molekulová spektroskopie přináší?', question_en: 'What are the advantages of molecular spectroscopy?', answer_cz: 'Molekulová spektroskopie je rychlá, spolehlivá, neinvazivní metoda, která navíc většinou nevyžaduje ani žádnou úpravu vzorku. Ve výsledku tak šetří váš čas, peníze i materiál.', answer_en: 'Molecular spectroscopy is a fast, reliable, non-invasive method that usually does not require any sample preparation. It saves your time, money, and material.', order: 3 },
+    { category_cz: 'Obecné otázky', category_en: 'General Questions', question_cz: 'Jak často se metody molekulové spektroskopie využívají?', question_en: 'How often are molecular spectroscopy methods used?', answer_cz: 'V současné době se infračervená i Ramanova spektroskopie využívá ve všech možných odvětvích vědy, výzkumu a průmyslu. V České a Slovenské republice funguje již více než 650 našich přístrojů.', answer_en: 'Currently, both infrared and Raman spectroscopy is used in all possible fields of science, research, and industry.', order: 4 },
+    
+    // Vzorky a aplikace
+    { category_cz: 'O vaší aplikaci a vzorcích', category_en: 'About Your Application and Samples', question_cz: 'Jaké vzorky můžu měřit?', question_en: 'What samples can I measure?', answer_cz: 'Metodami molekulové spektroskopie můžete analyzovat vzorky pevné, kapalné i plynné, práškové, gelové, mikroskopické i velké objekty, buňky i anorganické vzorky a mnoho dalších.', answer_en: 'Using molecular spectroscopy methods, you can analyze solid, liquid, and gaseous samples, powders, gels, microscopic and large objects, cells, and inorganic samples.', order: 1 },
+    { category_cz: 'O vaší aplikaci a vzorcích', category_en: 'About Your Application and Samples', question_cz: 'Jak malé nebo velké vzorky lze měřit?', question_en: 'How small or large samples can be measured?', answer_cz: 'Pomocí našich přístrojů lze měřit mikroskopické vzorky s rozlišením od pouhých 10 nm i rozměrné vzorky, jako jsou nástěnné fresky nebo malby.', answer_en: 'Using our instruments, you can measure microscopic samples with resolution from just 10 nm as well as large samples such as wall frescoes or paintings.', order: 2 },
+    { category_cz: 'O vaší aplikaci a vzorcích', category_en: 'About Your Application and Samples', question_cz: 'Potřebuji analyzovat plynný vzorek, je to možné?', question_en: 'I need to analyze a gas sample, is that possible?', answer_cz: 'Ano! FT-IR i Ramanovy spektrometry lze vybavit plynovými celami, se kterými plynné vzorky můžete analyzovat obdobně jako vzorky v jiných skupenstvích.', answer_en: 'Yes! FT-IR and Raman spectrometers can be equipped with gas cells for analyzing gas samples.', order: 3 },
+    { category_cz: 'O vaší aplikaci a vzorcích', category_en: 'About Your Application and Samples', question_cz: 'Můj vzorek má silnou fluorescenci. Co se s tím dá dělat?', question_en: 'My sample has strong fluorescence. What can I do?', answer_cz: 'Pokud měříte pomocí Ramanova spektrometru, vyzkoušejte jinou vlnovou délku excitačního laseru. Také můžete prozkoumat možnosti FT-IR spektroskopie.', answer_en: 'If you are using a Raman spectrometer, try a different excitation laser wavelength. You can also explore FT-IR spectroscopy options.', order: 4 },
+    
+    // Přístroje
+    { category_cz: 'O přístrojích', category_en: 'About Instruments', question_cz: 'Jak jsou spektrometry velké?', question_en: 'How big are the spectrometers?', answer_cz: 'Nabízíme ruční spektrometry, přenosné, které můžete snadno převážet v kufru auta nebo přenášet mezi učebnami či laboratořemi, i sofistikované vědecké přístroje.', answer_en: 'We offer handheld spectrometers, portable ones that you can easily transport in a car trunk or between classrooms and laboratories, and sophisticated scientific instruments.', order: 1 },
+    { category_cz: 'O přístrojích', category_en: 'About Instruments', question_cz: 'Je ovládání spektrometrů složité?', question_en: 'Is operating the spectrometers complicated?', answer_cz: 'Většina našich přístrojů je snadno ovladatelná, měření a zpracování dat probíhá pomocí intuitivních programů, mezi které patří např. OMINC nebo TQ Analyst.', answer_en: 'Most of our instruments are easy to operate, with measurement and data processing done through intuitive software programs.', order: 2 },
+    { category_cz: 'O přístrojích', category_en: 'About Instruments', question_cz: 'Je možné měření automatizovat?', question_en: 'Is it possible to automate measurements?', answer_cz: 'Ano, měření standardních vzorků lze pomocí autosamplerů a chytrého měřicího příslušenství zpravidla velmi snadno automatizovat.', answer_en: 'Yes, measurements of standard samples can usually be easily automated using autosamplers and smart measurement accessories.', order: 3 },
+    { category_cz: 'O přístrojích', category_en: 'About Instruments', question_cz: 'Mohu si ke spektrometru pořídit nějaké příslušenství?', question_en: 'Can I get accessories for the spectrometer?', answer_cz: 'Ano! Ke všem spektrometrům nabízíme širokou škálu příslušenství: uživatelsky výměnné lasery, filtry a mřížky, různé měřicí nástavce, autosamplery, vláknovou optiku, integrační sféry a mnohé další.', answer_en: 'Yes! We offer a wide range of accessories for all spectrometers: user-exchangeable lasers, filters and gratings, various measurement attachments, autosamplers, fiber optics, integration spheres, and much more.', order: 4 },
+    
+    // Podpora
+    { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Můžete mi poradit s mou aplikací?', question_en: 'Can you advise me on my application?', answer_cz: 'Jistě. Nedodáváme pouze přístroj, ale záleží nám i na tom, abyste jej mohli ke své práci efektivně využít. Vaši aplikaci s vámi probereme a se vším vám poradíme.', answer_en: 'Of course. We not only supply the instrument, but we also care about you being able to use it effectively for your work. We will discuss your application with you and advise you on everything.', order: 1 },
+    { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Jak nákladný je servis přístrojů?', question_en: 'How expensive is instrument service?', answer_cz: 'Veškerý servis u nás zakoupených přístrojů je zdarma, vy budete platit pouze cenu náhradních dílů při případné opravě.', answer_en: 'All service for instruments purchased from us is free of charge; you will only pay for replacement parts in case of repair.', order: 2 },
+    { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Jak rychle přijedete, když se přístroj porouchá?', question_en: 'How quickly can you come if the instrument breaks down?', answer_cz: 'Sídlíme v Praze a jelikož máme plně vybavený sklad náhradních dílů, můžeme k vám přijet takřka okamžitě. Všichni naši technici jsou proškoleni výrobci jednotlivých spektrometrů.', answer_en: 'We are based in Prague and since we have a fully equipped spare parts warehouse, we can come to you almost immediately.', order: 3 },
+    { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Nový spektrometr je pro nás moc drahý, existuje nějaká levnější varianta?', question_en: 'A new spectrometer is too expensive for us, is there a cheaper option?', answer_cz: 'Pokud nechcete nebo nemůžete investovat do nového přístroje, můžete využít některou z nabídek repasovaných přístrojů. Kontaktujte nás a budeme se snažit vám maximálně vyhovět.', answer_en: 'If you do not want or cannot invest in a new instrument, you can take advantage of one of our refurbished instrument offers.', order: 4 },
+    { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Nic o molekulové spektroskopii nevím, kde se můžu vzdělat?', question_en: 'I know nothing about molecular spectroscopy, where can I learn?', answer_cz: 'Ročně pořádáme řadu kurzů a školení, kde vám podrobně vysvětlíme principy molekulové spektroskopie, naučíme vás ovládat váš přístroj i jeho řídicí software. Pro nové majitele našich přístrojů jsou kurzy zdarma!', answer_en: 'We organize a number of courses and training sessions annually where we will explain the principles of molecular spectroscopy in detail, teach you how to operate your instrument and its control software.', order: 5 },
+  ];
+
+  for (const faq of defaultFaqs) {
+    await db.prepare(`
+      INSERT INTO faqs (category_cz, category_en, question_cz, question_en, answer_cz, answer_en, display_order, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(faq.category_cz, faq.category_en, faq.question_cz, faq.question_en, faq.answer_cz, faq.answer_en, faq.order);
+  }
+  console.log('✅ Default FAQs seeded');
 
   // ── Seed default admin user ────────────────────────────────────────────────
   const passwordHash = bcrypt.hashSync('admin123', 10);

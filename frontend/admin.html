@@ -164,6 +164,16 @@
           </a>
         </li>
         <li class="sidebar-nav-item">
+          <a data-section="faqs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span>FAQ</span>
+          </a>
+        </li>
+        <li class="sidebar-nav-item">
           <a data-section="forms">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -405,33 +415,72 @@
 
     <!-- ── PAGES ──────────────────────────────────────────────────────────── -->
     <section id="pagesSection" class="admin-section">
-      <div class="section-header-row">
-        <h2>Stránky</h2>
-        <div class="section-toolbar">
-          <button id="btnAddPage" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Přidat stránku
-          </button>
+      <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
+        <button id="pagesTabStd" onclick="admin._switchPagesTab('std')"
+          style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:600;color:#2563eb;border-bottom:2px solid #2563eb;margin-bottom:-2px;">
+          Standardní stránky
+        </button>
+        <button id="pagesTabSpecial" onclick="admin._switchPagesTab('special')"
+          style="padding:8px 20px;border:none;background:none;cursor:pointer;font-size:14px;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;">
+          Speciální stránky
+        </button>
+      </div>
+
+      <!-- Standard pages tab -->
+      <div id="pagesPanelStd">
+        <div class="section-header-row">
+          <h2>Stránky</h2>
+          <div class="section-toolbar">
+            <button id="btnAddPage" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Přidat stránku
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th>Název</th>
+                <th>Slug</th>
+                <th class="col-order">Pořadí</th>
+                <th class="col-status">Stav</th>
+                <th class="col-actions">Akce</th>
+              </tr>
+            </thead>
+            <tbody id="pagesTableBody">
+              <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th class="col-id">ID</th>
-              <th>Název</th>
-              <th>Slug</th>
-              <th class="col-order">Pořadí</th>
-              <th class="col-status">Stav</th>
-              <th class="col-actions">Akce</th>
-            </tr>
-          </thead>
-          <tbody id="pagesTableBody">
-            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
-          </tbody>
-        </table>
+
+      <!-- Special pages tab -->
+      <div id="pagesPanelSpecial" style="display:none;">
+        <div class="section-header-row">
+          <h2>Časté dotazy</h2>
+        </div>
+        <p style="color:#64748b;margin-bottom:16px;">Kliknutím na řádek upravíte otázky a odpovědi.</p>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="col-id">ID</th>
+                <th>Název</th>
+                <th>Slug</th>
+                <th class="col-status">Stav</th>
+              </tr>
+            </thead>
+            <tbody id="specialPagesTableBody">
+              <tr><td colspan="4"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
       </div>
     </section>
 
@@ -878,6 +927,39 @@
       </div>
     </section>
 
+    <!-- ── FAQ ───────────────────────────────────────────────────────────────── -->
+    <section id="faqsSection" class="admin-section">
+      <div class="section-header-row">
+        <h2>Časté dotazy (FAQ)</h2>
+        <div class="section-toolbar">
+          <button id="btnAddFaq" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Přidat FAQ
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th>Kategorie</th>
+              <th>Otázka</th>
+              <th class="col-order">Pořadí</th>
+              <th class="col-status">Stav</th>
+              <th class="col-actions">Akce</th>
+            </tr>
+          </thead>
+          <tbody id="faqsTableBody">
+            <tr><td colspan="6"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ── CONTACTS ───────────────────────────────────────────────────────── -->
     <section id="contactsSection" class="admin-section">
       <div class="section-header-row">
@@ -1087,7 +1169,10 @@
         </div>
         <div class="form-group autocomplete-picker">
           <label class="form-label">Odkaz (URL)</label>
-          <input type="text" id="carouselLinkUrl" class="form-input" placeholder="/produkty nebo https://…">
+          <input type="text" id="carouselLinkUrl" class="form-input" placeholder="/produkty nebo https://…"
+            oninput="admin.carousel.filterLinkSuggestions(this.value)"
+            onfocus="admin.carousel.filterLinkSuggestions(this.value)">
+          <div id="carouselLinkSuggestions" class="autocomplete-list" style="display:none;max-height:280px;overflow-y:auto;"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <div class="form-group">
@@ -1602,6 +1687,16 @@
     </div>
   </div>
 </div>
+<!-- Gallery images (after description) -->
+<div class="form-group">
+  <label class="form-label">Obrázky galerie</label>
+  <div id="prodImagesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPickerMulti('prod')">Vybrat z galerie</button>
+    <input type="text" id="prodImageUrlInput" class="form-input" style="max-width:260px;" placeholder="nebo vložit URL">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="admin.products.addImageFromUrl()">Přidat URL</button>
+  </div>
+</div>
 <!-- Thumbnail -->
 <div class="form-group">
   <label class="form-label">Miniatura (thumbnail)</label>
@@ -1612,17 +1707,7 @@
   <img id="prodThumbnailPreview" src="" alt="" style="display:none;max-height:60px;margin-top:6px;border-radius:4px;" onerror="this.style.display='none'">
   <div class="form-hint">Zobrazuje se v náhledech. Pokud nevyplněno, použije se výchozí z Nastavení.</div>
 </div>
-<!-- Gallery images -->
-<div class="form-group">
-  <label class="form-label">Obrázky galerie</label>
-  <div id="prodImagesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-    <button type="button" class="btn btn-secondary btn-sm" onclick="openGalleryPickerMulti('prod')">Vybrat z galerie</button>
-    <input type="text" id="prodImageUrlInput" class="form-input" style="max-width:260px;" placeholder="nebo vložit URL">
-    <button type="button" class="btn btn-ghost btn-sm" onclick="admin.products.addImageFromUrl()">Přidat URL</button>
-  </div>
-</div>
- <!-- Categories -->
+<!-- Categories -->
  <div class="form-group">
    <label class="form-label">Kategorie</label>
    <div id="prodCategoryList" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;min-height:40px;">
@@ -2087,6 +2172,20 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">Barva popisků polí</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="radio" name="formLabelColor" value="white" checked> <span style="color:var(--text-0);">Bílá</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="radio" name="formLabelColor" value="black"> <span style="color:var(--text-0);">Černá</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+              <input type="radio" name="formLabelColor" value="blue"> <span style="color:var(--blue);font-weight:600;">Modrá</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
           <label class="form-label">Obrázek pozadí (URL z galerie)</label>
           <div class="input-with-btn">
             <input type="text" id="formBackgroundImage" class="form-input" placeholder="/uploads/gallery/…">
@@ -2480,7 +2579,63 @@
  .lang-tab-btn:hover { background: #eff6ff; color: #2563eb; }
  .lang-tab-active { background: #fff !important; color: #2563eb !important; border-bottom: 2px solid #2563eb; }
  .lang-tab-panel { border: 1px solid #e2e8f0; border-radius: 0 0 6px 6px; padding: 16px; background: #fff; }
-</style>
+ </style>
+
+<!-- ══ FAQ MODAL ══════════════════════════════════════════════════════════════ -->
+<div id="faqModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <h3 id="faqsModalTitle">Přidat FAQ</h3>
+      <button class="modal-close" onclick="admin.faqs.hideModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Kategorie (CZ)</label>
+        <input type="text" id="faqCategoryCz" class="form-input" placeholder="např. Obecné dotazy">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kategorie (EN)</label>
+        <input type="text" id="faqCategoryEn" class="form-input" placeholder="e.g. General questions">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Otázka (CZ) <span class="required">*</span></label>
+        <input type="text" id="faqQuestionCz" class="form-input" placeholder="Jaký typ analýzy můžu provádět?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Otázka (EN)</label>
+        <input type="text" id="faqQuestionEn" class="form-input" placeholder="What type of analysis can I perform?">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Odpověď (CZ) <span class="required">*</span></label>
+        <textarea id="faqAnswerCz" class="form-textarea" rows="4" placeholder="Pomocí Ramanových a infračervených spektrometrů lze provádět..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Odpověď (EN)</label>
+        <textarea id="faqAnswerEn" class="form-textarea" rows="4" placeholder="Using Raman and infrared spectrometers, you can perform..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:end;">
+        <div class="form-group">
+          <label class="form-label">Pořadí</label>
+          <input type="number" id="faqOrder" class="form-input" value="0" min="0">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;">
+          <label class="toggle-wrap">
+            <div class="toggle">
+              <input type="checkbox" id="faqActive" checked>
+              <div class="toggle-slider"></div>
+            </div>
+            <span style="margin-left:8px;font-size:13px;color:#64748b;">Aktivní</span>
+          </label>
+        </div>
+      </div>
+      <div id="faqError" class="form-error" style="display:none;margin-top:12px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="admin.faqs.hideModal()">Zrušit</button>
+      <button id="faqSaveBtn" class="btn btn-primary" onclick="admin.faqs.saveItem()">Uložit</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ GALLERY PICKER MODAL ══════════════════════════════════════════════════ -->
 <div id="galleryPickerModal" class="gallery-picker-overlay hidden">

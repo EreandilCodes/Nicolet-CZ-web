@@ -15,6 +15,7 @@ import { FormsManager }             from '../admin/forms.js';
 import { SubmissionsManager }       from '../admin/submissions.js';
 import { GalleryManager }           from '../admin/gallery.js';
 import { MenuManager }              from '../admin/menu.js';
+import { FaqsManager }             from '../admin/faqs.js';
 
 class AdminController {
   constructor() {
@@ -35,6 +36,7 @@ class AdminController {
     this.submissions = new SubmissionsManager(this.auth);
     this.gallery     = new GalleryManager(this.auth);
     this.menu        = new MenuManager(this.auth);
+    this.faqs        = new FaqsManager(this.auth);
   }
 
   async init() {
@@ -99,6 +101,7 @@ class AdminController {
       menu:              'Menu',
       contacts:          'Kontakty',
       settings:          'Nastavení',
+      faqs:             'FAQ',
     };
     const titleEl = document.getElementById('admin-section-title');
     if (titleEl) titleEl.textContent = titles[section] || section;
@@ -114,7 +117,7 @@ class AdminController {
       case 'contacts':          this.contacts.init();        break;
       case 'carousel':          this.carousel.init();        break;
       case 'news':              this.news.init();            break;
-      case 'pages':             this.pages.init();           break;
+      case 'pages':             this.pages.init(); this.faqs.init(); break;
       case 'productCategories': this.prodCats.init(); this.newsCats.init(); this.appGroups.init(); break;
       case 'products':          this.products.init();        break;
       case 'appGroups':         this.appGroups.init();       break;
@@ -125,6 +128,7 @@ class AdminController {
       case 'submissions':       this.submissions.init();     break;
       case 'gallery':           this.gallery.init();         break;
       case 'menu':              this.menu.init();            break;
+      case 'faqs':              this.faqs.init();            break;
     }
   }
 
@@ -139,6 +143,20 @@ class AdminController {
         tabs[key].style.borderBottom = key === tab ? '2px solid #2563eb' : '2px solid transparent';
       }
     });
+  }
+
+  _switchPagesTab(tab) {
+    const panels = { std: document.getElementById('pagesPanelStd'), special: document.getElementById('pagesPanelSpecial') };
+    const tabs   = { std: document.getElementById('pagesTabStd'),   special: document.getElementById('pagesTabSpecial') };
+    Object.keys(panels).forEach(key => {
+      if (panels[key]) panels[key].style.display = key === tab ? '' : 'none';
+      if (tabs[key]) {
+        tabs[key].style.color       = key === tab ? '#2563eb' : '#6b7280';
+        tabs[key].style.fontWeight  = key === tab ? '600'     : '500';
+        tabs[key].style.borderBottom = key === tab ? '2px solid #2563eb' : '2px solid transparent';
+      }
+    });
+    if (tab === 'special' && this.faqs) this.faqs.loadItems();
   }
 
   async _loadDashboard() {

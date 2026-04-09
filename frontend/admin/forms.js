@@ -108,6 +108,8 @@ export class FormsManager {
       name,
       label_cz: type === 'gdpr' ? 'Souhlasím se zpracováním osobních údajů' : '',
       label_en: type === 'gdpr' ? 'I agree to the processing of personal data' : '',
+      placeholder_cz: '',
+      placeholder_en: '',
       type: type === 'gdpr' ? 'checkbox' : type,
       required: type === 'gdpr' ? true : false,
     };
@@ -138,12 +140,18 @@ export class FormsManager {
     container.querySelectorAll('.field-row').forEach(row => {
       const idx = parseInt(row.dataset.idx, 10);
       if (isNaN(idx) || !this._fields[idx]) return;
-      const czEl  = row.querySelector('[data-prop="label_cz"]');
-      const enEl  = row.querySelector('[data-prop="label_en"]');
-      const reqEl = row.querySelector('[data-prop="required"]');
-      if (czEl)  this._fields[idx].label_cz  = czEl.value;
-      if (enEl)  this._fields[idx].label_en  = enEl.value;
-      if (reqEl) this._fields[idx].required   = reqEl.checked;
+      const typeEl = row.querySelector('[data-prop="type"]');
+      const czEl   = row.querySelector('[data-prop="label_cz"]');
+      const enEl   = row.querySelector('[data-prop="label_en"]');
+      const phCzEl = row.querySelector('[data-prop="placeholder_cz"]');
+      const phEnEl = row.querySelector('[data-prop="placeholder_en"]');
+      const reqEl  = row.querySelector('[data-prop="required"]');
+      if (typeEl)  this._fields[idx].type             = typeEl.value;
+      if (czEl)    this._fields[idx].label_cz         = czEl.value;
+      if (enEl)    this._fields[idx].label_en         = enEl.value;
+      if (phCzEl)  this._fields[idx].placeholder_cz   = phCzEl.value;
+      if (phEnEl)  this._fields[idx].placeholder_en   = phEnEl.value;
+      if (reqEl)   this._fields[idx].required         = reqEl.checked;
     });
   }
 
@@ -158,10 +166,16 @@ export class FormsManager {
 
     const typeLabels = { text: 'Text', email: 'Email', tel: 'Telefon', textarea: 'Textarea', checkbox: 'Checkbox' };
 
-    container.innerHTML = this._fields.map((f, idx) => `
+    container.innerHTML = this._fields.map((f, idx) => {
+      const opts = Object.entries(typeLabels).map(([val, label]) => 
+        `<option value="${val}" ${f.type === val ? 'selected' : ''}>${label}</option>`
+      ).join('');
+      return `
       <div class="field-row" data-idx="${idx}">
         <div class="field-row-header">
-          <span class="field-type-badge">${esc(typeLabels[f.type] || f.type)}${f.name === 'gdpr_consent' ? ' • GDPR' : ''}</span>
+          <select class="field-type-select" data-prop="type" style="font-size:0.75rem;padding:4px 8px;border-radius:4px;border:1px solid var(--border-mid);background:var(--bg-card);">
+            ${opts}
+          </select>
           <div class="field-row-actions">
             <button type="button" class="btn btn-ghost btn-icon btn-sm" title="Nahoru" onclick="admin.forms.moveField(${idx}, -1)">↑</button>
             <button type="button" class="btn btn-ghost btn-icon btn-sm" title="Dolů" onclick="admin.forms.moveField(${idx}, 1)">↓</button>
@@ -171,14 +185,26 @@ export class FormsManager {
         <div class="field-row-body">
           <div class="field-row-grid">
             <div class="form-group">
-              <label class="form-label">Popis CZ</label>
+              <label class="form-label">Název pole (CZ)</label>
               <input type="text" class="form-input form-input-sm" data-prop="label_cz"
-                value="${esc(f.label_cz)}" placeholder="Popis pole CZ">
+                value="${esc(f.label_cz)}" placeholder="např. Jméno">
             </div>
             <div class="form-group">
-              <label class="form-label">Popis EN</label>
+              <label class="form-label">Název pole (EN)</label>
               <input type="text" class="form-input form-input-sm" data-prop="label_en"
-                value="${esc(f.label_en)}" placeholder="Field label EN">
+                value="${esc(f.label_en)}" placeholder="e.g. Name">
+            </div>
+          </div>
+          <div class="field-row-grid" style="margin-top:8px;">
+            <div class="form-group">
+              <label class="form-label">Placeholder (CZ)</label>
+              <input type="text" class="form-input form-input-sm" data-prop="placeholder_cz"
+                value="${esc(f.placeholder_cz || '')}" placeholder="např. Zadejte vaše jméno">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Placeholder (EN)</label>
+              <input type="text" class="form-input form-input-sm" data-prop="placeholder_en"
+                value="${esc(f.placeholder_en || '')}" placeholder="e.g. Enter your name">
             </div>
           </div>
           <label class="toggle-wrap" style="margin-top:8px;">
@@ -190,7 +216,7 @@ export class FormsManager {
           </label>
         </div>
       </div>
-    `).join('');
+    `}).join('');
   }
 
   // ── Modal ──────────────────────────────────────────────────────────────────
@@ -214,6 +240,18 @@ export class FormsManager {
     document.getElementById('formSuccessMsgEn').value     = item?.success_msg_en    || '';
     document.getElementById('formBackgroundImage').value  = item?.background_image  || '';
     document.getElementById('formActive').checked         = item?.is_active         ?? true;
+
+    const labelColor = (item && item.label_color) || 'white';
+    console.log('Loading form, label_color from DB:', item?.label_color, '-> using:', labelColor);
+    const colorRadios = document.querySelectorAll('input[name="formLabelColor"]');
+    if (colorRadios.length > 0) {
+      colorRadios.forEach(r => {
+        r.checked = r.value === labelColor;
+        console.log(`  Radio ${r.value}: ${r.checked ? 'CHECKED' : 'not checked'}`);
+      });
+    } else {
+      console.log('  No radio buttons found for formLabelColor!');
+    }
 
     // Update bg preview
     const bgPreview = document.getElementById('formBgPreview');
@@ -264,6 +302,10 @@ export class FormsManager {
     // Sync current DOM values into _fields before saving
     this._syncFieldsFromDOM();
 
+    const selectedColor = document.querySelector('input[name="formLabelColor"]:checked');
+    const labelColorValue = selectedColor ? selectedColor.value : 'white';
+    console.log('Saving form with label_color:', labelColorValue);
+
     const data = {
       name,
       title_cz:          document.getElementById('formTitleCz').value.trim()          || null,
@@ -277,6 +319,7 @@ export class FormsManager {
       success_msg_en:    document.getElementById('formSuccessMsgEn').value.trim()    || null,
       background_image:  document.getElementById('formBackgroundImage').value.trim() || null,
       fields_json:       JSON.stringify(this._fields),
+      label_color:       labelColorValue,
       is_active:         document.getElementById('formActive').checked ? 1 : 0,
     };
 

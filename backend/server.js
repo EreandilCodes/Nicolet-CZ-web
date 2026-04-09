@@ -23,6 +23,7 @@ import buttonsRoutes                       from './routes/buttons.js';
 import formsRoutes, { submissionsRouter }  from './routes/forms.js';
 import galleryRoutes                       from './routes/gallery.js';
 import menuRoutes                          from './routes/menu.js';
+import faqsRoutes                          from './routes/faqs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app  = express();
@@ -132,6 +133,7 @@ initWithTimeout
     app.use('/api/submissions',        submissionsRouter);
     app.use('/api/gallery',            galleryRoutes);
     app.use('/api/menu',               menuRoutes);
+    app.use('/api/faqs',               faqsRoutes);
 
     // Admin panel
     app.get('/admin', (_req, res) => {

@@ -15,10 +15,10 @@ export class PagesManager {
   }
 
   _bindButtons() {
-    const btn = document.getElementById('btnAddPage');
-    if (btn && !btn.dataset.bound) {
-      btn.dataset.bound = '1';
-      btn.addEventListener('click', () => this.showModal());
+    const btnAddPage = document.getElementById('btnAddPage');
+    if (btnAddPage && !btnAddPage.dataset.bound) {
+      btnAddPage.dataset.bound = '1';
+      btnAddPage.addEventListener('click', () => this.showModal());
     }
   }
 
@@ -96,6 +96,78 @@ export class PagesManager {
     }).join('');
   }
 
+  async renderSpecialPages() {
+    const tbody = document.getElementById('specialPagesTableBody');
+    if (!tbody) return;
+
+    // Načteme stránku "caste-dotazy" přímo z DB
+    let faqPage = null;
+    try {
+      const response = await fetch('/api/pages/admin/all', {
+        headers: this.auth.getAuthHeaders()
+      });
+      const contentType = response.headers.get('content-type');
+      if (response.ok && contentType?.includes('application/json')) {
+        const pages = await response.json();
+        faqPage = pages.find(p => p.slug === 'caste-dotazy');
+      }
+    } catch (err) {
+      console.error('Error loading FAQ page:', err);
+    }
+
+    if (!faqPage) {
+      tbody.innerHTML = `<tr><td colspan="4">
+        <div class="table-empty"><p>Stránka Časté dotazy nenalezena.</p></div>
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = `<tr onclick="admin.pages.editFaqPage(${faqPage.id})" style="cursor:pointer;">
+      <td class="col-id">${faqPage.id}</td>
+      <td>
+        <div class="table-title">${esc(faqPage.title_cz || 'Časté dotazy')}</div>
+        <div class="table-sub">${esc(faqPage.title_en || 'FAQ')}</div>
+      </td>
+      <td><code style="font-size:12px;">${esc(faqPage.slug || 'caste-dotazy')}</code></td>
+      <td class="col-status">
+        <span class="badge ${faqPage.is_published ? 'badge-success' : 'badge-neutral'}">
+          ${faqPage.is_published ? 'Publikováno' : 'Skryta'}
+        </span>
+      </td>
+    </tr>`;
+  }
+
+  editFaqPage(id) {
+    // Pro stránku "caste-dotazy" otevřeme FAQ manager místo page editoru
+    if (window.admin?.faqs) {
+      window.admin.faqs.showModal();
+    }
+  }
+
+  _generateSlug(text) {
+    const replacements = {
+      'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+      'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+      'ď': 'd', 'đ': 'd', 'δ': 'd',
+      'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+      'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+      'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ň': 'n', 'ν': 'n',
+      'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+      'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+      'ť': 't', 'ț': 't', 'τ': 't',
+      'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+      'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+      'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+      'β': 'b', 'γ': 'g', 'η': 'h', 'θ': 'th', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'φ': 'f',
+      'ο': 'o',
+    };
+    let result = text.toLowerCase();
+    for (const [from, to] of Object.entries(replacements)) {
+      result = result.split(from).join(to);
+    }
+    return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
   showModal(id = null) {
     const item = id ? this.items.find(i => i.id === id) : null;
     this._editing = item;
@@ -114,10 +186,22 @@ export class PagesManager {
     document.getElementById('pagesSeoTitleEn').value   = item?.seo_title_en || '';
     document.getElementById('pagesSeoDescCz').value    = item?.seo_desc_cz  || '';
     document.getElementById('pagesSeoDescEn').value    = item?.seo_desc_en  || '';
-    document.getElementById('pagesPublished').checked  = item?.is_published ?? false;
+    document.getElementById('pagesPublished').checked  = item ? !!item.is_published : true;
     document.getElementById('pagesOrder').value        = item?.display_order ?? 0;
 
     document.getElementById('pagesModal').classList.remove('hidden');
+
+    const titleInput = document.getElementById('pagesTitleCz');
+    const slugInput = document.getElementById('pagesSlug');
+    let slugManuallyEdited = !!item;
+    if (!item) {
+      slugInput.addEventListener('input', () => { slugManuallyEdited = true; });
+      titleInput.addEventListener('input', () => {
+        if (!slugManuallyEdited && titleInput.value) {
+          slugInput.value = this._generateSlug(titleInput.value);
+        }
+      });
+    }
 
     const form = document.getElementById('pagesForm');
     if (!form.dataset.bound) {

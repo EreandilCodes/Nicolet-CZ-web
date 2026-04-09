@@ -115,7 +115,7 @@ export class TrainingsManager {
     document.getElementById('trainDateEnd').value      = item?.date_end     ? item.date_end.substring(0, 10)   : '';
     document.getElementById('trainLocationCz').value   = item?.location_cz  || '';
     document.getElementById('trainLocationEn').value   = item?.location_en  || '';
-    document.getElementById('trainPublished').checked  = item?.is_published ?? false;
+    document.getElementById('trainPublished').checked  = item ? !!item.is_published : true;
 
     document.getElementById('trainingsModal').classList.remove('hidden');
 

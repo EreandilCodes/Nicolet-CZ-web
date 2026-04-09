@@ -267,6 +267,14 @@ All admin save operations MUST use a `this._saving` flag + button disable patter
 
 ### 10. Cache Busting
 When changing `public.js` or `admin.js`, bump the `?v=N` query parameter in the corresponding HTML `<script>` tag. Static assets are cached for 1 day by Express.
+**This applies to all admin JS files in `/frontend/admin/` directory as well.**
+
+### 11. Label Color for Forms
+When adding a new form-related setting that affects visual appearance, ensure:
+- Database column exists with proper migration
+- Admin UI has corresponding input (radio/select)
+- Public JS reads and applies CSS classes
+- CSS has `!important` on color overrides to ensure they take effect
 
 ### 7. Security
 - Use `esc()` for all DB string fields rendered in innerHTML templates
@@ -431,6 +439,238 @@ The `Admin → Menu` section is the ONLY source for the public header navigation
 1. Use the admin UI "Obnovit výchozí" button (no server restart needed)
 2. OR restart server (initDatabase seeds missing items)
 3. Do NOT directly manipulate the DB while server is running (SQLITE_BUSY)
+
+---
+
+## Gallery Image Compression
+
+Gallery uploads are automatically optimized using Sharp:
+
+- **Max width:** 2000px (maintains aspect ratio)
+- **JPEG:** Quality 85, progressive, mozjpeg compression (~60-70% size reduction, excellent quality)
+- **PNG:** Converted to WebP quality 90 (transparent support, much smaller file)
+- **WebP:** Quality 90 optimization
+- **Upload limit:** 50MB (images > 8MB are always resized)
+
+This happens automatically on upload in `backend/routes/gallery.js`.
+
+---
+
+## Linked Items Tiles (Detail Pages)
+
+Product and Application detail pages show linked items in the second tab:
+- Products show linked Applications
+- Applications show linked Products
+
+**Frontend rendering** uses CSS classes `linked-app-tile` and `linked-prod-tile`:
+```javascript
+// Products → Applications (horizontal tiles)
+const tabContentApps = linkedApps.length
+  ? `<div class="linked-items-grid">${linkedApps.map(a => `
+      <a class="linked-app-tile" href="/aplikace/${a.slug}">
+        <div class="linked-app-tile-img">
+          <img src="${a.thumbnail_url || a.cover_image}" alt="...">
+        </div>
+        <div class="linked-app-tile-body">
+          <div class="linked-app-tile-name">${name}</div>
+        </div>
+      </a>`).join('')}</div>`
+  : '';
+```
+
+**API** must include thumbnail fields for linked items:
+```sql
+-- products.js: getProductApplications
+SELECT a.id, a.slug, a.name_cz, a.name_en, a.thumbnail_url, a.cover_image FROM applications...
+
+-- applications.js: getApplicationProducts  
+SELECT p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url FROM products...
+```
+
+---
+
+## Form Required Field Validation
+
+Both frontend and backend validate required fields:
+
+**Frontend** (`public.js` `_submitFormModal`):
+```javascript
+const requiredFields = fields.filter(f => f.required);
+for (const field of requiredFields) {
+  const input = formEl.querySelector(`[name="${field.name}"]`);
+  if (!input) continue;
+  const value = input.type === 'checkbox' ? input.checked : input.value.trim();
+  if (!value) {
+    input.classList.add('pform-error');
+    // Show error message
+    return;
+  }
+}
+```
+
+**Backend** (`routes/forms.js` POST submit):
+```javascript
+for (const field of formFields) {
+  if (field.required) {
+    const value = body[field.name];
+    const isEmpty = field.type === 'checkbox' ? !value : (!value || String(value).trim() === '');
+    if (isEmpty) {
+      return res.status(400).json({ error: `Vyplňte prosím: ${field.label_cz || field.name}` });
+    }
+  }
+}
+```
+
+---
+
+## Product Modal Form Order
+
+In admin UI, product modal fields are ordered:
+1. Name (CZ/EN) + Slug
+2. Description editor (with language tabs)
+3. **Gallery images** (moved after description, before thumbnail)
+4. Thumbnail
+5. Categories
+6. Linked applications
+7. SEO fields
+8. Featured / Published toggles
+
+---
+
+## Auto-Slug Generation Pattern
+
+For admin entity forms, implement `_generateSlug()` method and auto-fill slug from CZ title on input:
+
+```javascript
+_generateSlug(text) {
+  const replacements = {
+    'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+    'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+    'ď': 'd', 'đ': 'd', 'δ': 'd',
+    'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+    'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ν': 'n',
+    'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+    'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+    'ť': 't', 'ț': 't', 'τ': 't',
+    'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+    'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+    'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+    'β': 'b', 'γ': 'g', 'η': 'h', 'θ': 'th', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'φ': 'f',
+  };
+  let result = text.toLowerCase();
+  for (const [from, to] of Object.entries(replacements)) {
+    result = result.split(from).join(to);
+  }
+  return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+showModal(id = null) {
+  // ... existing code ...
+  const titleInput = document.getElementById('entityTitleCz');
+  const slugInput = document.getElementById('entitySlug');
+  let slugManuallyEdited = !!id;
+  if (!id) {
+    slugInput.addEventListener('input', () => { slugManuallyEdited = true; });
+    titleInput.addEventListener('input', () => {
+      if (!slugManuallyEdited && titleInput.value) {
+        slugInput.value = this._generateSlug(titleInput.value);
+      }
+    });
+  }
+}
+```
+```
+
+---
+
+## Default Published/Active State
+
+When adding new entities, default toggle should be `true`:
+
+```javascript
+document.getElementById('entityPublished').checked = item ? !!item.is_published : true;
+```
+
+---
+
+## Form Builder Pattern (admin/forms.js)
+
+For forms with dynamic field builder:
+
+```javascript
+// Field object structure
+const field = {
+  name: 'email_1',
+  label_cz: 'Email',
+  label_en: 'Email',
+  placeholder_cz: 'vas@email.cz',
+  placeholder_en: 'your@email.com',
+  type: 'email',
+  required: false,
+};
+
+// _syncFieldsFromDOM must capture all field properties
+_syncFieldsFromDOM() {
+  container.querySelectorAll('.field-row').forEach(row => {
+    const idx = parseInt(row.dataset.idx, 10);
+    const typeEl = row.querySelector('[data-prop="type"]');
+    const czEl   = row.querySelector('[data-prop="label_cz"]');
+    const enEl   = row.querySelector('[data-prop="label_en"]');
+    const phCzEl = row.querySelector('[data-prop="placeholder_cz"]');
+    const phEnEl = row.querySelector('[data-prop="placeholder_en"]');
+    const reqEl  = row.querySelector('[data-prop="required"]');
+    if (typeEl)  this._fields[idx].type             = typeEl.value;
+    if (czEl)    this._fields[idx].label_cz         = czEl.value;
+    if (enEl)    this._fields[idx].label_en         = enEl.value;
+    if (phCzEl)  this._fields[idx].placeholder_cz   = phCzEl.value;
+    if (phEnEl)  this._fields[idx].placeholder_en   = phEnEl.value;
+    if (reqEl)   this._fields[idx].required         = reqEl.checked;
+  });
+}
+```
+
+---
+
+## Form Label Color Setting
+
+Forms support configurable label color (black/white/blue):
+
+**Database:** `ALTER TABLE forms ADD COLUMN label_color TEXT DEFAULT 'white'`
+
+**Admin HTML:** Radio buttons with name="formLabelColor"
+
+**Admin JS:** Save label_color from checked radio
+
+**Public JS:** Apply class `label-{color}` to title, desc, and all field labels
+
+**CSS:** Each color variant needs `!important` to override defaults
+
+---
+
+## Homepage Trainings Teaser with CTA
+
+The `_renderTrainingsTeaser()` method accepts an optional `defaultBtn` parameter:
+
+```javascript
+_renderTrainingsTeaser(trainings, defaultBtn = null) {
+  // Apply defaultBtn to each training card that doesn't have its own cta_button_id
+  trainings.map(tr => {
+    const ctaBtn = tr.cta_button_id ? null : defaultBtn;
+    // render card with ctaBtn if present
+  });
+}
+```
+
+In `renderHome()`, fetch buttons and pass to teaser:
+```javascript
+const [trainingsRes, buttons] = await Promise.all([...]);
+const btnMap = {};
+settled(buttons).forEach(b => { btnMap[b.id] = b; });
+const defaultTrainingBtn = this.settings.training_default_button_id
+  ? (btnMap[this.settings.training_default_button_id] || null) : null;
+_renderTrainingsTeaser(upcoming, defaultTrainingBtn)
+```
 
 ---
 

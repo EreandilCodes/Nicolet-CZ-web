@@ -6,12 +6,34 @@ export class CarouselManager {
   constructor(auth) {
     this.auth     = auth;
     this.items    = [];
+    this.pages    = [];
+    this.products = [];
+    this.applications = [];
+    this.news     = [];
     this._editing = null;
   }
 
   async init() {
     await this.loadItems();
+    await this._loadLinkSources();
     this._bindButtons();
+  }
+
+  async _loadLinkSources() {
+    try {
+      const [pages, products, apps, newsItems] = await Promise.all([
+        fetch('/api/pages').then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/products?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/applications?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch('/api/news').then(r => r.ok ? r.json() : []).catch(() => []),
+      ]);
+      this.pages = pages;
+      this.products = products;
+      this.applications = apps;
+      this.news = newsItems;
+    } catch (err) {
+      console.error('Failed to load link sources:', err);
+    }
   }
 
   _bindButtons() {
@@ -132,6 +154,63 @@ export class CarouselManager {
   closeModal() {
     document.getElementById('carouselModal').classList.add('hidden');
     this._editing = null;
+  }
+
+  filterLinkSuggestions(query) {
+    const list = document.getElementById('carouselLinkSuggestions');
+    if (!list) return;
+    const q = query.toLowerCase();
+    if (!q) { list.style.display = 'none'; return; }
+
+    const suggestions = [];
+
+    this.pages?.forEach(p => {
+      if (p.slug && (p.title_cz?.toLowerCase().includes(q) || p.title_en?.toLowerCase().includes(q))) {
+        suggestions.push({ type: 'page', label: p.title_cz || p.title_en, value: `/stranky/${p.slug}` });
+      }
+    });
+    this.products?.forEach(p => {
+      if (p.slug && (p.name_cz?.toLowerCase().includes(q) || p.name_en?.toLowerCase().includes(q))) {
+        suggestions.push({ type: 'product', label: p.name_cz || p.name_en, value: `/produkty/${p.slug}` });
+      }
+    });
+    this.applications?.forEach(a => {
+      if (a.slug && (a.name_cz?.toLowerCase().includes(q) || a.name_en?.toLowerCase().includes(q))) {
+        suggestions.push({ type: 'app', label: a.name_cz || a.name_en, value: `/aplikace/${a.slug}` });
+      }
+    });
+    this.news?.forEach(n => {
+      if (n.slug && (n.title_cz?.toLowerCase().includes(q) || n.title_en?.toLowerCase().includes(q))) {
+        suggestions.push({ type: 'news', label: n.title_cz || n.title_en, value: `/novinky/${n.slug}` });
+      }
+    });
+
+    const typeIcons = { page: '📄', product: '🔬', app: '⚙️', news: '📰' };
+    const typeLabels = { page: 'Stránka', product: 'Produkt', app: 'Aplikace', news: 'Novinka' };
+
+    if (!suggestions.length) {
+      list.style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = suggestions.slice(0, 10).map(s => `
+      <div class="autocomplete-item" onmousedown="admin.carousel.selectLinkSuggestion('${esc(s.value)}', '${esc(s.label)}')">
+        <span class="link-suggestion-icon">${typeIcons[s.type] || '🔗'}</span>
+        <span class="link-suggestion-label">${esc(s.label)}</span>
+        <span class="link-suggestion-type">${typeLabels[s.type] || s.type}</span>
+      </div>
+    `).join('');
+    list.style.display = 'block';
+  }
+
+  selectLinkSuggestion(url, label) {
+    const input = document.getElementById('carouselLinkUrl');
+    if (input) {
+      input.value = url;
+      input.focus();
+    }
+    const list = document.getElementById('carouselLinkSuggestions');
+    if (list) list.style.display = 'none';
   }
 
   async saveItem() {

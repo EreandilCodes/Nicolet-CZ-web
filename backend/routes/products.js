@@ -24,7 +24,7 @@ async function batchAttachRelations(products) {
   `).all(...ids);
 
   const appRows = await db.prepare(`
-    SELECT m.product_id, a.id, a.slug, a.name_cz, a.name_en
+    SELECT m.product_id, a.id, a.slug, a.name_cz, a.name_en, a.thumbnail_url, a.cover_image
     FROM applications a
     JOIN product_applications_map m ON m.application_id = a.id
     WHERE m.product_id IN (${ph})
@@ -60,7 +60,7 @@ async function getProductCategories(productId) {
 
 async function getProductApplications(productId) {
   return db.prepare(`
-    SELECT a.id, a.slug, a.name_cz, a.name_en FROM applications a
+    SELECT a.id, a.slug, a.name_cz, a.name_en, a.thumbnail_url, a.cover_image FROM applications a
     JOIN product_applications_map m ON m.application_id = a.id
     WHERE m.product_id = ?
     ORDER BY a.display_order, a.id

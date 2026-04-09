@@ -125,6 +125,22 @@ router.post('/:id/submit', async (req, res) => {
     const form = await db.prepare('SELECT * FROM forms WHERE id = ? AND is_active = 1').get(id);
     if (!form) return res.status(404).json({ error: 'Formulář nenalezen' });
 
+    // Parse form fields and validate required
+    let formFields = [];
+    try {
+      formFields = typeof form.fields_json === 'string' ? JSON.parse(form.fields_json) : (form.fields_json || []);
+    } catch { formFields = []; }
+
+    for (const field of formFields) {
+      if (field.required) {
+        const value = body[field.name];
+        const isEmpty = field.type === 'checkbox' ? !value : (!value || String(value).trim() === '');
+        if (isEmpty) {
+          return res.status(400).json({ error: `Vyplňte prosím: ${field.label_cz || field.label_en || field.name}` });
+        }
+      }
+    }
+
     // Strip internal fields before storing
     const { _hp: _hpField, _ts: _tsField, ...submittedData } = body;
 
@@ -150,15 +166,18 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
     const {
       name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
       email_recipients, submit_label_cz, submit_label_en,
-      success_msg_cz, success_msg_en, is_active
+      success_msg_cz, success_msg_en, label_color, is_active
     } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ error: 'name je povinné' });
 
+    const validColors = ['black', 'white', 'blue'];
+    const safeLabelColor = validColors.includes(label_color) ? label_color : 'white';
+
     const result = await db.prepare(`
       INSERT INTO forms (name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
-        email_recipients, submit_label_cz, submit_label_en, success_msg_cz, success_msg_en, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        email_recipients, submit_label_cz, submit_label_en, success_msg_cz, success_msg_en, label_color, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       name.trim(),
       title_cz?.trim() || null,
@@ -172,6 +191,7 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
       submit_label_en?.trim() || 'Submit',
       success_msg_cz?.trim() || 'Děkujeme za zprávu. Brzy se ozveme.',
       success_msg_en?.trim() || 'Thank you. We will get back to you shortly.',
+      safeLabelColor,
       is_active != null ? (is_active ? 1 : 0) : 1
     );
 
@@ -190,16 +210,19 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const {
       name, title_cz, title_en, description_cz, description_en, fields_json, background_image,
       email_recipients, submit_label_cz, submit_label_en,
-      success_msg_cz, success_msg_en, is_active
+      success_msg_cz, success_msg_en, label_color, is_active
     } = req.body;
 
     if (!name?.trim()) return res.status(400).json({ error: 'name je povinné' });
+
+    const validColors = ['black', 'white', 'blue'];
+    const safeLabelColor = validColors.includes(label_color) ? label_color : 'white';
 
     const result = await db.prepare(`
       UPDATE forms
       SET name = ?, title_cz = ?, title_en = ?, description_cz = ?, description_en = ?, fields_json = ?, background_image = ?,
           email_recipients = ?, submit_label_cz = ?, submit_label_en = ?,
-          success_msg_cz = ?, success_msg_en = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
+          success_msg_cz = ?, success_msg_en = ?, label_color = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(
       name.trim(),
@@ -214,6 +237,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       submit_label_en?.trim() || 'Submit',
       success_msg_cz?.trim() || 'Děkujeme za zprávu. Brzy se ozveme.',
       success_msg_en?.trim() || 'Thank you. We will get back to you shortly.',
+      safeLabelColor,
       is_active != null ? (is_active ? 1 : 0) : 1,
       id
     );

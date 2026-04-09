@@ -227,6 +227,29 @@ export class NewsManager {
     if (selectAll) selectAll.checked = false;
   }
 
+  _generateSlug(text) {
+    const replacements = {
+      'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+      'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+      'ď': 'd', 'đ': 'd', 'δ': 'd',
+      'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+      'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+      'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ν': 'n',
+      'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+      'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+      'ť': 't', 'ț': 't', 'τ': 't',
+      'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+      'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+      'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+      'β': 'b', 'γ': 'g', 'η': 'h', 'θ': 'th', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'φ': 'f',
+    };
+    let result = text.toLowerCase();
+    for (const [from, to] of Object.entries(replacements)) {
+      result = result.split(from).join(to);
+    }
+    return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
   showModal(id = null) {
     const item = id ? this.items.find(i => i.id === id) : null;
     this._editing = item;
@@ -252,7 +275,7 @@ export class NewsManager {
     document.getElementById('newsSeoTitleEn').value   = item?.seo_title_en || '';
     document.getElementById('newsSeoDescCz').value    = item?.seo_desc_cz  || '';
     document.getElementById('newsSeoDescEn').value    = item?.seo_desc_en  || '';
-    document.getElementById('newsPublished').checked  = item?.is_published ?? false;
+    document.getElementById('newsPublished').checked  = item ? !!item.is_published : true;
 
     // Populate category select
     const catSelect = document.getElementById('newsCategoryId');
@@ -273,6 +296,18 @@ export class NewsManager {
     window.resetNewsLangTabs?.();
     window.initEditorView?.('newsContentCz');
     window.initEditorView?.('newsContentEn');
+
+    const titleInput = document.getElementById('newsTitleCz');
+    const slugInput = document.getElementById('newsSlug');
+    let slugManuallyEdited = !!item;
+    if (!item) {
+      slugInput.addEventListener('input', () => { slugManuallyEdited = true; });
+      titleInput.addEventListener('input', () => {
+        if (!slugManuallyEdited && titleInput.value) {
+          slugInput.value = this._generateSlug(titleInput.value);
+        }
+      });
+    }
 
     const form = document.getElementById('newsForm');
     if (!form.dataset.bound) {

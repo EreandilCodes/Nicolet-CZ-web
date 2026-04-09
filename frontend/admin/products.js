@@ -143,6 +143,29 @@ export class ProductsManager {
     }).join('');
   }
 
+  _generateSlug(text) {
+    const replacements = {
+      'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+      'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+      'ď': 'd', 'đ': 'd', 'δ': 'd',
+      'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+      'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+      'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ν': 'n',
+      'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+      'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+      'ť': 't', 'ț': 't', 'τ': 't',
+      'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+      'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+      'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+      'β': 'b', 'γ': 'g', 'η': 'h', 'θ': 'th', 'κ': 'k', 'λ': 'l', 'μ': 'm', 'ξ': 'x', 'ο': 'o', 'π': 'p', 'φ': 'f',
+    };
+    let result = text.toLowerCase();
+    for (const [from, to] of Object.entries(replacements)) {
+      result = result.split(from).join(to);
+    }
+    return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
   showModal(id = null) {
     const item = id ? this.items.find(i => i.id === id) : null;
     this._editing = item;
@@ -163,7 +186,7 @@ export class ProductsManager {
       thumbPreview.style.display = t ? '' : 'none';
     }
     document.getElementById('prodFeatured').checked  = item?.is_featured    ?? false;
-    document.getElementById('prodPublished').checked = item?.is_published   ?? false;
+    document.getElementById('prodPublished').checked = item ? !!item.is_published : true;
     document.getElementById('prodOrder').value       = item?.display_order  ?? 0;
     document.getElementById('prodSeoTitleCz').value  = item?.seo_title_cz   || '';
     document.getElementById('prodSeoTitleEn').value  = item?.seo_title_en   || '';
@@ -213,6 +236,18 @@ export class ProductsManager {
     window.resetProductLangTabs?.();
     window.initEditorView?.('prodDescCz');
     window.initEditorView?.('prodDescEn');
+
+    const nameInput = document.getElementById('prodNameCz');
+    const slugInput = document.getElementById('prodSlug');
+    let slugManuallyEdited = !!item;
+    if (!item) {
+      slugInput.addEventListener('input', () => { slugManuallyEdited = true; });
+      nameInput.addEventListener('input', () => {
+        if (!slugManuallyEdited && nameInput.value) {
+          slugInput.value = this._generateSlug(nameInput.value);
+        }
+      });
+    }
 
     const form = document.getElementById('productsForm');
     if (!form.dataset.bound) {

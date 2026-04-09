@@ -256,6 +256,8 @@ class PublicApp {
         await this.renderSearch(el);
       } else if (parts[0] === 'stranka' && parts[1]) {
         await this.renderPage(el, parts[1]);
+      } else if (parts[0] === 'faq') {
+        await this.renderFaq(el);
       } else {
         this.render404(el);
       }
@@ -275,12 +277,13 @@ class PublicApp {
 
   async renderHome(el) {
     updateMeta({ title: null, description: 'Nicolet CZ – dodavatel přístrojů pro molekulovou spektroskopii na českém trhu více než 30 let.' });
-    const [carouselItems, products, applications, newsPosts, trainingsRes] = await Promise.allSettled([
+    const [carouselItems, products, applications, newsPosts, trainingsRes, buttons] = await Promise.allSettled([
       safeFetch('/api/carousel'),
       safeFetch('/api/products?fields=list'),
       safeFetch('/api/applications?fields=list'),
       safeFetch('/api/news'),
       safeFetch('/api/trainings'),
+      this._getButtons(),
     ]);
 
     const carousel = settled(carouselItems);
@@ -296,14 +299,42 @@ class PublicApp {
     const today = new Date().toISOString().slice(0, 10);
     const upcoming = settled(trainingsRes).filter(tr => tr.date_start >= today).slice(0, 3);
 
+    // Default training button
+    const btnMap = {};
+    (settled(buttons) || []).forEach(b => { btnMap[b.id] = b; });
+    const defaultTrainingBtn = this.settings.training_default_button_id
+      ? (btnMap[this.settings.training_default_button_id] || null)
+      : null;
+
     el.innerHTML = `
       ${this._renderCarousel(carousel)}
+      ${this._renderLandingIntro()}
       ${prodRow.length ? this._renderFeaturedProducts(prodRow) : ''}
       ${appRow.length  ? this._renderFeaturedApplications(appRow) : ''}
-      ${upcoming.length ? this._renderTrainingsTeaser(upcoming) : ''}
+      ${upcoming.length ? this._renderTrainingsTeaser(upcoming, defaultTrainingBtn) : ''}
       ${news.length  ? this._renderNewsTeaser(news) : ''}
       ${this._renderContactBanner()}
     `;
+  }
+
+  _renderLandingIntro() {
+    return `<section class="landing-intro">
+  <div class="landing-intro-wrapper">
+    <div class="landing-intro-image">
+      <img src="/uploads/NicoLandingPage.png" alt="Nicolet CZ">
+    </div>
+    <div class="landing-intro-card">
+      <h2>Společnost Nicolet CZ s.r.o. působí na českém trhu více než 30 let.</h2>
+      <p>Specializujeme se na molekulovou spektroskopii a dodáváme více než 30 typů analyzátorů od malých (mobilních/ručních) modelů přes specializované až po špičkové vědecké přístroje stavěné na zakázku.</p>
+      <a href="/stranka/o-nas" class="btn btn-primary btn-sm" data-nav="/stranka/o-nas">
+        Zjistit více
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</section>`;
   }
 
   _renderCarousel(items) {
@@ -361,22 +392,32 @@ class PublicApp {
     wrap.querySelector('.carousel-next')?.addEventListener('click', () => go(current + 1));
     dots.forEach(d => d.addEventListener('click', () => go(Number(d.dataset.goto))));
 
-    // Auto-advance every 6s
-    let timer = setInterval(() => go(current + 1), 6000);
+    // Auto-advance every 5s (loop infinitely)
+    let timer = setInterval(() => go(current + 1), 5000);
     wrap.addEventListener('mouseenter', () => clearInterval(timer));
-    wrap.addEventListener('mouseleave', () => { timer = setInterval(() => go(current + 1), 6000); });
+    wrap.addEventListener('mouseleave', () => { timer = setInterval(() => go(current + 1), 5000); });
   }
 
   _renderFeaturedProducts(prods) {
-    const cards = prods.slice(0, 4).map(p => `
+    const cards = prods.slice(0, 4).map(p => {
+      let imgSrc = null;
+      if (p.thumbnail_url) {
+        imgSrc = p.thumbnail_url;
+      } else if (p.images_json) {
+        try {
+          const imgs = JSON.parse(p.images_json);
+          if (imgs[0]) imgSrc = typeof imgs[0] === 'string' ? imgs[0] : imgs[0].url;
+        } catch {}
+      }
+      return `
       <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
-        ${p.images_json ? (() => { try { const imgs = JSON.parse(p.images_json); return imgs[0] ? `<div class="product-card-img"><img src="${esc(imgs[0])}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'; } catch { return '<div class="product-card-img product-card-img-empty"></div>'; } })() : '<div class="product-card-img product-card-img-empty"></div>'}
+        ${imgSrc ? `<div class="product-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
         <div class="product-card-body">
           <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
           ${p.description_cz ? `<div class="product-card-desc">${esc(stripHtml(pick(p.description_cz, p.description_en))).substring(0, 120)}…</div>` : ''}
           <span class="product-card-link">${t('common.read_more')} →</span>
         </div>
-      </a>`).join('');
+      </a>`}).join('');
 
     return `
       <section class="section-block">
@@ -394,15 +435,17 @@ class PublicApp {
   }
 
   _renderFeaturedApplications(apps) {
-    const cards = apps.slice(0, 4).map(a => `
+    const cards = apps.slice(0, 4).map(a => {
+      const imgSrc = a.thumbnail_url || a.cover_image || null;
+      return `
       <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
-        ${a.cover_image ? `<div class="app-card-img"><img src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
+        ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
           <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
           ${a.content_cz ? `<div class="app-card-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 100)}…</div>` : ''}
           <span class="app-card-link">${t('common.read_more')} →</span>
         </div>
-      </a>`).join('');
+      </a>`}).join('');
 
     return `
       <section class="section-block section-block-alt">
@@ -420,14 +463,14 @@ class PublicApp {
   }
 
   _renderNewsTeaser(posts) {
+    const stripHtml = str => str ? str.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim() : '';
     const cards = posts.map(p => `
-      <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
+      <a class="news-card-teaser" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
         ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
         <div class="news-card-body">
           <div class="news-card-date">${fmtDate(p.published_at)}</div>
           <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
-          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
-          <span class="news-card-link">${t('common.read_more')} →</span>
+          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(stripHtml(pick(p.excerpt_cz, p.excerpt_en)))}</p>` : ''}
         </div>
       </a>`).join('');
 
@@ -437,7 +480,7 @@ class PublicApp {
           <div class="section-header">
             <h2 class="section-title">${t('nav.news')}</h2>
           </div>
-          <div class="news-grid">${cards}</div>
+          <div class="news-grid-teaser">${cards}</div>
           <div style="text-align:center;margin-top:32px">
             <a href="/novinky" data-nav="/novinky" class="btn-outline-pub">${t('common.all_news')}</a>
           </div>
@@ -445,8 +488,12 @@ class PublicApp {
       </section>`;
   }
 
-  _renderTrainingsTeaser(trainings) {
-    const cards = trainings.map(tr => `
+  _renderTrainingsTeaser(trainings, defaultBtn = null) {
+    const cards = trainings.map(tr => {
+      const ctaBtn = tr.cta_button_id
+        ? null
+        : defaultBtn;
+      return `
       <div class="training-card">
         <div class="training-card-dates">
           <div class="training-date-from">
@@ -461,8 +508,9 @@ class PublicApp {
         <div class="training-card-body">
           <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
           ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
+          ${ctaBtn ? `<div class="training-card-cta">${this._renderCtaButton(ctaBtn)}</div>` : ''}
         </div>
-      </div>`).join('');
+      </div>`}).join('');
 
     return `
       <section class="section-block section-block-alt">
@@ -757,21 +805,26 @@ class PublicApp {
     const tabContentDesc = `
       <div class="product-detail-desc-wrap">
         ${p.description_cz ? `<div class="product-detail-desc">${sanitize(pick(p.description_cz, p.description_en))}</div>` : ''}
+        ${galleryHtml}
         ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="product-spec-content">${sanitize(pick(p.spec_cz, p.spec_en))}</div></div>` : ''}
       </div>`;
 
     const tabContentApps = linkedApps.length
       ? `<div class="linked-items-grid">${linkedApps.map(a => `
-          <a class="linked-item-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
-            ${a.thumbnail_url || a.cover_image ? `<div class="linked-item-img"><img src="${esc(a.thumbnail_url || a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : ''}
-            <div class="linked-item-name">${esc(pick(a.name_cz, a.name_en))}</div>
+          <a class="linked-app-tile" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
+            ${a.thumbnail_url || a.cover_image 
+              ? `<div class="linked-app-tile-img"><img src="${esc(a.thumbnail_url || a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>`
+              : `<div class="linked-app-tile-img linked-app-tile-img-empty"></div>`}
+            <div class="linked-app-tile-body">
+              <div class="linked-app-tile-name">${esc(pick(a.name_cz, a.name_en))}</div>
+              <div class="linked-app-tile-link">${getLang() === 'en' ? 'View application →' : 'Zobrazit aplikaci →'}</div>
+            </div>
           </a>`).join('')}</div>`
       : `<p class="empty-state">${getLang() === 'en' ? 'No linked applications.' : 'Žádné propojené aplikace.'}</p>`;
 
     el.innerHTML = `
       <article class="container section">
         <a href="/produkty" data-nav="/produkty" class="back-link">← ${t('common.all_products')}</a>
-        ${galleryHtml}
         <div class="detail-tabs">
           <div class="detail-tab-bar">
             <button class="detail-tab-btn active" data-tab="desc">${getLang() === 'en' ? 'About the instrument' : 'O přístroji'}</button>
@@ -891,9 +944,14 @@ class PublicApp {
 
     const tabContentProds = linkedProds.length
       ? `<div class="linked-items-grid">${linkedProds.map(p => `
-          <a class="linked-item-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
-            ${p.thumbnail_url ? `<div class="linked-item-img"><img src="${esc(p.thumbnail_url)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : ''}
-            <div class="linked-item-name">${esc(pick(p.name_cz, p.name_en))}</div>
+          <a class="linked-prod-tile" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
+            ${p.thumbnail_url 
+              ? `<div class="linked-prod-tile-img"><img src="${esc(p.thumbnail_url)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>`
+              : `<div class="linked-prod-tile-img linked-prod-tile-img-empty"></div>`}
+            <div class="linked-prod-tile-body">
+              <div class="linked-prod-tile-name">${esc(pick(p.name_cz, p.name_en))}</div>
+              <div class="linked-prod-tile-link">${getLang() === 'en' ? 'View instrument →' : 'Zobrazit přístroj →'}</div>
+            </div>
           </a>`).join('')}</div>`
       : `<p class="empty-state">${getLang() === 'en' ? 'No linked instruments.' : 'Žádné propojené přístroje.'}</p>`;
 
@@ -1010,6 +1068,66 @@ class PublicApp {
       title: pick(page.seo_title_cz || page.title_cz, page.seo_title_en || page.title_en),
       description: pick(page.seo_desc_cz || page.excerpt_cz, page.seo_desc_en || page.excerpt_en),
       ogImage: page.cover_image || '',
+    });
+  }
+
+  async renderFaq(el) {
+    const lang = getLang();
+    const [faqs] = await Promise.all([safeFetch('/api/faqs'), _loadDOMPurify()]);
+    
+    if (!faqs || !faqs.length) {
+      el.innerHTML = `
+        <div class="container section">
+          <h1 class="page-title">Časté dotazy</h1>
+          <p class="empty-state">Žádné FAQ zatím nebyly přidány.</p>
+        </div>`;
+      return;
+    }
+
+    const categories = {};
+    faqs.forEach(faq => {
+      const cat = pick(faq.category_cz, faq.category_en) || 'Obecné dotazy';
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(faq);
+    });
+
+    const catHtml = Object.entries(categories).map(([cat, items]) => `
+      <div class="faq-category">
+        <h2 class="faq-category-title">${esc(cat)}</h2>
+        <div class="faq-list">
+          ${items.map(faq => `
+            <div class="faq-item">
+              <button class="faq-question" aria-expanded="false">
+                <span>${esc(pick(faq.question_cz, faq.question_en))}</span>
+                <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div class="faq-answer">${sanitize(pick(faq.answer_cz, faq.answer_en))}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    el.innerHTML = `
+      <div class="container section">
+        <h1 class="page-title">Časté dotazy</h1>
+        <div class="faq-container">${catHtml}</div>
+      </div>`;
+
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        document.querySelectorAll('.faq-question').forEach(b => {
+          b.setAttribute('aria-expanded', 'false');
+          b.closest('.faq-item').classList.remove('faq-open');
+        });
+        if (!expanded) {
+          btn.setAttribute('aria-expanded', 'true');
+          btn.closest('.faq-item').classList.add('faq-open');
+        }
+      });
     });
   }
 
@@ -1350,8 +1468,19 @@ class PublicApp {
     const bgEl     = document.getElementById('publicFormBg');
     const tsEl     = document.getElementById('publicFormTs');
 
-    if (titleEl) titleEl.textContent = title;
-    if (descEl)  { descEl.textContent = desc; descEl.style.display = desc ? '' : 'none'; }
+    const labelColor = form.label_color || 'white';
+    const labelColorClass = `label-${labelColor}`;
+    console.log('Form modal - label_color:', form.label_color, '-> class:', labelColorClass);
+
+    if (titleEl) {
+      titleEl.textContent = title;
+      titleEl.className = `pform-title ${labelColorClass}`;
+    }
+    if (descEl)  { 
+      descEl.textContent = desc; 
+      descEl.style.display = desc ? '' : 'none';
+      descEl.className = `pform-desc ${labelColorClass}`;
+    }
     if (submitEl) submitEl.textContent = submitLabel;
     if (successEl) successEl.style.display = 'none';
     const errorEl = document.getElementById('publicFormError');
@@ -1376,11 +1505,14 @@ class PublicApp {
       const fields = Array.isArray(form.fields_json) ? form.fields_json : [];
       fieldsEl.innerHTML = fields.map(f => {
         const label = lang === 'en' ? (f.label_en || f.label_cz) : (f.label_cz || f.label_en);
+        const placeholder = lang === 'en' 
+          ? (f.placeholder_en || f.placeholder_cz || label)
+          : (f.placeholder_cz || f.placeholder_en || label);
         const req   = f.required ? 'required' : '';
         const reqMark = f.required ? ' <span class="pform-required">*</span>' : '';
 
         if (f.type === 'checkbox') {
-          return `<label class="pform-checkbox-label">
+          return `<label class="pform-checkbox-label ${labelColorClass}">
             <input type="checkbox" name="${esc(f.name)}" ${req}>
             <span>${esc(label)}${reqMark}</span>
           </label>`;
@@ -1388,13 +1520,13 @@ class PublicApp {
         const fieldId = `pf_${esc(f.name)}`;
         if (f.type === 'textarea') {
           return `<div class="pform-field">
-            <label class="pform-label" for="${fieldId}">${esc(label)}${reqMark}</label>
-            <textarea id="${fieldId}" name="${esc(f.name)}" class="pform-textarea" rows="4" ${req} placeholder="${esc(label)}"></textarea>
+            <label class="pform-label ${labelColorClass}" for="${fieldId}">${esc(label)}${reqMark}</label>
+            <textarea id="${fieldId}" name="${esc(f.name)}" class="pform-textarea" rows="4" ${req} placeholder="${esc(placeholder)}"></textarea>
           </div>`;
         }
         return `<div class="pform-field">
-          <label class="pform-label" for="${fieldId}">${esc(label)}${reqMark}</label>
-          <input id="${fieldId}" type="${esc(f.type || 'text')}" name="${esc(f.name)}" class="pform-input" ${req} placeholder="${esc(label)}">
+          <label class="pform-label ${labelColorClass}" for="${fieldId}">${esc(label)}${reqMark}</label>
+          <input id="${fieldId}" type="${esc(f.type || 'text')}" name="${esc(f.name)}" class="pform-input" ${req} placeholder="${esc(placeholder)}">
         </div>`;
       }).join('');
     }
@@ -1416,7 +1548,47 @@ class PublicApp {
     const formEl   = document.getElementById('publicFormEl');
     const submitEl = document.getElementById('publicFormSubmit');
     const successEl= document.getElementById('publicFormSuccess');
+    const errorEl  = document.getElementById('publicFormError');
     if (!formEl) return;
+
+    const lang = getLang();
+
+    // Validate required fields
+    const fields = Array.isArray(form.fields_json) ? form.fields_json : [];
+    const requiredFields = fields.filter(f => f.required);
+    
+    for (const field of requiredFields) {
+      const input = formEl.querySelector(`[name="${field.name}"]`);
+      if (!input) continue;
+      
+      const value = input.type === 'checkbox' 
+        ? input.checked 
+        : input.value.trim();
+      
+      if (!value) {
+        const fieldLabel = lang === 'en' 
+          ? (field.label_en || field.label_cz || field.name)
+          : (field.label_cz || field.label_en || field.name);
+        
+        if (errorEl) {
+          errorEl.textContent = lang === 'en'
+            ? `Please fill in: ${fieldLabel}`
+            : `Vyplňte prosím: ${fieldLabel}`;
+          errorEl.style.display = '';
+          setTimeout(() => { errorEl.style.display = 'none'; }, 6000);
+        }
+        
+        // Highlight the field
+        input.classList.add('pform-error');
+        input.focus();
+        
+        if (submitEl) { submitEl.disabled = false; }
+        return;
+      }
+      
+      // Reset highlight if valid
+      input.classList.remove('pform-error');
+    }
 
     const data = {};
     new FormData(formEl).forEach((val, key) => {
@@ -1440,7 +1612,6 @@ class PublicApp {
         throw new Error(err.error || 'Chyba odeslání');
       }
 
-      const lang = getLang();
       const msg = lang === 'en'
         ? (form.success_msg_en || 'Thank you. We will get back to you shortly.')
         : (form.success_msg_cz || 'Děkujeme za zprávu. Brzy se ozveme.');
@@ -1448,7 +1619,6 @@ class PublicApp {
       formEl.style.display = 'none';
       if (successEl) { successEl.textContent = msg; successEl.style.display = ''; }
     } catch (err) {
-      const errorEl = document.getElementById('publicFormError');
       if (errorEl) {
         errorEl.textContent = err.message || 'Chyba při odeslání formuláře';
         errorEl.style.display = '';

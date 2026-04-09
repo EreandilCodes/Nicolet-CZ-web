@@ -79,7 +79,7 @@ frontend/
 | Applications | applications | linked to group, M:N products |
 | Trainings | trainings | date_start/end, CTA button |
 | Buttons | buttons | reusable CTA (form/link) |
-| Forms | forms | fields JSON, email recipients |
+| Forms | forms | fields JSON, label_color (black/white/blue), email recipients |
 | Submissions | form_submissions | from public form submit |
 | Gallery Folders | gallery_folders | tree (parent_id) |
 | Gallery Images | gallery_images | uploaded or URL, tags |
@@ -217,6 +217,10 @@ Both Product and Application detail pages use the same single-column layout:
 - **Timeouts:** 30s request, 65s keepAlive
 
 ---
+
+## Form Fields Structure
+
+Form fields JSON stores: `name`, `label_cz`, `label_en`, `placeholder_cz`, `placeholder_en`, `type` (text/email/tel/textarea/checkbox), `required`.
 
 ## Homepage Sections (public.js renderHome)
 

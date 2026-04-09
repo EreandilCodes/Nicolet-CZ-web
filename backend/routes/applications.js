@@ -16,7 +16,7 @@ async function batchAttachProducts(applications) {
   const ph = ids.map(() => '?').join(',');
 
   const rows = await db.prepare(`
-    SELECT m.application_id, p.id, p.slug, p.name_cz, p.name_en
+    SELECT m.application_id, p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url
     FROM products p
     JOIN product_applications_map m ON m.product_id = p.id
     WHERE m.application_id IN (${ph})
@@ -34,7 +34,7 @@ async function batchAttachProducts(applications) {
 
 async function getApplicationProducts(applicationId) {
   return db.prepare(`
-    SELECT p.id, p.slug, p.name_cz, p.name_en FROM products p
+    SELECT p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url FROM products p
     JOIN product_applications_map m ON m.product_id = p.id
     WHERE m.application_id = ?
     ORDER BY p.display_order, p.id
