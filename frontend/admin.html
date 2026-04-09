@@ -1409,6 +1409,10 @@
             <button type="button" id="pagesTabEn" class="lang-tab-btn" onclick="switchPagesLang('en')">EN</button>
           </div>
           <div id="pagesContentCzPanel" class="lang-tab-panel">
+            <div class="section-header-row" style="margin-bottom:12px;">
+              <h4 style="margin:0;font-size:14px;color:#64748b;">Obsah stránky</h4>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="admin.pages.addFaqFromModal('cz')">+ Přidat otázku</button>
+            </div>
             <div class="editor-wrap">
               <div class="editor-top-bar">
                 <div class="editor-mode-toggle">
@@ -1434,6 +1438,10 @@
             </div>
           </div>
           <div id="pagesContentEnPanel" class="lang-tab-panel" style="display:none;">
+            <div class="section-header-row" style="margin-bottom:12px;">
+              <h4 style="margin:0;font-size:14px;color:#64748b;">Page content</h4>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="admin.pages.addFaqFromModal('en')">+ Add question</button>
+            </div>
             <div class="editor-wrap">
               <div class="editor-top-bar">
                 <div class="editor-mode-toggle">

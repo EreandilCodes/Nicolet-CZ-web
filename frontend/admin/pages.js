@@ -138,7 +138,12 @@ export class PagesManager {
   }
 
   editFaqPage(id) {
-    // Pro stránku "caste-dotazy" otevřeme FAQ manager místo page editoru
+    // Otevřeme standardní modal stránky, ale uživatel může přidávat FAQ otázky
+    this.showModal(id);
+  }
+
+  addFaqFromModal(lang) {
+    // Otevření FAQ modalu z pages modalu
     if (window.admin?.faqs) {
       window.admin.faqs.showModal();
     }

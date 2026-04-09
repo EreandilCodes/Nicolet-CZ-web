@@ -156,7 +156,7 @@ class AdminController {
         tabs[key].style.borderBottom = key === tab ? '2px solid #2563eb' : '2px solid transparent';
       }
     });
-    if (tab === 'special' && this.faqs) this.faqs.loadItems();
+    if (tab === 'special' && this.pages) this.pages.renderSpecialPages();
   }
 
   async _loadDashboard() {
