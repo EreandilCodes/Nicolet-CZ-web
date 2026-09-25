@@ -6,9 +6,9 @@ Nicolet CZ is a presentation + B2B product website for Nicolet spectroscopy inst
 Built on the KanjoWin/Eolite Node.js architecture.
 
 - **Port:** 3003
-- **DB:** PostgreSQL (Neon) via `DB_PROVIDER=postgres` in `.env`; SQLite fallback when `DB_PROVIDER=sqlite`
+- **DB:** PostgreSQL (Neon) via `DB_PROVIDER=postgres` + `DATABASE_URL` in production. SQLite only for local dev. **Production SQLite fallback is BLOCKED**
 - **Admin:** admin@nicolet.cz / admin123 (must change on first login — `must_change_password` flag)
-- **Stack:** Node.js + Express + PostgreSQL/SQLite dual-mode + Vanilla JS (no frontend framework)
+- **Stack:** Node.js + Express + PostgreSQL (production) / SQLite (local dev) + Vanilla JS
 - **Tests:** 223 tests (vitest + supertest), `npm test` to run
 - **CI:** GitHub Actions (`.github/workflows/ci.yml`) — lint + test on Node 20/22
 
@@ -20,7 +20,7 @@ Built on the KanjoWin/Eolite Node.js architecture.
 backend/
   server.js          – Express app, all routes mounted here
   config.js          – JWT_SECRET export (shared by auth.js + middleware/auth.js)
-  database.js        – Schema + initDatabase() + closeDatabase(), PG/SQLite dual-mode
+  database.js        – Schema + initDatabase() + closeDatabase(), PostgreSQL with safety guard
   logger.js          – Structured logging with secret scrubbing
   middleware/
     auth.js          – JWT auth (AuthMiddleware.verifyToken, .adminOnly) + token blacklist

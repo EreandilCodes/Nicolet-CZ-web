@@ -9,10 +9,27 @@ dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// ── Mode detection ────────────────────────────────────────────────────────────
+// ── Production safety ────────────────────────────────────────────────────
+// Production MUST use PostgreSQL. This prevents silent fallback to SQLite
+// on ephemeral filesystem that loses all data on restart/deploy.
+const isProduction = process.env.NODE_ENV === 'production'
+    || process.env.RAILWAY_ENVIRONMENT === 'production';
+
+if (isProduction && process.env.DB_PROVIDER !== 'postgres') {
+    console.error('❌ FATAL: DB_PROVIDER must be set to "postgres" in production');
+    console.error('   Set DB_PROVIDER=postgres and DATABASE_URL before starting.');
+    process.exit(1);
+}
+
+if (process.env.DB_PROVIDER === 'postgres' && !process.env.DATABASE_URL) {
+    console.error('❌ FATAL: DATABASE_URL is required when DB_PROVIDER=postgres');
+    process.exit(1);
+}
+
+// ── Mode detection ────────────────────────────────────────────────────────
 // DB_PROVIDER=postgres  → PostgreSQL (Neon / Railway)
 // DB_PROVIDER=sqlite    → SQLite (local dev, zero setup)
-// Nothing set           → SQLite (safe default)
+// Nothing set (non-production) → SQLite (safe default)
 const isPostgres = process.env.DB_PROVIDER === 'postgres';
 
 console.log(`🗄️  Database mode: ${isPostgres ? 'PostgreSQL' : 'SQLite'}`);

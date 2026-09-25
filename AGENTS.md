@@ -793,6 +793,15 @@ Před deployem je nutné ověřit, že aplikace používá správnou:
 **Kritické proměnné:** `DB_PROVIDER`, `DATABASE_URL`, `SQLITE_PATH`, `PORT`,
 `JWT_SECRET`, `SITE_URL`, `CORS_ORIGIN`, `SMTP_*`.
 
+**Code-level safety guard (`database.js`):** Production safety is enforced at module load time.
+If `NODE_ENV=production` or `RAILWAY_ENVIRONMENT=production` and `DB_PROVIDER !== 'postgres'`,
+the process exits with code 1. If `DB_PROVIDER=postgres` but `DATABASE_URL` is missing,
+the process exits with code 1. **Production CANNOT silently fall back to SQLite.**
+
+**Migration rule (2026-09-25):** Before any deploy that changes `DB_PROVIDER` from `sqlite`
+to `postgres`, data must be migrated. `initDatabase()` uses only `CREATE TABLE IF NOT EXISTS`
+and `INSERT ... ON CONFLICT DO NOTHING` — it never deletes or truncates existing data.
+
 ## Persistent storage
 Produkční data NESMÍ být závislá na ephemeral filesystemu containeru, pokud
 architektura očekává jejich trvalé zachování. SQLite databáze na ephemeral
