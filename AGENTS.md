@@ -432,8 +432,9 @@ The `Admin → Menu` section is the ONLY source for the public header navigation
 - Admin "Obnovit výchozí" → `POST /api/menu/admin/seed-defaults` re-seeds without restart (safe, only inserts missing)
 - Link types: `internal | page | category | product | application | external`
 - Admin entity pickers auto-fill `link_value` for page/category/product/application types
+- Selecting a menu target (picker or autocomplete) auto-fills "Popis CZ"/"Popis EN" from the target's `name_cz`/`name_en` (pages: `title_cz`/`title_en`), guarded by per-field `_labelCzDirty`/`_labelEnDirty` flags — a field becomes dirty once the admin types into it (or when the item already had a value on open) and is then NEVER overwritten by picking another target
 - For items with `link_value === '/novinky'`, news categories from `GET /api/news-categories` are injected as dropdown children automatically
-- Auth token for admin panel is stored as `nicolet_token` in localStorage (not `admin_token`)
+- Admin session is carried in an httpOnly `auth_token` cookie (`credentials: 'include'`); no localStorage tokens are used
 
 **DB recovery pattern (when menu items disappear):**
 1. Use the admin UI "Obnovit výchozí" button (no server restart needed)

@@ -14,6 +14,8 @@ constructor(auth) {
     this._newsCats = [];
     this._appGroups = [];
     this._saving = false;
+    this._labelCzDirty = false;
+    this._labelEnDirty = false;
   }
 
   async init() {
@@ -182,6 +184,12 @@ constructor(auth) {
 
     document.getElementById('menuLabelCz').value   = item?.label_cz    || '';
     document.getElementById('menuLabelEn').value   = item?.label_en    || '';
+    this._labelCzDirty = !!item?.label_cz;
+    this._labelEnDirty = !!item?.label_en;
+    const czLabel = document.getElementById('menuLabelCz');
+    const enLabel = document.getElementById('menuLabelEn');
+    czLabel.oninput = () => { this._labelCzDirty = true; };
+    enLabel.oninput = () => { this._labelEnDirty = true; };
     document.getElementById('menuLinkType').value  = item?.link_type   || 'internal';
     document.getElementById('menuLinkValue').value = item?.link_value  || '';
     document.getElementById('menuOrder').value     = item?.display_order ?? 0;
@@ -263,7 +271,11 @@ constructor(auth) {
       picker.style.display = '';
       picker.innerHTML = `<option value="">— Vyberte —</option>` +
         options.map(o => `<option value="${esc(o.value)}"${currentValue === o.value ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
-      picker.onchange = () => { if (picker.value) valueInput.value = picker.value; };
+      picker.onchange = () => {
+        if (!picker.value) return;
+        valueInput.value = picker.value;
+        this._fillLabelsFromTarget(linkType, picker.value);
+      };
       if (currentValue) {
         const match = options.find(o => o.value === currentValue);
         if (match) picker.value = currentValue;
@@ -305,8 +317,50 @@ constructor(auth) {
         e.preventDefault();
         valueInput.value = el.dataset.value;
         suggestionsEl.style.display = 'none';
+        this._fillLabelsFromTarget(document.getElementById('menuLinkType').value, el.dataset.value);
       });
     });
+  }
+
+  _findTargetMeta(linkType, linkValue) {
+    if (!linkValue) return null;
+    let target = null;
+    switch (linkType) {
+      case 'page':
+        target = this._pages.find(p => `/stranka/${p.slug}` === linkValue);
+        break;
+      case 'product':
+        target = this._products.find(p => `/produkty/${p.slug}` === linkValue);
+        break;
+      case 'application':
+        target = this._apps.find(a => `/aplikace/${a.slug}` === linkValue);
+        break;
+      case 'category':
+        target = this._cats.find(c => `/produkty?kategorie=${c.slug}` === linkValue);
+        break;
+      case 'news_category':
+        target = this._newsCats.find(c => `/novinky?rubrika=${c.slug}` === linkValue);
+        break;
+      case 'app_group':
+        target = this._appGroups.find(g => `/aplikace?okruh=${g.slug}` === linkValue);
+        break;
+      default:
+        return null;
+    }
+    if (!target) return null;
+    return {
+      cz: target.name_cz || target.title_cz || null,
+      en: target.name_en || target.title_en || null,
+    };
+  }
+
+  _fillLabelsFromTarget(linkType, linkValue) {
+    const meta = this._findTargetMeta(linkType, linkValue);
+    if (!meta) return;
+    const czEl = document.getElementById('menuLabelCz');
+    const enEl = document.getElementById('menuLabelEn');
+    if (czEl && !this._labelCzDirty && meta.cz != null) czEl.value = meta.cz;
+    if (enEl && !this._labelEnDirty && meta.en != null) enEl.value = meta.en;
   }
 
   closeModal() {
