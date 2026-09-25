@@ -23,10 +23,10 @@ constructor(auth) {
   async _loadLinkSources() {
     try {
       const [pages, products, apps, newsItems] = await Promise.all([
-        fetch('/api/pages').then(r => r.ok ? r.json() : []).catch(() => []),
-        fetch('/api/products?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
-        fetch('/api/applications?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
-        fetch('/api/news').then(r => r.ok ? r.json() : []).catch(() => []),
+        this.auth.authenticatedFetch('/api/pages').then(r => r.ok ? r.json() : []).catch(() => []),
+        this.auth.authenticatedFetch('/api/products?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
+        this.auth.authenticatedFetch('/api/applications?fields=list').then(r => r.ok ? r.json() : []).catch(() => []),
+        this.auth.authenticatedFetch('/api/news').then(r => r.ok ? r.json() : []).catch(() => []),
       ]);
       this.pages = pages;
       this.products = products;
@@ -47,10 +47,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/carousel/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/carousel/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -243,12 +240,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -273,11 +268,9 @@ this._saving = false;
     if (!confirm(`Smazat položku karuselu "${item.title_cz || item.id}"?`)) return;
 
     try {
-      const response = await fetch(`/api/carousel/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/carousel/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

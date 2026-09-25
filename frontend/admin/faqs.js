@@ -24,10 +24,7 @@ export class FaqsManager {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/faqs/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+      const response = await this.auth.authenticatedFetch('/api/faqs/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -160,10 +157,8 @@ export class FaqsManager {
         : '/api/faqs/admin';
       const method = this._editing ? 'PUT' : 'POST';
 
-      const response = await fetch(url, {
+      const response = await this.auth.authenticatedFetch(url, {
         method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
 
@@ -189,11 +184,9 @@ export class FaqsManager {
     if (!confirm('Opravdu chcete smazat tuto FAQ?')) return;
 
     try {
-      const response = await fetch(`/api/faqs/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+      const response = await this.auth.authenticatedFetch(`/api/faqs/admin/${id}`, {
+        method: 'DELETE'
+      });
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Chyba serveru');

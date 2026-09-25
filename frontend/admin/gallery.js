@@ -63,10 +63,7 @@ constructor(auth) {
 
   async loadFolders() {
     try {
-      const response = await fetch('/api/gallery/folders/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/gallery/folders/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -89,10 +86,7 @@ constructor(auth) {
         ? `/api/gallery/images/admin/all?folder_id=${this._currentFolder}`
         : '/api/gallery/images/admin/all';
 
-      const response = await fetch(url, {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(url);
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -279,12 +273,10 @@ async saveFolder() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -309,11 +301,9 @@ this._saving = false;
     if (!confirm(`Smazat složku "${folder.name_cz}"? Obrázky ve složce zůstanou bez přiřazení.`)) return;
 
     try {
-      const response = await fetch(`/api/gallery/folders/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/gallery/folders/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -383,12 +373,10 @@ async saveImage() {
     };
 
     try {
-      const response = await fetch(`/api/gallery/images/admin/${this._editingImage.id}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+      const response = await this.auth.authenticatedFetch(`/api/gallery/images/admin/${this._editingImage.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -411,11 +399,9 @@ async saveImage() {
     if (!confirm('Smazat tento obrázek?')) return;
 
     try {
-      const response = await fetch(`/api/gallery/images/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/gallery/images/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -481,11 +467,10 @@ async saveImage() {
     if (folderVal) formData.append('folder_id', folderVal);
 
     try {
-      const response = await fetch('/api/gallery/images/admin/upload', {
+const response = await this.auth.authenticatedFetch('/api/gallery/images/admin/upload', {
       method: 'POST',
-      credentials: 'include',
-        body: formData
-      });
+      body: formData
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

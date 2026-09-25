@@ -20,10 +20,7 @@ constructor(auth) {
 
   async _loadForms() {
     try {
-      const response = await fetch('/api/forms/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/forms/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) return;
       if (!contentType?.includes('application/json')) return;
@@ -68,10 +65,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/buttons/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/buttons/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -237,12 +231,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -263,10 +255,7 @@ this._saving = false;
 
   async _loadAndRenderDefaultButtons() {
     try {
-      const response = await fetch('/api/settings', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/settings');
       const contentType = response.headers.get('content-type');
       if (!response.ok || !contentType?.includes('application/json')) return;
       this._defaultSettings = await response.json();
@@ -295,12 +284,10 @@ this._saving = false;
     };
 
     try {
-      const response = await fetch('/api/settings', {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch('/api/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -323,11 +310,9 @@ this._saving = false;
     if (!confirm(`Smazat tlačítko "${item.label_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/buttons/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/buttons/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

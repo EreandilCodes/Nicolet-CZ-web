@@ -25,10 +25,7 @@ export class ContactsManager {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/contacts/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/contacts/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -173,12 +170,10 @@ export class ContactsManager {
     const method  = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -203,11 +198,9 @@ export class ContactsManager {
     if (!confirm(`Smazat kontakt "${contact.name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/contacts/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/contacts/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

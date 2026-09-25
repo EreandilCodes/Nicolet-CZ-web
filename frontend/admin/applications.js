@@ -28,10 +28,7 @@ constructor(auth) {
 
   async loadProducts() {
     try {
-      const response = await fetch('/api/products/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/products/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -48,10 +45,7 @@ constructor(auth) {
 
   async loadGroups() {
     try {
-      const response = await fetch('/api/application-groups/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/application-groups/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -68,10 +62,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/applications/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/applications/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -342,12 +333,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -371,11 +360,9 @@ this._saving = false;
     if (!item) return;
 
     try {
-      const response = await fetch(`/api/applications/admin/${id}`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      const response = await this.auth.authenticatedFetch(`/api/applications/admin/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
           name_cz:       item.name_cz,
           name_en:       item.name_en,
           slug:          item.slug,
@@ -415,11 +402,9 @@ this._saving = false;
     if (!confirm(`Smazat aplikaci "${item.name_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/applications/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/applications/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

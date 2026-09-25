@@ -37,13 +37,18 @@ export class AuthManager {
    * On refresh fail: logout
    */
   async authenticatedFetch(url, options = {}) {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+    const headers = {
+      ...options.headers
+    };
+    if (!isFormData && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const opts = {
       ...options,
       credentials: 'include',
-      headers: {
-        ...options.headers,
-        'Content-Type': 'application/json'
-      }
+      headers
     };
 
     const response = await fetch(url, opts);

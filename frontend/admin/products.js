@@ -29,10 +29,7 @@ constructor(auth) {
 
   async loadCategories() {
     try {
-      const response = await fetch('/api/product-categories/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/product-categories/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -49,10 +46,7 @@ constructor(auth) {
 
   async loadApplications() {
     try {
-      const response = await fetch('/api/applications/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/applications/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -69,10 +63,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/products/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/products/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -319,11 +310,10 @@ async addImageFromFile(input) {
   const formData = new FormData();
   formData.append('image', file);
   try {
-    const res = await fetch('/api/gallery/images/admin/upload', {
+const res = await this.auth.authenticatedFetch('/api/gallery/images/admin/upload', {
       method: 'POST',
-      credentials: 'include',
-        body: formData
-      });
+      body: formData
+    });
       const ct = res.headers.get('content-type');
       if (!res.ok) {
         const err = ct?.includes('application/json') ? await res.json() : { error: await res.text() };
@@ -444,12 +434,10 @@ async addImageFromFile(input) {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -474,11 +462,9 @@ async addImageFromFile(input) {
     if (!confirm(`Smazat produkt "${item.name_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/products/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/products/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

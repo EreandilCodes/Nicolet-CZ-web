@@ -78,11 +78,9 @@ constructor(auth) {
 
     for (const id of ids) {
       try {
-      const response = await fetch(`/api/news/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/news/admin/${id}`, {
+        method: 'DELETE'
+      });
         const contentType = response.headers.get('content-type');
         if (!response.ok) {
           const err = contentType?.includes('application/json')
@@ -110,10 +108,7 @@ constructor(auth) {
 
   async loadCategories() {
     try {
-      const response = await fetch('/api/news-categories/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/news-categories/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -143,10 +138,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/news/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/news/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -370,12 +362,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -399,11 +389,9 @@ this._saving = false;
     if (!item) return;
 
     try {
-      const response = await fetch(`/api/news/admin/${id}/publish`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_published: item.is_published ? 0 : 1 })
+const response = await this.auth.authenticatedFetch(`/api/news/admin/${id}/publish`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_published: item.is_published ? 0 : 1 })
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
@@ -426,11 +414,9 @@ this._saving = false;
     if (!confirm(`Smazat novinku "${item.title_cz}"?`)) return;
 
     try {
-    const response = await fetch(`/api/news/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/news/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

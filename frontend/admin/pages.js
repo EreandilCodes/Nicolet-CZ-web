@@ -23,12 +23,9 @@ constructor(auth) {
     }
   }
 
-  async loadItems() {
+async loadItems() {
   try {
-    const response = await fetch('/api/pages/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const response = await this.auth.authenticatedFetch('/api/pages/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -104,11 +101,8 @@ constructor(auth) {
 
   // Načteme stránku "caste-dotazy" přímo z DB
   let faqPage = null;
-  try {
-    const response = await fetch('/api/pages/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+try {
+    const response = await this.auth.authenticatedFetch('/api/pages/admin/all');
       const contentType = response.headers.get('content-type');
       if (response.ok && contentType?.includes('application/json')) {
         const pages = await response.json();
@@ -259,12 +253,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -289,11 +281,9 @@ this._saving = false;
     if (!confirm(`Smazat stránku "${item.title_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/pages/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/pages/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

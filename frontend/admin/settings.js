@@ -14,10 +14,7 @@ export class SettingsManager {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/settings', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/settings');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -108,12 +105,10 @@ export class SettingsManager {
     if (origText) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
 
     try {
-      const response = await fetch('/api/settings', {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch('/api/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -150,11 +145,9 @@ export class SettingsManager {
     if (btn) { btn.disabled = true; btn.textContent = 'Odesílám…'; }
 
     try {
-      const response = await fetch('/api/settings/test-email', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/settings/test-email', {
+        method: 'POST'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -182,10 +175,7 @@ export class SettingsManager {
     const tbody = document.getElementById('adminUsersListBody');
     if (!tbody) return;
     try {
-      const response = await fetch('/api/auth/users', {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const response = await this.auth.authenticatedFetch('/api/auth/users');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -222,10 +212,8 @@ export class SettingsManager {
       if (!pwNew) throw new Error('Zadejte nové heslo');
       if (pwNew !== pwConfirm) throw new Error('Nové heslo a potvrzení se neshodují');
 
-      const response = await fetch('/api/auth/change-password', {
+      const response = await this.auth.authenticatedFetch('/api/auth/change-password', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password: current, new_password: pwNew })
       });
       const contentType = response.headers.get('content-type');
@@ -256,10 +244,8 @@ export class SettingsManager {
       if (!email) throw new Error('Zadejte email');
       if (!password) throw new Error('Zadejte heslo');
 
-      const response = await fetch('/api/auth/admin', {
+      const response = await this.auth.authenticatedFetch('/api/auth/admin', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       const contentType = response.headers.get('content-type');

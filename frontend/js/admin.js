@@ -168,8 +168,8 @@ class AdminController {
     };
 
     // Contacts
-    try {
-    const r = await fetch('/api/contacts/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+try {
+    const r = await this.auth.authenticatedFetch('/api/contacts/admin/all');
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -179,7 +179,7 @@ class AdminController {
 
     // Products
     try {
-    const r = await fetch('/api/products/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    const r = await this.auth.authenticatedFetch('/api/products/admin/all');
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -189,7 +189,7 @@ class AdminController {
 
     // News
     try {
-    const r = await fetch('/api/news/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    const r = await this.auth.authenticatedFetch('/api/news/admin/all');
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -199,7 +199,7 @@ class AdminController {
 
     // Trainings (upcoming – date_start >= today)
     try {
-    const r = await fetch('/api/trainings/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+    const r = await this.auth.authenticatedFetch('/api/trainings/admin/all');
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();

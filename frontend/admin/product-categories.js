@@ -25,10 +25,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/product-categories/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/product-categories/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -221,12 +218,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -259,17 +254,13 @@ this._saving = false;
 
     try {
       await Promise.all([
-        fetch(`/api/product-categories/admin/${a.id}`, {
+        this.auth.authenticatedFetch(`/api/product-categories/admin/${a.id}`, {
           method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name_cz: a.name_cz, name_en: a.name_en, slug: a.slug,
             parent_id: a.parent_id, display_order: orderB, is_active: a.is_active })
         }),
-        fetch(`/api/product-categories/admin/${b.id}`, {
+        this.auth.authenticatedFetch(`/api/product-categories/admin/${b.id}`, {
           method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name_cz: b.name_cz, name_en: b.name_en, slug: b.slug,
             parent_id: b.parent_id, display_order: orderA, is_active: b.is_active })
         }),
@@ -287,11 +278,9 @@ this._saving = false;
     if (!confirm(`Smazat kategorii "${item.name_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/product-categories/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/product-categories/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

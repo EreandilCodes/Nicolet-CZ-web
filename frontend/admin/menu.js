@@ -36,11 +36,10 @@ constructor(auth) {
     }
   }
 
-  async _loadEntities() {
-    const headers = { 'Content-Type': 'application/json' };
+async _loadEntities() {
     const safeLoad = async (url) => {
     try {
-      const r = await fetch(url, { credentials: 'include', headers });
+      const r = await this.auth.authenticatedFetch(url);
         const ct = r.headers.get('content-type');
         if (!r.ok) return [];
         if (!ct?.includes('application/json')) return [];
@@ -59,10 +58,7 @@ constructor(auth) {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/menu/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/menu/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -395,12 +391,10 @@ async saveItem() {
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-    const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -421,11 +415,9 @@ this._saving = false;
 
   async moveItem(id, direction) {
     try {
-      const response = await fetch(`/api/menu/admin/${id}/order`, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direction })
+const response = await this.auth.authenticatedFetch(`/api/menu/admin/${id}/order`, {
+        method: 'PUT',
+        body: JSON.stringify({ direction })
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
@@ -447,11 +439,9 @@ this._saving = false;
     if (!confirm(`Smazat položku menu "${item.label_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/menu/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch(`/api/menu/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -470,11 +460,9 @@ this._saving = false;
   async restoreDefaults() {
     if (!confirm('Obnovit výchozí položky menu? Existující položky zůstanou zachovány.')) return;
     try {
-      const response = await fetch('/api/menu/admin/seed-defaults', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+const response = await this.auth.authenticatedFetch('/api/menu/admin/seed-defaults', {
+        method: 'POST'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

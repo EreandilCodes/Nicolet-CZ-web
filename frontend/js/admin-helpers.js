@@ -5,6 +5,11 @@ function _esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
 }
 
+function authFetch(url, opts) {
+  const fn = window.admin?.auth?.authenticatedFetch?.bind(window.admin.auth);
+  return fn ? fn(url, opts) : fetch(url, opts);
+}
+
 // ── Text/HTML editor toggle ──────────────────────────────────────────────────
 
 // Call after setting textarea.value — populates the contenteditable view & defaults to Text mode.
@@ -259,7 +264,7 @@ async function _loadGalleryFolders() {
   const select = document.getElementById('galPickerFolder');
   if (!select) return;
   try {
-    const res = await fetch('/api/gallery/folders/admin/all', {
+    const res = await authFetch('/api/gallery/folders/admin/all', {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -288,7 +293,7 @@ async function _loadGalleryPickerImages() {
     if (_galCurrentFolder) {
       url += '?folder_id=' + _galCurrentFolder;
     }
-    const res = await fetch(url, {
+    const res = await authFetch(url, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' }
     });
@@ -366,12 +371,11 @@ async function uploadImage(input, targetId) {
   const formData = new FormData();
   formData.append('image', file);
   try {
-    const res = await fetch('/api/gallery/images/admin/upload', {
+    const res = await authFetch('/api/gallery/images/admin/upload', {
       method: 'POST',
-      credentials: 'include',
- body: formData
- });
- const ct = res.headers.get('content-type');
+      body: formData
+    });
+    const ct = res.headers.get('content-type');
  if (!res.ok) {
  const err = ct?.includes('application/json') ? await res.json() : { error: await res.text() };
  throw new Error(err.error || 'Upload failed');
