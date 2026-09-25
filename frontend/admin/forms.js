@@ -27,8 +27,9 @@ export class FormsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/forms/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -333,10 +334,11 @@ export class FormsManager {
 
     try {
       const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -363,9 +365,10 @@ export class FormsManager {
 
     try {
       const response = await fetch(`/api/forms/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

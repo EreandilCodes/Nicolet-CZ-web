@@ -25,8 +25,9 @@ export class FaqsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/faqs/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -161,10 +162,8 @@ export class FaqsManager {
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.auth.getAuthHeaders()
-        },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
 
@@ -191,9 +190,10 @@ export class FaqsManager {
 
     try {
       const response = await fetch(`/api/faqs/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Chyba serveru');

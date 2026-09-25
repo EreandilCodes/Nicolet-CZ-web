@@ -90,7 +90,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM buttons WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Tlačítko nenalezeno' });
-    res.json({ message: 'Tlačítko smazáno' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

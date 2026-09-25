@@ -1,57 +1,127 @@
 /**
- * AuthManager – JWT token storage, auth headers, and automatic token refresh.
- * Same pattern as Eolite / KanjoWin.
+ * AuthManager – httpOnly cookie-based authentication
+ * Reactive refresh interceptor pattern
+ * Cross-tab logout via storage events
  */
 export class AuthManager {
   constructor() {
-    this.token = localStorage.getItem('nicolet_token');
-    this.user  = null;
-    this._refreshTimer = null;
+    this.user = null;
+    this._logoutHandler = null;
+    
+    // Load user from localStorage (token is NOT stored)
     try {
       const raw = localStorage.getItem('nicolet_user');
       if (raw) this.user = JSON.parse(raw);
     } catch {
       this.user = null;
     }
-    if (this.token) this._scheduleRefresh();
+    
+    // Listen for cross-tab logout signal
+    this._setupCrossTabListener();
   }
 
-  getAuthHeaders() {
-    return {
-      'Authorization': `Bearer ${this.token}`,
-      'Content-Type':  'application/json'
+  /**
+   * Setup cross-tab logout listener
+   */
+  _setupCrossTabListener() {
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'logout_signal' && e.newValue) {
+        window.location.href = '/login';
+      }
+    });
+  }
+
+  /**
+   * Authenticated fetch wrapper with reactive refresh
+   * On 401: try refresh → retry original request
+   * On refresh fail: logout
+   */
+  async authenticatedFetch(url, options = {}) {
+    const opts = {
+      ...options,
+      credentials: 'include',
+      headers: {
+        ...options.headers,
+        'Content-Type': 'application/json'
+      }
     };
+
+    const response = await fetch(url, opts);
+
+    // If 401, try to refresh token
+    if (response.status === 401) {
+      const refreshResponse = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (refreshResponse.ok) {
+        // Refresh succeeded, retry original request
+        const retryResponse = await fetch(url, opts);
+        return retryResponse;
+      } else {
+        // Refresh failed, logout
+        this._signalLogout();
+        window.location.href = '/login';
+        return response;
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * Signal logout to other tabs via localStorage
+   */
+  _signalLogout() {
+    localStorage.setItem('logout_signal', Date.now());
+    localStorage.removeItem('logout_signal');
+    localStorage.removeItem('nicolet_user');
+  }
+
+  async login(email, password) {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Login failed' }));
+        throw new Error(err.error || 'Login failed');
+      }
+
+      const { user } = await response.json();
+      this.user = user;
+      localStorage.setItem('nicolet_user', JSON.stringify(user));
+      return user;
+    } catch (err) {
+      throw err;
+    }
   }
 
   async logout() {
-    if (this._refreshTimer) clearTimeout(this._refreshTimer);
     try {
-      if (this.token) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${this.token}` },
-        });
-      }
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
     } catch { /* best-effort */ }
-    localStorage.removeItem('nicolet_token');
-    localStorage.removeItem('nicolet_user');
+    
+    this._signalLogout();
     window.location.href = '/login';
   }
 
   async checkAuth() {
-    if (!this.token) {
-      window.location.href = '/login';
-      return false;
-    }
-
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${this.token}` }
-      });
-
+      const response = await this.authenticatedFetch('/api/auth/me');
+      
       const contentType = response.headers.get('content-type');
       if (!response.ok || !contentType?.includes('application/json')) {
-        this.logout();
+        this._signalLogout();
+        window.location.href = '/login';
         return false;
       }
 
@@ -60,35 +130,9 @@ export class AuthManager {
       localStorage.setItem('nicolet_user', JSON.stringify(user));
       return true;
     } catch {
-      this.logout();
+      this._signalLogout();
+      window.location.href = '/login';
       return false;
-    }
-  }
-
-  /** Silently refresh the token ~5 minutes before expiry */
-  _scheduleRefresh() {
-    if (this._refreshTimer) clearTimeout(this._refreshTimer);
-    try {
-      const payload = JSON.parse(atob(this.token.split('.')[1]));
-      const expiresAt = payload.exp * 1000;
-      const refreshIn = Math.max(expiresAt - Date.now() - 5 * 60 * 1000, 30 * 1000);
-      this._refreshTimer = setTimeout(() => this._refreshToken(), refreshIn);
-    } catch { /* malformed token — will fail on next API call */ }
-  }
-
-  async _refreshToken() {
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.token}` },
-      });
-      if (!res.ok) { this.logout(); return; }
-      const data = await res.json();
-      this.token = data.token;
-      localStorage.setItem('nicolet_token', data.token);
-      this._scheduleRefresh();
-    } catch {
-      this.logout();
     }
   }
 }

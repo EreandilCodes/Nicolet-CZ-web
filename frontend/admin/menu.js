@@ -3,16 +3,17 @@
  * Admin Manager Pattern.
  */
 export class MenuManager {
-  constructor(auth) {
-    this.auth      = auth;
-    this.items     = [];
-    this._editing  = null;
-    this._pages    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
+    this._editing = null;
+    this._pages = [];
     this._products = [];
-    this._apps     = [];
-    this._cats     = [];
+    this._apps = [];
+    this._cats = [];
     this._newsCats = [];
     this._appGroups = [];
+    this._saving = false;
   }
 
   async init() {
@@ -34,10 +35,10 @@ export class MenuManager {
   }
 
   async _loadEntities() {
-    const headers = this.auth.getAuthHeaders();
+    const headers = { 'Content-Type': 'application/json' };
     const safeLoad = async (url) => {
-      try {
-        const r = await fetch(url, { headers });
+    try {
+      const r = await fetch(url, { credentials: 'include', headers });
         const ct = r.headers.get('content-type');
         if (!r.ok) return [];
         if (!ct?.includes('application/json')) return [];
@@ -57,8 +58,9 @@ export class MenuManager {
   async loadItems() {
     try {
       const response = await fetch('/api/menu/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -312,34 +314,39 @@ export class MenuManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const label_cz = document.getElementById('menuLabelCz').value.trim();
     if (!label_cz) {
       window.admin?.showNotification('Popis CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const parentVal = document.getElementById('menuParentId').value;
     const data = {
       label_cz,
-      label_en:      document.getElementById('menuLabelEn').value.trim()   || null,
-      parent_id:     parentVal ? Number(parentVal) : null,
-      link_type:     document.getElementById('menuLinkType').value         || 'internal',
-      link_value:    document.getElementById('menuLinkValue').value.trim() || null,
-      display_order: Number(document.getElementById('menuOrder').value)    || 0,
-      is_active:     document.getElementById('menuActive').checked ? 1 : 0,
+      label_en: document.getElementById('menuLabelEn').value.trim() || null,
+      parent_id: parentVal ? Number(parentVal) : null,
+      link_type: document.getElementById('menuLinkType').value || 'internal',
+      link_value: document.getElementById('menuLinkValue').value.trim() || null,
+      display_order: Number(document.getElementById('menuOrder').value) || 0,
+      is_active: document.getElementById('menuActive').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/menu/admin/${this._editing.id}` : '/api/menu/admin';
+    const url = isEdit ? `/api/menu/admin/${this._editing.id}` : '/api/menu/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -353,15 +360,18 @@ export class MenuManager {
     } catch (err) {
       console.error('Menu save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
   async moveItem(id, direction) {
     try {
       const response = await fetch(`/api/menu/admin/${id}/order`, {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify({ direction })
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction })
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
@@ -384,9 +394,10 @@ export class MenuManager {
 
     try {
       const response = await fetch(`/api/menu/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -406,9 +417,10 @@ export class MenuManager {
     if (!confirm('Obnovit výchozí položky menu? Existující položky zůstanou zachovány.')) return;
     try {
       const response = await fetch('/api/menu/admin/seed-defaults', {
-        method: 'POST',
-        headers: this.auth.getAuthHeaders(),
-      });
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

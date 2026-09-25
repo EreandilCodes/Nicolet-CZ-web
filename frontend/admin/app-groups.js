@@ -3,10 +3,11 @@
  * Admin Manager Pattern.
  */
 export class AppGroupsManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -25,8 +26,9 @@ export class AppGroupsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/application-groups/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -159,31 +161,36 @@ export class AppGroupsManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const name_cz = document.getElementById('agNameCz').value.trim();
     if (!name_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const data = {
       name_cz,
-      name_en:       document.getElementById('agNameEn').value.trim() || null,
-      slug:          document.getElementById('agSlug').value.trim()   || null,
+      name_en: document.getElementById('agNameEn').value.trim() || null,
+      slug: document.getElementById('agSlug').value.trim() || null,
       display_order: Number(document.getElementById('agOrder').value) || 0,
-      is_active:     document.getElementById('agActive').checked ? 1 : 0,
+      is_active: document.getElementById('agActive').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/application-groups/admin/${this._editing.id}` : '/api/application-groups/admin';
+    const url = isEdit ? `/api/application-groups/admin/${this._editing.id}` : '/api/application-groups/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -197,6 +204,8 @@ export class AppGroupsManager {
     } catch (err) {
       console.error('AppGroups save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -207,9 +216,10 @@ export class AppGroupsManager {
 
     try {
       const response = await fetch(`/api/application-groups/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

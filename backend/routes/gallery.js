@@ -146,7 +146,7 @@ router.delete('/folders/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.a
 
     const result = await db.prepare('DELETE FROM gallery_folders WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Složka nenalezena' });
-    res.json({ message: 'Složka smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
@@ -210,7 +210,7 @@ router.post(
     try {
       if (!req.file) return res.status(400).json({ error: 'Žádný soubor nebyl nahrán' });
 
-      const filename = req.file.filename;
+      let filename = req.file.filename;
       const ext = path.extname(filename).toLowerCase();
       const filePath = path.join(UPLOAD_DIR, filename);
 
@@ -232,7 +232,7 @@ router.post(
           // Compress based on format
           if (ext === '.png') {
             // Convert PNG to optimized WebP (much smaller, transparent support)
-            finalFilename = baseName + '.webp';
+            finalFilename = path.basename(filename, ext) + '.webp';
             const webpPath = path.join(UPLOAD_DIR, finalFilename);
             await sharpInstance
               .webp({ quality: 90 })
@@ -391,7 +391,7 @@ router.delete('/images/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.ad
       } catch (e) { /* file may not exist, non-critical */ }
     }
 
-    res.json({ message: 'Obrázek smazán' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

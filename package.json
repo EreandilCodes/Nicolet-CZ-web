@@ -14,6 +14,7 @@
     "bcrypt": "^6.0.0",
     "cheerio": "^1.0.0-rc.12",
     "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dompurify": "^3.3.3",
     "dotenv": "^16.4.7",
@@ -28,7 +29,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "eslint": "^10.1.0",
+    "eslint": "^8.57.1",
     "nodemon": "^3.1.9",
     "supertest": "^7.2.2",
     "vitest": "^1.6.1"

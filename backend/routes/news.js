@@ -63,7 +63,7 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
   try {
     const {
       slug: slugInput, title_cz, title_en, content_cz, content_en,
-      cover_image, cover_caption, cover_align, category_id,
+      excerpt_cz, excerpt_en, cover_image, cover_caption, cover_align, category_id,
       seo_title_cz, seo_title_en, seo_desc_cz, seo_desc_en,
       is_published
     } = req.body;
@@ -72,9 +72,9 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
 
     const slug = slugInput?.trim() ? slugInput.trim() : generateSlug(title_cz.trim());
 
-    // Auto-generate excerpt from content (first 200 chars, strip HTML)
-    const autoExcerpt = (content_cz || '').replace(/<[^>]*>/g, '').substring(0, 200).trim() || null;
-    const autoExcerptEn = (content_en || '').replace(/<[^>]*>/g, '').substring(0, 200).trim() || null;
+    // Excerpt (perex) is entered manually by the admin – never auto-generated from content
+    const excerptCz = excerpt_cz?.trim() || null;
+    const excerptEn = excerpt_en?.trim() || null;
 
     const result = await db.prepare(`
       INSERT INTO news_posts (slug, title_cz, title_en, content_cz, content_en,
@@ -88,8 +88,8 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
       title_en?.trim() || null,
       content_cz?.trim() || null,
       content_en?.trim() || null,
-      autoExcerpt,
-      autoExcerptEn,
+      excerptCz,
+      excerptEn,
       cover_image?.trim() || null,
       cover_caption?.trim() || null,
       cover_align?.trim() || 'center',
@@ -117,7 +117,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const { id } = req.params;
     const {
       slug, title_cz, title_en, content_cz, content_en,
-      cover_image, cover_caption, cover_align, category_id,
+      excerpt_cz, excerpt_en, cover_image, cover_caption, cover_align, category_id,
       seo_title_cz, seo_title_en, seo_desc_cz, seo_desc_en,
       is_published
     } = req.body;
@@ -125,9 +125,9 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     if (!title_cz?.trim()) return res.status(400).json({ error: 'title_cz je povinné' });
     if (!slug?.trim()) return res.status(400).json({ error: 'slug je povinné' });
 
-    // Auto-generate excerpt from content
-    const autoExcerpt = (content_cz || '').replace(/<[^>]*>/g, '').substring(0, 200).trim() || null;
-    const autoExcerptEn = (content_en || '').replace(/<[^>]*>/g, '').substring(0, 200).trim() || null;
+    // Excerpt (perex) is entered manually by the admin – never auto-generated from content
+    const excerptCz = excerpt_cz?.trim() || null;
+    const excerptEn = excerpt_en?.trim() || null;
 
     const result = await db.prepare(`
       UPDATE news_posts
@@ -143,8 +143,8 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       title_en?.trim() || null,
       content_cz?.trim() || null,
       content_en?.trim() || null,
-      autoExcerpt,
-      autoExcerptEn,
+      excerptCz,
+      excerptEn,
       cover_image?.trim() || null,
       cover_caption?.trim() || null,
       cover_align?.trim() || 'center',
@@ -173,7 +173,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM news_posts WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Článek nenalezen' });
-    res.json({ message: 'Článek smazán' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

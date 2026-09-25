@@ -5,11 +5,13 @@ import { AuthMiddleware } from '../middleware/auth.js';
 const router = express.Router();
 
 // GET /api/trainings – public, published trainings ordered by date_start ASC
+// Past trainings (date_start < today) are hidden on the public site – no manual flag, no deletion.
 router.get('/', async (req, res) => {
   try {
+    const today = new Date().toISOString().slice(0, 10);
     const rows = await db.prepare(
-      'SELECT * FROM trainings WHERE is_published = 1 ORDER BY date_start ASC'
-    ).all();
+      'SELECT * FROM trainings WHERE is_published = 1 AND date_start >= ? ORDER BY date_start ASC'
+    ).all(today);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
@@ -113,7 +115,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM trainings WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Školení nenalezeno' });
-    res.json({ message: 'Školení smazáno' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

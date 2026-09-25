@@ -1,8 +1,35 @@
 import express from 'express';
 import db from '../database.js';
 import { AuthMiddleware } from '../middleware/auth.js';
+import emailService from '../services/email.service.js';
 
 const router = express.Router();
+
+// ─── XSS Sanitization helper ──────────────────────────────────────────────────
+// Simple sanitization: escape HTML entities to prevent XSS
+function sanitizeField(value) {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function sanitizeSubmission(data) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeField(value);
+    } else if (Array.isArray(value)) {
+      sanitized[key] = value.map(item => typeof item === 'string' ? sanitizeField(item) : item);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
 
 // ─── Simple in-memory rate limiter for form submissions ───────────────────────
 const submitRateMap = new Map(); // key: ip, value: { count, resetAt }
@@ -19,37 +46,6 @@ function isRateLimited(ip) {
   if (entry.count >= RATE_LIMIT_MAX) return true;
   entry.count++;
   return false;
-}
-
-// ─── Email helper ─────────────────────────────────────────────────────────────
-async function sendFormEmail(form, submittedData) {
-  try {
-    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return;
-
-    const nodemailer = (await import('nodemailer')).default;
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-
-    const recipients = form.email_recipients
-      ? form.email_recipients.split(',').map(e => e.trim()).filter(Boolean)
-      : [];
-    if (recipients.length === 0) return;
-
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: recipients.join(', '),
-      subject: `Nová odpověď: ${form.name}`,
-      text: JSON.stringify(submittedData, null, 2)
-    });
-  } catch (err) {
-    console.error('Email failed (non-critical):', err.message);
-  }
 }
 
 // ─── Public form routes ───────────────────────────────────────────────────────
@@ -141,15 +137,22 @@ router.post('/:id/submit', async (req, res) => {
       }
     }
 
-    // Strip internal fields before storing
-    const { _hp: _hpField, _ts: _tsField, ...submittedData } = body;
+// Strip internal fields before storing
+const { _hp: _hpField, _ts: _tsField, ...submittedData } = body;
 
-    await db.prepare(`
-      INSERT INTO form_submissions (form_id, data_json, ip) VALUES (?, ?, ?)
-    `).run(id, JSON.stringify(submittedData), ip);
+// Sanitize user input to prevent XSS
+const sanitizedData = sanitizeSubmission(submittedData);
 
-    // Non-critical email
-    sendFormEmail(form, submittedData);
+await db.prepare(`
+INSERT INTO form_submissions (form_id, data_json, ip) VALUES (?, ?, ?)
+`).run(id, JSON.stringify(sanitizedData), ip);
+
+    // Non-critical email (EmailService respects EMAIL_MODE=mock|smtp)
+    try {
+      await emailService.sendFormNotification(form.name, submittedData, form.email_recipients);
+    } catch (err) {
+      console.error('Email failed (non-critical):', err.message);
+    }
 
     res.json({ success: true });
   } catch (err) {
@@ -257,7 +260,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM forms WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Formulář nenalezen' });
-    res.json({ message: 'Formulář smazán' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
@@ -303,7 +306,7 @@ submissionsRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddlewar
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM form_submissions WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Odpověď nenalezena' });
-    res.json({ message: 'Odpověď smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

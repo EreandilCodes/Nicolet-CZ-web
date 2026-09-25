@@ -146,7 +146,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM pages WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Stránka nenalezena' });
-    res.json({ message: 'Stránka smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

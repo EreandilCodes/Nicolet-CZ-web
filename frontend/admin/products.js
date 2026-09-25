@@ -2,14 +2,15 @@
  * ProductsManager – CRUD for products (M:N categories + applications, image manager, autocomplete).
  */
 export class ProductsManager {
-  constructor(auth) {
-    this.auth         = auth;
-    this.items        = [];
-    this.categories   = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
+    this.categories = [];
     this.applications = [];
-    this._editing     = null;
+    this._editing = null;
     this._imagesState = []; // [{url, caption, align}]
     this._selectedAppIds = new Set();
+    this._saving = false;
   }
 
   async init() {
@@ -29,8 +30,9 @@ export class ProductsManager {
   async loadCategories() {
     try {
       const response = await fetch('/api/product-categories/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -48,8 +50,9 @@ export class ProductsManager {
   async loadApplications() {
     try {
       const response = await fetch('/api/applications/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -67,8 +70,9 @@ export class ProductsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/products/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -177,6 +181,8 @@ export class ProductsManager {
     document.getElementById('prodSlug').value        = item?.slug           || '';
     document.getElementById('prodDescCz').value      = item?.description_cz || '';
     document.getElementById('prodDescEn').value      = item?.description_en || '';
+    document.getElementById('prodExcerptCz').value   = item?.excerpt_cz || '';
+    document.getElementById('prodExcerptEn').value   = item?.excerpt_en || '';
     document.getElementById('prodThumbnailUrl').value = item?.thumbnail_url || '';
     // Update thumbnail preview
     const thumbPreview = document.getElementById('prodThumbnailPreview');
@@ -307,16 +313,15 @@ export class ProductsManager {
     this._renderImagesUI();
   }
 
-  async addImageFromFile(input) {
-    const file = input.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('image', file);
-    try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch('/api/gallery/images/admin/upload', {
-        method: 'POST',
-        headers: token ? { Authorization: 'Bearer ' + token } : {},
+async addImageFromFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await fetch('/api/gallery/images/admin/upload', {
+      method: 'POST',
+      credentials: 'include',
         body: formData
       });
       const ct = res.headers.get('content-type');
@@ -396,6 +401,9 @@ export class ProductsManager {
   // ─── Save / Delete ──────────────────────────────────────────────────────────
 
   async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     // Sync contenteditable → textarea before reading values
     window.syncEditorToHtml?.('prodDescCz');
     window.syncEditorToHtml?.('prodDescEn');
@@ -403,6 +411,7 @@ export class ProductsManager {
     const name_cz = document.getElementById('prodNameCz').value.trim();
     if (!name_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
@@ -415,6 +424,8 @@ export class ProductsManager {
       slug: document.getElementById('prodSlug').value.trim() || null,
       description_cz: document.getElementById('prodDescCz').value.trim() || null,
       description_en: document.getElementById('prodDescEn').value.trim() || null,
+      excerpt_cz: document.getElementById('prodExcerptCz').value.trim() || null,
+      excerpt_en: document.getElementById('prodExcerptEn').value.trim() || null,
       thumbnail_url: document.getElementById('prodThumbnailUrl').value.trim() || null,
       images_json: JSON.stringify(this._imagesState),
       is_featured: document.getElementById('prodFeatured').checked ? 1 : 0,
@@ -434,10 +445,11 @@ export class ProductsManager {
 
     try {
       const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -451,6 +463,8 @@ export class ProductsManager {
     } catch (err) {
       console.error('Products save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+      this._saving = false;
     }
   }
 
@@ -461,9 +475,10 @@ export class ProductsManager {
 
     try {
       const response = await fetch(`/api/products/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

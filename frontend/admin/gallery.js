@@ -3,14 +3,15 @@
  * Admin Manager Pattern.
  */
 export class GalleryManager {
-  constructor(auth) {
-    this.auth           = auth;
-    this.folders        = [];
-    this.images         = [];
+constructor(auth) {
+    this.auth = auth;
+    this.folders = [];
+    this.images = [];
     this._currentFolder = null;
     this._editingFolder = null;
-    this._editingImage  = null;
-    this._uploading     = false;
+    this._editingImage = null;
+    this._uploading = false;
+    this._saving = false;
   }
 
   async init() {
@@ -63,8 +64,9 @@ export class GalleryManager {
   async loadFolders() {
     try {
       const response = await fetch('/api/gallery/folders/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -88,8 +90,9 @@ export class GalleryManager {
         : '/api/gallery/images/admin/all';
 
       const response = await fetch(url, {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -251,32 +254,37 @@ export class GalleryManager {
     this._editingFolder = null;
   }
 
-  async saveFolder() {
+async saveFolder() {
+    if (this._saving) return;
+    this._saving = true;
+
     const name_cz = document.getElementById('galFolderNameCz').value.trim();
     if (!name_cz) {
       window.admin?.showNotification('Název složky CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const parentVal = document.getElementById('galFolderParentId').value;
     const data = {
       name_cz,
-      name_en:       document.getElementById('galFolderNameEn').value.trim() || null,
-      slug:          document.getElementById('galFolderSlug').value.trim()   || null,
-      parent_id:     parentVal ? Number(parentVal) : null,
+      name_en: document.getElementById('galFolderNameEn').value.trim() || null,
+      slug: document.getElementById('galFolderSlug').value.trim() || null,
+      parent_id: parentVal ? Number(parentVal) : null,
       display_order: Number(document.getElementById('galFolderOrder').value) || 0,
     };
 
     const isEdit = !!this._editingFolder;
-    const url    = isEdit ? `/api/gallery/folders/admin/${this._editingFolder.id}` : '/api/gallery/folders/admin';
+    const url = isEdit ? `/api/gallery/folders/admin/${this._editingFolder.id}` : '/api/gallery/folders/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -290,6 +298,8 @@ export class GalleryManager {
     } catch (err) {
       console.error('Gallery folder save error:', err);
       window.admin?.showNotification('Chyba ukládání složky: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -300,9 +310,10 @@ export class GalleryManager {
 
     try {
       const response = await fetch(`/api/gallery/folders/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -352,25 +363,32 @@ export class GalleryManager {
     this._editingImage = null;
   }
 
-  async saveImage() {
-    if (!this._editingImage) return;
+async saveImage() {
+    if (this._saving) return;
+    this._saving = true;
+
+    if (!this._editingImage) {
+      this._saving = false;
+      return;
+    }
 
     const folderVal = document.getElementById('galImageFolderId').value;
     const data = {
-      title_cz:  document.getElementById('galImageTitleCz').value.trim() || null,
-      title_en:  document.getElementById('galImageTitleEn').value.trim() || null,
-      desc_cz:   document.getElementById('galImageDescCz').value.trim()  || null,
-      desc_en:   document.getElementById('galImageDescEn').value.trim()  || null,
-      tags:      document.getElementById('galImageTags').value.trim()    || null,
+      title_cz: document.getElementById('galImageTitleCz').value.trim() || null,
+      title_en: document.getElementById('galImageTitleEn').value.trim() || null,
+      desc_cz: document.getElementById('galImageDescCz').value.trim() || null,
+      desc_en: document.getElementById('galImageDescEn').value.trim() || null,
+      tags: document.getElementById('galImageTags').value.trim() || null,
       folder_id: folderVal ? Number(folderVal) : null,
     };
 
     try {
       const response = await fetch(`/api/gallery/images/admin/${this._editingImage.id}`, {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -384,6 +402,8 @@ export class GalleryManager {
     } catch (err) {
       console.error('Gallery image save error:', err);
       window.admin?.showNotification('Chyba ukládání obrázku: ' + err.message, 'error');
+} finally {
+      this._saving = false;
     }
   }
 
@@ -392,9 +412,10 @@ export class GalleryManager {
 
     try {
       const response = await fetch(`/api/gallery/images/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -460,13 +481,9 @@ export class GalleryManager {
     if (folderVal) formData.append('folder_id', folderVal);
 
     try {
-      // IMPORTANT: do NOT set Content-Type header – let browser set multipart boundary
-      const authHeaders = this.auth.getAuthHeaders();
-      const headers = { Authorization: authHeaders.Authorization };
-
       const response = await fetch('/api/gallery/images/admin/upload', {
-        method: 'POST',
-        headers,
+      method: 'POST',
+      credentials: 'include',
         body: formData
       });
       const contentType = response.headers.get('content-type');

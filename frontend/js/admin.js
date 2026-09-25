@@ -113,7 +113,7 @@ class AdminController {
     // Initialize manager
     switch (section) {
       case 'dashboard':         this._loadDashboard();       break;
-      case 'settings':          this.settings.init();        break;
+      case 'settings':          this.settings.init(); this.settings.loadAdmins(); break;
       case 'contacts':          this.contacts.init();        break;
       case 'carousel':          this.carousel.init();        break;
       case 'news':              this.news.init();            break;
@@ -169,7 +169,7 @@ class AdminController {
 
     // Contacts
     try {
-      const r  = await fetch('/api/contacts/admin/all', { headers: this.auth.getAuthHeaders() });
+    const r = await fetch('/api/contacts/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -179,7 +179,7 @@ class AdminController {
 
     // Products
     try {
-      const r  = await fetch('/api/products/admin/all', { headers: this.auth.getAuthHeaders() });
+    const r = await fetch('/api/products/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -189,7 +189,7 @@ class AdminController {
 
     // News
     try {
-      const r  = await fetch('/api/news/admin/all', { headers: this.auth.getAuthHeaders() });
+    const r = await fetch('/api/news/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();
@@ -199,7 +199,7 @@ class AdminController {
 
     // Trainings (upcoming – date_start >= today)
     try {
-      const r  = await fetch('/api/trainings/admin/all', { headers: this.auth.getAuthHeaders() });
+    const r = await fetch('/api/trainings/admin/all', { credentials: 'include', headers: { 'Content-Type': 'application/json' } });
       const ct = r.headers.get('content-type');
       if (r.ok && ct?.includes('application/json')) {
         const data = await r.json();

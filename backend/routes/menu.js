@@ -95,7 +95,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     await db.prepare('UPDATE menu_items SET parent_id = NULL WHERE parent_id = ?').run(id);
     const result = await db.prepare('DELETE FROM menu_items WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Položka nenalezena' });
-    res.json({ message: 'Položka smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

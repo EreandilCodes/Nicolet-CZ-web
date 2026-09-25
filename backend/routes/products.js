@@ -6,7 +6,27 @@ const router = express.Router();
 export const categoriesRouter = express.Router();
 
 function generateSlug(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
+  const replacements = {
+    'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+    'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+    'ď': 'd', 'đ': 'd', 'δ': 'd',
+    'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+    'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ν': 'n',
+    'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+    'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+    'ť': 't', 'ț': 't', 'τ': 't',
+    'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+    'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+    'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+    'ö': 'o', 'ő': 'o', 'ø': 'o', 'ō': 'o', 'ô': 'o', 'ò': 'o', 'ó': 'o', 'õ': 'o',
+    'ß': 'ss',
+  };
+  let result = name.toLowerCase();
+  for (const [from, to] of Object.entries(replacements)) {
+    result = result.split(from).join(to);
+  }
+  return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
 // Batch-load categories and applications for a list of products (3 queries total)
@@ -170,7 +190,7 @@ categoriesRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM product_categories WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Kategorie nenalezena' });
-    res.json({ message: 'Kategorie smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
@@ -233,7 +253,7 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
   try {
     const {
       slug: slugInput, name_cz, name_en, description_cz, description_en,
-      spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
+      excerpt_cz, excerpt_en, spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
       seo_title_cz, seo_title_en, seo_desc_cz, seo_desc_en,
       category_ids, application_ids
     } = req.body;
@@ -244,15 +264,17 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
 
     const result = await db.prepare(`
       INSERT INTO products (slug, name_cz, name_en, description_cz, description_en,
-        spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
+        excerpt_cz, excerpt_en, spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
         seo_title_cz, seo_title_en, seo_desc_cz, seo_desc_en)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       slug,
       name_cz.trim(),
       name_en?.trim() || null,
       description_cz?.trim() || null,
       description_en?.trim() || null,
+      excerpt_cz?.trim() || null,
+      excerpt_en?.trim() || null,
       spec_cz?.trim() || null,
       spec_en?.trim() || null,
       images_json || '[]',
@@ -295,7 +317,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const { id } = req.params;
     const {
       slug, name_cz, name_en, description_cz, description_en,
-      spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
+      excerpt_cz, excerpt_en, spec_cz, spec_en, images_json, thumbnail_url, is_published, is_featured, display_order,
       seo_title_cz, seo_title_en, seo_desc_cz, seo_desc_en,
       category_ids, application_ids
     } = req.body;
@@ -306,7 +328,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const result = await db.prepare(`
       UPDATE products
       SET slug = ?, name_cz = ?, name_en = ?, description_cz = ?, description_en = ?,
-          spec_cz = ?, spec_en = ?, images_json = ?, thumbnail_url = ?,
+          excerpt_cz = ?, excerpt_en = ?, spec_cz = ?, spec_en = ?, images_json = ?, thumbnail_url = ?,
           is_published = ?, is_featured = ?,
           display_order = ?, seo_title_cz = ?, seo_title_en = ?, seo_desc_cz = ?, seo_desc_en = ?,
           updated_at = CURRENT_TIMESTAMP
@@ -317,6 +339,8 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       name_en?.trim() || null,
       description_cz?.trim() || null,
       description_en?.trim() || null,
+      excerpt_cz?.trim() || null,
+      excerpt_en?.trim() || null,
       spec_cz?.trim() || null,
       spec_en?.trim() || null,
       images_json || '[]',
@@ -361,7 +385,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM products WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Produkt nenalezen' });
-    res.json({ message: 'Produkt smazán' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

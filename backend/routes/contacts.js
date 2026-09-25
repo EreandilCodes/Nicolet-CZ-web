@@ -90,13 +90,13 @@ router.put('/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (
   }
 });
 
-// DELETE /api/contacts/:id (admin)
-router.delete('/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+// DELETE /api/contacts/admin/:id (admin)
+router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM contacts WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Kontakt nenalezen' });
-    res.json({ message: 'Kontakt smazán' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

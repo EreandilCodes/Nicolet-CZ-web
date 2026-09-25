@@ -3,12 +3,13 @@
  * Admin Manager Pattern.
  */
 export class NewsManager {
-  constructor(auth) {
-    this.auth       = auth;
-    this.items      = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
     this.categories = [];
-    this._editing   = null;
-    this._selected  = new Set();
+    this._editing = null;
+    this._selected = new Set();
+    this._saving = false;
   }
 
   async init() {
@@ -77,10 +78,11 @@ export class NewsManager {
 
     for (const id of ids) {
       try {
-        const response = await fetch(`/api/news/admin/${id}`, {
-          method: 'DELETE',
-          headers: this.auth.getAuthHeaders()
-        });
+      const response = await fetch(`/api/news/admin/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
         const contentType = response.headers.get('content-type');
         if (!response.ok) {
           const err = contentType?.includes('application/json')
@@ -109,8 +111,9 @@ export class NewsManager {
   async loadCategories() {
     try {
       const response = await fetch('/api/news-categories/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -141,8 +144,9 @@ export class NewsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/news/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -261,6 +265,8 @@ export class NewsManager {
     document.getElementById('newsTitleEn').value      = item?.title_en     || '';
     document.getElementById('newsContentCz').value    = item?.content_cz   || '';
     document.getElementById('newsContentEn').value    = item?.content_en   || '';
+    document.getElementById('newsExcerptCz').value    = item?.excerpt_cz   || '';
+    document.getElementById('newsExcerptEn').value    = item?.excerpt_en   || '';
     document.getElementById('newsCoverImage').value   = item?.cover_image   || '';
     document.getElementById('newsCoverCaption').value = item?.cover_caption || '';
     document.getElementById('newsCoverAlign').value   = item?.cover_align   || 'center';
@@ -324,7 +330,10 @@ export class NewsManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     // Sync contenteditable → textarea before reading values
     window.syncEditorToHtml?.('newsContentCz');
     window.syncEditorToHtml?.('newsContentEn');
@@ -332,37 +341,41 @@ export class NewsManager {
     const title_cz = document.getElementById('newsTitleCz').value.trim();
     if (!title_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const catVal = document.getElementById('newsCategoryId')?.value;
     const data = {
-      slug:         document.getElementById('newsSlug').value.trim()       || null,
+      slug: document.getElementById('newsSlug').value.trim() || null,
       title_cz,
-      title_en:     document.getElementById('newsTitleEn').value.trim()    || null,
-      content_cz:   document.getElementById('newsContentCz').value.trim()  || null,
-      content_en:   document.getElementById('newsContentEn').value.trim()  || null,
-      cover_image:   document.getElementById('newsCoverImage').value.trim()   || null,
+      title_en: document.getElementById('newsTitleEn').value.trim() || null,
+      content_cz: document.getElementById('newsContentCz').value.trim() || null,
+      content_en: document.getElementById('newsContentEn').value.trim() || null,
+      excerpt_cz: document.getElementById('newsExcerptCz').value.trim() || null,
+      excerpt_en: document.getElementById('newsExcerptEn').value.trim() || null,
+      cover_image: document.getElementById('newsCoverImage').value.trim() || null,
       cover_caption: document.getElementById('newsCoverCaption').value.trim() || null,
-      cover_align:   document.getElementById('newsCoverAlign').value          || 'center',
-      category_id:   catVal ? Number(catVal) : null,
+      cover_align: document.getElementById('newsCoverAlign').value || 'center',
+      category_id: catVal ? Number(catVal) : null,
       seo_title_cz: document.getElementById('newsSeoTitleCz').value.trim() || null,
       seo_title_en: document.getElementById('newsSeoTitleEn').value.trim() || null,
-      seo_desc_cz:  document.getElementById('newsSeoDescCz').value.trim()  || null,
-      seo_desc_en:  document.getElementById('newsSeoDescEn').value.trim()  || null,
+      seo_desc_cz: document.getElementById('newsSeoDescCz').value.trim() || null,
+      seo_desc_en: document.getElementById('newsSeoDescEn').value.trim() || null,
       is_published: document.getElementById('newsPublished').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/news/admin/${this._editing.id}` : '/api/news/admin';
+    const url = isEdit ? `/api/news/admin/${this._editing.id}` : '/api/news/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -376,6 +389,8 @@ export class NewsManager {
     } catch (err) {
       console.error('News save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -385,9 +400,10 @@ export class NewsManager {
 
     try {
       const response = await fetch(`/api/news/admin/${id}/publish`, {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify({ is_published: item.is_published ? 0 : 1 })
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_published: item.is_published ? 0 : 1 })
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
@@ -410,10 +426,11 @@ export class NewsManager {
     if (!confirm(`Smazat novinku "${item.title_cz}"?`)) return;
 
     try {
-      const response = await fetch(`/api/news/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+    const response = await fetch(`/api/news/admin/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

@@ -7,6 +7,7 @@ import { AuthMiddleware, tokenBlacklist } from '../middleware/auth.js';
 import { logger } from '../logger.js';
 
 import { JWT_SECRET } from '../config.js';
+import { setAuthCookie, clearAuthCookie } from '../utils/cookie.js';
 
 const router = express.Router();
 
@@ -21,6 +22,13 @@ const LOCKOUT_MAX      = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validatePassword(pw) {
+  if (!pw) return 'Heslo je povinné';
+  if (pw.length < 8) return 'Heslo musí mít alespoň 8 znaků';
+  if (!/[A-Z]/.test(pw) || !/[0-9]/.test(pw)) return 'Heslo musí obsahovat velké písmeno a číslo';
+  return null;
+}
 
 function checkLoginRate(ip) {
   const now   = Date.now();
@@ -106,6 +114,7 @@ router.post('/login', async (req, res) => {
     );
 
     logger.info('login_success', { user_id: user.id, role: user.role });
+    setAuthCookie(res, token);
     res.json({ token, expiresIn: 3600, user: { id: user.id, email: user.email, role: user.role } });
   } catch (err) {
     logger.fromError('login_error', err);
@@ -125,6 +134,7 @@ router.post('/refresh', AuthMiddleware.verifyToken, async (req, res) => {
       JWT_SECRET,
       { expiresIn: '1h' }
     );
+    setAuthCookie(res, token);
     res.json({ token, expiresIn: 3600 });
   } catch (err) {
     logger.fromError('auth_refresh_error', err);
@@ -138,6 +148,7 @@ router.post('/logout', AuthMiddleware.verifyToken, (req, res) => {
     const ttl = (req.user.exp || 0) - Math.floor(Date.now() / 1000);
     if (ttl > 0) tokenBlacklist.add(req.user.jti, ttl);
   }
+  clearAuthCookie(res);
   res.json({ ok: true });
 });
 
@@ -145,15 +156,11 @@ router.post('/logout', AuthMiddleware.verifyToken, (req, res) => {
 router.post('/change-password', AuthMiddleware.verifyToken, async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
-    if (!current_password || !new_password) {
-      return res.status(400).json({ error: 'Současné a nové heslo jsou povinné' });
+    if (!current_password) {
+      return res.status(400).json({ error: 'Současné heslo je povinné' });
     }
-    if (new_password.length < 8) {
-      return res.status(400).json({ error: 'Nové heslo musí mít alespoň 8 znaků' });
-    }
-    if (!/[A-Z]/.test(new_password) || !/[0-9]/.test(new_password)) {
-      return res.status(400).json({ error: 'Heslo musí obsahovat velké písmeno a číslo' });
-    }
+    const pwErr = validatePassword(new_password);
+    if (pwErr) return res.status(400).json({ error: pwErr });
 
     const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     if (!user) return res.status(404).json({ error: 'Uživatel nenalezen' });
@@ -168,6 +175,45 @@ router.post('/change-password', AuthMiddleware.verifyToken, async (req, res) => 
     res.json({ message: 'Heslo úspěšně změněno' });
   } catch (err) {
     logger.fromError('change_password_error', err);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/auth/users – admin, list admin accounts (never exposes password hashes)
+router.get('/users', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const users = await db.prepare(
+      'SELECT id, email, role, created_at FROM users ORDER BY id ASC'
+    ).all();
+    res.json(users);
+  } catch (err) {
+    logger.fromError('auth_users_error', err);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// POST /api/auth/admin – admin, create a new admin account
+router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email?.trim()) return res.status(400).json({ error: 'Email je povinný' });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!EMAIL_RE.test(normalizedEmail)) return res.status(400).json({ error: 'Neplatný formát emailu' });
+    const pwErr = validatePassword(password);
+    if (pwErr) return res.status(400).json({ error: pwErr });
+
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+    if (existing) return res.status(409).json({ error: 'Účet s tímto emailem již existuje' });
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const result = await db.prepare(
+      'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)'
+    ).run(normalizedEmail, passwordHash, 'admin');
+
+    logger.info('admin_created', { actor: req.user.id, new_user_id: result.lastInsertRowid });
+    res.status(201).json({ id: result.lastInsertRowid, email: normalizedEmail, role: 'admin' });
+  } catch (err) {
+    logger.fromError('auth_admin_create_error', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });

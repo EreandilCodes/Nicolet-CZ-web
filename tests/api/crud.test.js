@@ -175,13 +175,13 @@ describe('Contacts /api/contacts', () => {
     expect(res.status).toBe(404);
   });
 
-  it('DELETE /:id removes contact', async () => {
-    const res = await request(app).delete(`/api/contacts/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+  it('DELETE /admin/:id removes contact', async () => {
+    const res = await request(app).delete(`/api/contacts/admin/${createdId}`).set(auth());
+    expect(res.status).toBe(204);
   });
 
-  it('DELETE /:id returns 404 for non-existent', async () => {
-    const res = await request(app).delete('/api/contacts/99999').set(auth());
+  it('DELETE /admin/:id returns 404 for non-existent', async () => {
+    const res = await request(app).delete('/api/contacts/admin/99999').set(auth());
     expect(res.status).toBe(404);
   });
 });
@@ -237,7 +237,7 @@ describe('Carousel /api/carousel', () => {
 
   it('DELETE /admin/:id removes item', async () => {
     const res = await request(app).delete(`/api/carousel/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -316,7 +316,7 @@ describe('News /api/news', () => {
 
   it('DELETE /admin/:id removes post', async () => {
     const res = await request(app).delete(`/api/news/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -381,7 +381,7 @@ describe('News Categories /api/news-categories', () => {
 
   it('DELETE /admin/:id removes category', async () => {
     const res = await request(app).delete(`/api/news-categories/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -454,7 +454,7 @@ describe('Pages /api/pages', () => {
 
   it('DELETE /admin/:id removes page', async () => {
     const res = await request(app).delete(`/api/pages/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -516,7 +516,7 @@ describe('Product Categories /api/product-categories', () => {
 
   it('DELETE /admin/:id removes category', async () => {
     const res = await request(app).delete(`/api/product-categories/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -596,7 +596,7 @@ describe('Products /api/products', () => {
 
   it('DELETE /admin/:id removes product', async () => {
     const res = await request(app).delete(`/api/products/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -658,7 +658,7 @@ describe('Application Groups /api/application-groups', () => {
 
   it('DELETE /admin/:id removes group', async () => {
     const res = await request(app).delete(`/api/application-groups/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -738,7 +738,7 @@ describe('Applications /api/applications', () => {
 
   it('DELETE /admin/:id removes application', async () => {
     const res = await request(app).delete(`/api/applications/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -805,7 +805,7 @@ describe('Trainings /api/trainings', () => {
 
   it('DELETE /admin/:id removes training', async () => {
     const res = await request(app).delete(`/api/trainings/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -865,7 +865,7 @@ describe('Buttons /api/buttons', () => {
 
   it('DELETE /admin/:id removes button', async () => {
     const res = await request(app).delete(`/api/buttons/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -1008,7 +1008,7 @@ describe('Forms /api/forms', () => {
     const all = await request(app).get('/api/submissions/admin/all').set(auth());
     const subId = all.body[0].id;
     const res = await request(app).delete(`/api/submissions/admin/${subId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /submissions/admin/:id returns 404 for non-existent', async () => {
@@ -1019,7 +1019,7 @@ describe('Forms /api/forms', () => {
   // ── Delete form last ────────────────────────────────────────────────────
   it('DELETE /admin/:id removes form', async () => {
     const res = await request(app).delete(`/api/forms/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {
@@ -1087,7 +1087,7 @@ describe('Gallery /api/gallery', () => {
       const created = await request(app).post('/api/gallery/folders/admin').set(auth())
         .send({ name_cz: 'Temp folder' });
       const res = await request(app).delete(`/api/gallery/folders/admin/${created.body.id}`).set(auth());
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(204);
     });
 
     it('DELETE /folders/admin/:id returns 404 for non-existent', async () => {
@@ -1149,7 +1149,7 @@ describe('Gallery /api/gallery', () => {
 
     it('DELETE /images/admin/:id removes image', async () => {
       const res = await request(app).delete(`/api/gallery/images/admin/${imageId}`).set(auth());
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(204);
     });
 
     it('DELETE /images/admin/:id returns 404 for non-existent', async () => {
@@ -1229,7 +1229,7 @@ describe('Menu /api/menu', () => {
 
   it('DELETE /admin/:id removes menu item', async () => {
     const res = await request(app).delete(`/api/menu/admin/${createdId}`).set(auth());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(204);
   });
 
   it('DELETE /admin/:id returns 404 for non-existent', async () => {

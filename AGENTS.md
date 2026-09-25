@@ -674,6 +674,37 @@ _renderTrainingsTeaser(upcoming, defaultTrainingBtn)
 
 ---
 
+## CONNECTIVITY AUDIT 2026-04-22
+
+**BE nálezy:** 20 celkem  
+**FE nálezy:** 13 celkem  
+**Integrační nálezy:** 14 celkem  
+**E2E flows:** 0/7 ověřeno (nelze bez běžícího serveru)  
+**Stav:** CONDITIONAL PASS — zbývají nízké a info priority
+
+### TOP 3 Problémy
+1. **BE-001 KRITICKÁ:** Admin page (`/admin`) není chráněna autentizací — veřejně přístupná pro analýzu
+2. **BE-008 VYSOKÁ:** XSS možné ve form submissions — chybí server-side sanitizace
+3. **INT-001 VYSOKÁ:** Contacts DELETE endpoint má nekonzistentní cestu (`/api/contacts/:id` vs `/api/contacts/admin/:id`)
+
+### Doporučení
+- ✅ Opraveno BE-001: Admin page nyní chráněna inline autentizací
+- ✅ Opraveno BE-008: XSS sanitizace ve form submissions
+- ✅ Opraveno FE-006: Double-submit prevention ve všech 12 manažerech
+- ✅ Opraveno INT-001: Kontakty DELETE endpoint konzistentní
+- ✅ Opraveno BE-006: Slug generace s diakritikou
+- ✅ Opraveno BE-003/004: Indexy na FK sloupce
+- ✅ **DOKONČENO**: httpOnly cookies implementovány (architekturní změna)
+  - Všechna localStorage token volání odstraněna
+  - Refresh interceptor s reaktivním 401 handlingem
+  - Cross-tab logout via storage events
+  - 100+ fetch volání aktualizováno s `credentials: 'include'`
+  - Dokumentace: `docs/auth-migration/`
+
+**Celá dokumentace:** `/audit/` adresář
+
+---
+
 ## FE Detail Page Layout (Product and Application)
 
 Both Product and Application detail pages share the same single-column layout structure:

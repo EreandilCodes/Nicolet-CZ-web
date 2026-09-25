@@ -56,15 +56,21 @@
 </div>
 
 <script type="module">
-  const form   = document.getElementById('login-form');
-  const errEl  = document.getElementById('login-error');
-  const btn    = document.getElementById('login-btn');
+const form = document.getElementById('login-form');
+const errEl = document.getElementById('login-error');
+const btn = document.getElementById('login-btn');
 
-  // Redirect if already logged in
-  const token = localStorage.getItem('nicolet_token');
-  if (token) window.location.href = '/admin';
+// Check if already logged in via cookie
+(async function() {
+  try {
+    const response = await fetch('/api/auth/me', { credentials: 'include' });
+    if (response.ok) {
+      window.location.href = '/admin';
+    }
+  } catch { /* not logged in, stay on login page */ }
+})();
 
-  form.addEventListener('submit', async (e) => {
+form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errEl.classList.remove('visible');
     btn.disabled = true;
@@ -73,25 +79,26 @@
     const email    = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
 
-      const contentType = response.headers.get('content-type');
-      const data = contentType?.includes('application/json')
-        ? await response.json()
-        : { error: await response.text() };
+        const contentType = response.headers.get('content-type');
+        const data = contentType?.includes('application/json')
+          ? await response.json()
+          : { error: await response.text() };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Přihlášení selhalo');
-      }
+        if (!response.ok) {
+          throw new Error(data.error || 'Přihlášení selhalo');
+        }
 
-      localStorage.setItem('nicolet_token', data.token);
-      localStorage.setItem('nicolet_user', JSON.stringify(data.user));
-      window.location.href = '/admin';
+        // Token is now in httpOnly cookie, only store user data
+        localStorage.setItem('nicolet_user', JSON.stringify(data.user));
+        window.location.href = '/admin';
 
     } catch (err) {
       errEl.textContent = err.message;

@@ -14,9 +14,7 @@ export class SubmissionsManager {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/submissions/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      const response = await this.auth.authenticatedFetch('/api/submissions/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -129,9 +127,8 @@ export class SubmissionsManager {
 
   async markRead(id) {
     try {
-      const response = await fetch(`/api/submissions/admin/${id}/read`, {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders()
+      const response = await this.auth.authenticatedFetch(`/api/submissions/admin/${id}/read`, {
+        method: 'PUT'
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
@@ -153,9 +150,8 @@ export class SubmissionsManager {
     if (!confirm('Smazat tuto odpověď?')) return;
 
     try {
-      const response = await fetch(`/api/submissions/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
+      const response = await this.auth.authenticatedFetch(`/api/submissions/admin/${id}`, {
+        method: 'DELETE'
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {

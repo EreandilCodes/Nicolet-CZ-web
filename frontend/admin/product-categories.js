@@ -3,10 +3,11 @@
  * Admin Manager Pattern.
  */
 export class ProductCategoriesManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -25,8 +26,9 @@ export class ProductCategoriesManager {
   async loadItems() {
     try {
       const response = await fetch('/api/product-categories/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -193,33 +195,38 @@ export class ProductCategoriesManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const name_cz = document.getElementById('pcatNameCz').value.trim();
     if (!name_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const parentVal = document.getElementById('pcatParentId').value;
     const data = {
       name_cz,
-      name_en:       document.getElementById('pcatNameEn').value.trim() || null,
-      slug:          document.getElementById('pcatSlug').value.trim()   || null,
-      parent_id:     parentVal ? Number(parentVal) : null,
+      name_en: document.getElementById('pcatNameEn').value.trim() || null,
+      slug: document.getElementById('pcatSlug').value.trim() || null,
+      parent_id: parentVal ? Number(parentVal) : null,
       display_order: Number(document.getElementById('pcatOrder').value) || 0,
-      is_active:     document.getElementById('pcatActive').checked ? 1 : 0,
+      is_active: document.getElementById('pcatActive').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/product-categories/admin/${this._editing.id}` : '/api/product-categories/admin';
+    const url = isEdit ? `/api/product-categories/admin/${this._editing.id}` : '/api/product-categories/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -233,6 +240,8 @@ export class ProductCategoriesManager {
     } catch (err) {
       console.error('ProductCategories save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -252,13 +261,15 @@ export class ProductCategoriesManager {
       await Promise.all([
         fetch(`/api/product-categories/admin/${a.id}`, {
           method: 'PUT',
-          headers: this.auth.getAuthHeaders(),
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name_cz: a.name_cz, name_en: a.name_en, slug: a.slug,
             parent_id: a.parent_id, display_order: orderB, is_active: a.is_active })
         }),
         fetch(`/api/product-categories/admin/${b.id}`, {
           method: 'PUT',
-          headers: this.auth.getAuthHeaders(),
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name_cz: b.name_cz, name_en: b.name_en, slug: b.slug,
             parent_id: b.parent_id, display_order: orderA, is_active: b.is_active })
         }),
@@ -277,9 +288,10 @@ export class ProductCategoriesManager {
 
     try {
       const response = await fetch(`/api/product-categories/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

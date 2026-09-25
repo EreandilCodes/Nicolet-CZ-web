@@ -4,9 +4,10 @@
  */
 export class ContactsManager {
   constructor(auth) {
-    this.auth     = auth;
+    this.auth = auth;
     this.contacts = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -25,8 +26,9 @@ export class ContactsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/contacts/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -145,8 +147,12 @@ export class ContactsManager {
   }
 
   async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const name = document.getElementById('contactName').value.trim();
     if (!name) {
+      this._saving = false;
       window.admin?.showNotification('Jméno je povinné', 'error');
       return;
     }
@@ -168,10 +174,11 @@ export class ContactsManager {
 
     try {
       const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -185,6 +192,8 @@ export class ContactsManager {
     } catch (err) {
       console.error('Contacts save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+      this._saving = false;
     }
   }
 
@@ -194,10 +203,11 @@ export class ContactsManager {
     if (!confirm(`Smazat kontakt "${contact.name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/contacts/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      const response = await fetch(`/api/contacts/admin/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

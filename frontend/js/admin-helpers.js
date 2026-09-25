@@ -259,9 +259,9 @@ async function _loadGalleryFolders() {
   const select = document.getElementById('galPickerFolder');
   if (!select) return;
   try {
-    const token = localStorage.getItem('nicolet_token');
     const res = await fetch('/api/gallery/folders/admin/all', {
-      headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : {}
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
     });
     const ct = res.headers.get('content-type');
     if (!res.ok) return;
@@ -284,13 +284,13 @@ async function _loadGalleryPickerImages() {
   if (!grid) return;
   grid.innerHTML = '<p style="padding:20px;color:#6b7280;grid-column:1/-1;">Načítám obrázky…</p>';
   try {
-    const token = localStorage.getItem('nicolet_token');
     let url = '/api/gallery/images/admin/all';
     if (_galCurrentFolder) {
       url += '?folder_id=' + _galCurrentFolder;
     }
     const res = await fetch(url, {
-      headers: token ? { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' } : {}
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }
     });
     const ct = res.headers.get('content-type');
     if (!res.ok) {
@@ -361,15 +361,14 @@ function closeGalleryPicker() {
 
 // ── uploadImage (settings / other single-field uploads) ──────────────────────
 async function uploadImage(input, targetId) {
- const file = input.files[0];
- if (!file) return;
- const formData = new FormData();
- formData.append('image', file);
- try {
- const token = localStorage.getItem('nicolet_token');
- const res = await fetch('/api/gallery/images/admin/upload', {
- method: 'POST',
- headers: token ? { Authorization: 'Bearer ' + token } : {},
+  const file = input.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await fetch('/api/gallery/images/admin/upload', {
+      method: 'POST',
+      credentials: 'include',
  body: formData
  });
  const ct = res.headers.get('content-type');

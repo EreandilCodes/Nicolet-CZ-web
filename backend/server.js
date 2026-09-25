@@ -3,6 +3,7 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import db, { initDatabase, closeDatabase } from './database.js';
@@ -68,13 +69,17 @@ initWithTimeout
     const ALLOWED_ORIGINS = process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
       : [`http://localhost:${PORT}`];
-    app.use(cors({
-      origin(origin, cb) {
-        // Allow same-origin requests (origin is undefined) and whitelisted origins
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-        cb(null, false); // reject silently – browser enforces the block
-      },
-    }));
+app.use(cors({
+    origin(origin, cb) {
+      // Allow same-origin requests (origin is undefined) and whitelisted origins
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      cb(null, false); // reject silently – browser enforces the block
+    },
+    credentials: true, // Allow cookies to be sent
+  }));
+
+  // ── Cookie parser (must be before routes) ─────────────────────────────
+  app.use(cookieParser());
 
     app.use(express.json({ limit: '1mb' }));
     app.use(express.urlencoded({ extended: true, limit: '1mb' }));

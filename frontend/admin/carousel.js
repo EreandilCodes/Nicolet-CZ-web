@@ -3,14 +3,15 @@
  * Admin Manager Pattern.
  */
 export class CarouselManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
-    this.pages    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
+    this.pages = [];
     this.products = [];
     this.applications = [];
-    this.news     = [];
+    this.news = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -47,8 +48,9 @@ export class CarouselManager {
   async loadItems() {
     try {
       const response = await fetch('/api/carousel/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -213,35 +215,40 @@ export class CarouselManager {
     if (list) list.style.display = 'none';
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const image_url = document.getElementById('carouselImageUrl').value.trim();
     if (!image_url) {
       window.admin?.showNotification('URL obrázku je povinné', 'error');
+      this._saving = false;
       return;
     }
 
     const data = {
       image_url,
-      link_url:      document.getElementById('carouselLinkUrl').value.trim()    || null,
-      title_cz:      document.getElementById('carouselTitleCz').value.trim()    || null,
-      title_en:      document.getElementById('carouselTitleEn').value.trim()    || null,
-      subtitle_cz:   document.getElementById('carouselSubtitleCz').value.trim() || null,
-      subtitle_en:   document.getElementById('carouselSubtitleEn').value.trim() || null,
-      show_text:     document.getElementById('carouselShowText').checked ? 1 : 0,
-      display_order: Number(document.getElementById('carouselOrder').value)      || 0,
-      is_active:     document.getElementById('carouselActive').checked ? 1 : 0,
+      link_url: document.getElementById('carouselLinkUrl').value.trim() || null,
+      title_cz: document.getElementById('carouselTitleCz').value.trim() || null,
+      title_en: document.getElementById('carouselTitleEn').value.trim() || null,
+      subtitle_cz: document.getElementById('carouselSubtitleCz').value.trim() || null,
+      subtitle_en: document.getElementById('carouselSubtitleEn').value.trim() || null,
+      show_text: document.getElementById('carouselShowText').checked ? 1 : 0,
+      display_order: Number(document.getElementById('carouselOrder').value) || 0,
+      is_active: document.getElementById('carouselActive').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/carousel/admin/${this._editing.id}` : '/api/carousel/admin';
+    const url = isEdit ? `/api/carousel/admin/${this._editing.id}` : '/api/carousel/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -255,6 +262,8 @@ export class CarouselManager {
     } catch (err) {
       console.error('Carousel save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -265,9 +274,10 @@ export class CarouselManager {
 
     try {
       const response = await fetch(`/api/carousel/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

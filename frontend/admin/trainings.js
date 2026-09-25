@@ -3,10 +3,11 @@
  * Admin Manager Pattern.
  */
 export class TrainingsManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -25,8 +26,9 @@ export class TrainingsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/trainings/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -65,13 +67,15 @@ export class TrainingsManager {
     tbody.innerHTML = this.items.map(item => {
       const dateStart = item.date_start ? new Date(item.date_start).toLocaleDateString('cs-CZ') : '–';
       const dateEnd   = item.date_end   ? new Date(item.date_end).toLocaleDateString('cs-CZ')   : '–';
+      const today    = new Date().toISOString().slice(0, 10);
+      const isPast   = !!(item.date_start && item.date_start.substring(0, 10) < today);
       return `<tr>
         <td class="col-id">${item.id}</td>
         <td>
           <div class="table-title">${esc(item.title_cz || '–')}</div>
           <div class="table-sub">${esc(item.title_en || '')}</div>
         </td>
-        <td>${dateStart}</td>
+        <td>${dateStart}${isPast ? ' <span class="badge badge-neutral">Proběhlé</span>' : ''}</td>
         <td>${dateEnd}</td>
         <td>${esc(item.location_cz || '–')}</td>
         <td class="col-status">
@@ -138,7 +142,10 @@ export class TrainingsManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     // Sync contenteditable → textarea before reading values
     window.syncEditorToHtml?.('trainContentCz');
     window.syncEditorToHtml?.('trainContentEn');
@@ -146,31 +153,33 @@ export class TrainingsManager {
     const title_cz = document.getElementById('trainTitleCz').value.trim();
     if (!title_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const data = {
       title_cz,
-      title_en:     document.getElementById('trainTitleEn').value.trim()    || null,
-      content_cz:   document.getElementById('trainContentCz').value.trim()  || null,
-      content_en:   document.getElementById('trainContentEn').value.trim()  || null,
-      date_start:   document.getElementById('trainDateStart').value         || null,
-      date_end:     document.getElementById('trainDateEnd').value           || null,
-      location_cz:  document.getElementById('trainLocationCz').value.trim() || null,
-      location_en:  document.getElementById('trainLocationEn').value.trim() || null,
+      title_en: document.getElementById('trainTitleEn').value.trim() || null,
+      content_cz: document.getElementById('trainContentCz').value.trim() || null,
+      content_en: document.getElementById('trainContentEn').value.trim() || null,
+      date_start: document.getElementById('trainDateStart').value || null,
+      date_end: document.getElementById('trainDateEnd').value || null,
+      location_cz: document.getElementById('trainLocationCz').value.trim() || null,
+      location_en: document.getElementById('trainLocationEn').value.trim() || null,
       is_published: document.getElementById('trainPublished').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/trainings/admin/${this._editing.id}` : '/api/trainings/admin';
+    const url = isEdit ? `/api/trainings/admin/${this._editing.id}` : '/api/trainings/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -184,6 +193,8 @@ export class TrainingsManager {
     } catch (err) {
       console.error('Trainings save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -194,9 +205,10 @@ export class TrainingsManager {
 
     try {
       const response = await fetch(`/api/trainings/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

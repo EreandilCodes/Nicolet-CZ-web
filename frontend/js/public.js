@@ -414,7 +414,7 @@ class PublicApp {
         ${imgSrc ? `<div class="product-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
         <div class="product-card-body">
           <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
-          ${p.description_cz ? `<div class="product-card-desc">${esc(stripHtml(pick(p.description_cz, p.description_en))).substring(0, 120)}…</div>` : ''}
+          ${(p.excerpt_cz || p.description_cz) ? `<div class="product-card-desc">${esc(stripHtml(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en))).substring(0, 120)}…</div>` : ''}
           <span class="product-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`}).join('');
@@ -442,7 +442,7 @@ class PublicApp {
         ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
           <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
-          ${a.content_cz ? `<div class="app-card-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 100)}…</div>` : ''}
+          ${(a.excerpt_cz || a.content_cz) ? `<div class="app-card-desc">${esc(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en)).substring(0, 100)}…</div>` : ''}
           <span class="app-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`}).join('');
@@ -579,7 +579,7 @@ class PublicApp {
           <h1 class="page-title">${t('nav.news')}</h1>
         </div>
         ${filterHtml}
-        <div class="news-grid news-grid-full" id="newsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+        <div class="news-grid news-grid-full" id="newsGrid">${cards}</div>
         <div id="newsLoadMore" style="text-align:center;margin-top:32px;display:none">
           <button class="btn-outline-pub" id="newsLoadMoreBtn">${t('common.load_more')}</button>
         </div>
@@ -590,6 +590,14 @@ class PublicApp {
     const loadMoreBtn  = el.querySelector('#newsLoadMoreBtn');
 
     const PAGE_SIZE = gridColumns(newsGrid, '.news-card') * 2;
+
+    function updateFilterEmpty(matched) {
+      const empty = newsGrid.querySelector('.news-filter-empty')
+        || newsGrid.appendChild(document.createElement('p'));
+      empty.className = 'empty-state news-filter-empty';
+      empty.textContent = t('common.no_items');
+      empty.style.display = matched.length ? 'none' : '';
+    }
 
     function applyFilter(catId) {
       const all     = Array.from(newsGrid.querySelectorAll('.news-card'));
@@ -602,6 +610,7 @@ class PublicApp {
       loadMoreBtn.dataset.catFilter = catId;
       loadMoreBtn.dataset.shown     = String(shown);
       loadMoreWrap.style.display    = matched.length > shown ? '' : 'none';
+      updateFilterEmpty(matched);
     }
 
     el.querySelectorAll('.filter-chip').forEach(btn => {
@@ -627,8 +636,9 @@ class PublicApp {
 
     applyFilter('');
 
-    // Pre-select filter from URL ?kategorie=slug
-    const slugParam = new URLSearchParams(window.location.search).get('kategorie');
+    // Pre-select filter from URL ?rubrika=slug (news categories / menu years) or legacy ?kategorie=
+    const searchParams = new URLSearchParams(window.location.search);
+    const slugParam = searchParams.get('rubrika') || searchParams.get('kategorie');
     if (slugParam) {
       const matched = cats.find(c => c.slug === slugParam);
       if (matched) {
@@ -694,7 +704,7 @@ class PublicApp {
       let thumb = p.thumbnail_url || '';
       if (!thumb) { try { const imgs = JSON.parse(p.images_json || '[]'); thumb = (typeof imgs[0] === 'string' ? imgs[0] : imgs[0]?.url) || ''; } catch {} }
       if (!thumb) thumb = defaultThumb;
-      const desc = stripHtml(pick(p.description_cz, p.description_en));
+      const desc = stripHtml(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en));
       return `
         <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}" data-product-cats="${esc(catIds)}">
           ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
@@ -894,7 +904,7 @@ class PublicApp {
         ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
           <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
-          ${a.content_cz ? `<div class="app-card-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 120)}</div>` : ''}
+          ${(a.excerpt_cz || a.content_cz) ? `<div class="app-card-desc">${esc(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en)).substring(0, 120)}</div>` : ''}
           <span class="app-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`;
@@ -918,10 +928,11 @@ class PublicApp {
       });
     });
 
-    // Pre-select filter from URL ?skupina=slug (set by menu entity picker)
-    const skupinaParam = new URLSearchParams(window.location.search).get('skupina');
-    if (skupinaParam) {
-      const matched = groups.find(g => g.slug === skupinaParam);
+    // Pre-select filter from URL ?skupina=slug or ?okruh=slug (set by menu entity picker)
+    const groupParams = new URLSearchParams(window.location.search);
+    const groupSlug = groupParams.get('skupina') || groupParams.get('okruh');
+    if (groupSlug) {
+      const matched = groups.find(g => g.slug === groupSlug);
       if (matched) {
         const chip = el.querySelector(`.filter-chip[data-group-filter="${matched.id}"]`);
         if (chip) chip.click();

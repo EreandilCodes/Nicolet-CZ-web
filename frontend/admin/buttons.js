@@ -3,12 +3,13 @@
  * Admin Manager Pattern.
  */
 export class ButtonsManager {
-  constructor(auth) {
-    this.auth            = auth;
-    this.items           = [];
-    this._editing        = null;
-    this._forms          = [];  // for form selector dropdown
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
+    this._editing = null;
+    this._forms = []; // for form selector dropdown
     this._defaultSettings = {};
+    this._saving = false;
   }
 
   async init() {
@@ -20,8 +21,9 @@ export class ButtonsManager {
   async _loadForms() {
     try {
       const response = await fetch('/api/forms/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) return;
       if (!contentType?.includes('application/json')) return;
@@ -67,8 +69,9 @@ export class ButtonsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/buttons/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -201,10 +204,14 @@ export class ButtonsManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const label_cz = document.getElementById('btnLabelCz').value.trim();
     if (!label_cz) {
       window.admin?.showNotification('Popis CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
@@ -218,23 +225,24 @@ export class ButtonsManager {
 
     const data = {
       label_cz,
-      label_en:   document.getElementById('btnLabelEn').value.trim()  || null,
-      link_type:  linkType,
+      label_en: document.getElementById('btnLabelEn').value.trim() || null,
+      link_type: linkType,
       link_value: linkValue,
-      style:      document.getElementById('btnStyle').value           || 'primary',
-      is_active:  document.getElementById('btnActive').checked ? 1 : 0,
+      style: document.getElementById('btnStyle').value || 'primary',
+      is_active: document.getElementById('btnActive').checked ? 1 : 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/buttons/admin/${this._editing.id}` : '/api/buttons/admin';
+    const url = isEdit ? `/api/buttons/admin/${this._editing.id}` : '/api/buttons/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -248,14 +256,17 @@ export class ButtonsManager {
     } catch (err) {
       console.error('Buttons save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
   async _loadAndRenderDefaultButtons() {
     try {
       const response = await fetch('/api/settings', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok || !contentType?.includes('application/json')) return;
       this._defaultSettings = await response.json();
@@ -285,10 +296,11 @@ export class ButtonsManager {
 
     try {
       const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -312,9 +324,10 @@ export class ButtonsManager {
 
     try {
       const response = await fetch(`/api/buttons/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

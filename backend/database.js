@@ -217,9 +217,14 @@ export async function initDatabase() {
       FOREIGN KEY (folder_id) REFERENCES gallery_folders(id)
     )
   `);
-  console.log('✅ gallery_images table ready');
+console.log('✅ gallery_images table ready');
 
-  // ── Pages ──────────────────────────────────────────────────────────────────
+// ── Indexes on Foreign Keys ────────────────────────────────────────────────
+await db.exec(`CREATE INDEX IF NOT EXISTS idx_gallery_folders_parent ON gallery_folders(parent_id)`);
+await db.exec(`CREATE INDEX IF NOT EXISTS idx_gallery_images_folder ON gallery_images(folder_id)`);
+console.log('✅ Foreign key indexes ready');
+
+// ── Pages ──────────────────────────────────────────────────────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS pages (
       id            ${pk},
@@ -344,6 +349,10 @@ export async function initDatabase() {
   `);
   console.log('✅ products table ready');
 
+  // Perex (excerpt) columns for products – optional short text entered by admin
+  try { await db.exec('ALTER TABLE products ADD COLUMN excerpt_cz TEXT'); } catch { /* exists */ }
+  try { await db.exec('ALTER TABLE products ADD COLUMN excerpt_en TEXT'); } catch { /* exists */ }
+
   // ── Product ↔ Category map (M:N — composite PK, no serial) ────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS product_categories_map (
@@ -354,9 +363,12 @@ export async function initDatabase() {
       FOREIGN KEY (category_id) REFERENCES product_categories(id) ON DELETE CASCADE
     )
   `);
-  console.log('✅ product_categories_map table ready');
+console.log('✅ product_categories_map table ready');
 
-  // ── Application groups ─────────────────────────────────────────────────────
+// ── Indexes on product_categories_map ──────────────────────────────────────
+await db.exec(`CREATE INDEX IF NOT EXISTS idx_pcm_category ON product_categories_map(category_id)`);
+
+// ── Application groups ─────────────────────────────────────────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS application_groups (
       id            ${pk},
@@ -396,6 +408,10 @@ export async function initDatabase() {
   `);
   console.log('✅ applications table ready');
 
+  // Perex (excerpt) columns for applications – optional short text entered by admin
+  try { await db.exec('ALTER TABLE applications ADD COLUMN excerpt_cz TEXT'); } catch { /* exists */ }
+  try { await db.exec('ALTER TABLE applications ADD COLUMN excerpt_en TEXT'); } catch { /* exists */ }
+
   // ── Product ↔ Application map (M:N — composite PK, no serial) ─────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS product_applications_map (
@@ -406,9 +422,12 @@ export async function initDatabase() {
       FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
     )
   `);
-  console.log('✅ product_applications_map table ready');
+console.log('✅ product_applications_map table ready');
 
-  // ── Buttons ────────────────────────────────────────────────────────────────
+// ── Indexes on product_applications_map ─────────────────────────────────────
+await db.exec(`CREATE INDEX IF NOT EXISTS idx_pam_application ON product_applications_map(application_id)`);
+
+// ── Buttons ────────────────────────────────────────────────────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS buttons (
       id          ${pk},
@@ -743,6 +762,25 @@ export async function initDatabase() {
 <p>Tento projekt je spolufinancován se státní podporou Technologické agentury ČR a Ministerstva dopravy ČR v rámci Programu DOPRAVA 2030.</p>`,
       is_published: 1,
       display_order: 6
+    },
+    {
+      slug: 'aplikacni-podpora',
+      title_cz: 'Aplikační podpora',
+      title_en: 'Application Support',
+      excerpt_cz: 'Aplikační a poradenská služba pro vaše měření a analytické metody.',
+      content_cz: `<p>Nabízíme komplexní aplikační podporu pro všechny námi zastupované spektrometry a analytické metody. Naši odborníci vám pomohou s vývojem metod, optimalizací měření i zpracováním a interpretací spekter.</p>
+<h3>Co všechno aplikační podpora zahrnuje?</h3>
+<ul>
+<li>Poradenství při výběru přístroje a příslušenství pro vaši aplikaci.</li>
+<li>Vývoj a optimalizaci analytických metod (FT-IR, FT-NIR, Raman).</li>
+<li>Specializované knihovny infračervených a Ramanových spekter.</li>
+<li>Proměření vašich vzorků a konzultaci výsledků.</li>
+<li>Školení a specializované kurzy infračervené a Ramanovy spektroskopie.</li>
+<li>Vývoj řídicího a vyhodnocovacího softwaru pro vaše aplikace.</li>
+</ul>
+<p>Stálá aplikační a poradenská služba je k dispozici v pracovní dny od 8:30 do 17:00. Neváhejte nás <a href="/stranka/kontakt">kontaktovat</a> – poradíme vám se vším, co se týká vašich měření.</p>`,
+      is_published: 1,
+      display_order: 5
     }
   ];
 

@@ -15,8 +15,9 @@ export class SettingsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/settings', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -108,10 +109,11 @@ export class SettingsManager {
 
     try {
       const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -149,9 +151,10 @@ export class SettingsManager {
 
     try {
       const response = await fetch('/api/settings/test-email', {
-        method: 'POST',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -167,4 +170,124 @@ export class SettingsManager {
       if (btn) { btn.disabled = false; btn.textContent = 'Odeslat testovací email'; }
     }
   }
+
+  _setVal(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value == null ? '' : value;
+  }
+
+  async loadAdmins() {
+    const emailEl = document.getElementById('settingsCurrentEmail');
+    if (emailEl && this.auth?.user?.email) emailEl.textContent = this.auth.user.email;
+    const tbody = document.getElementById('adminUsersListBody');
+    if (!tbody) return;
+    try {
+      const response = await fetch('/api/auth/users', {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json')
+          ? await response.json()
+          : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      const users = await response.json();
+      if (!users.length) {
+        tbody.innerHTML = '<tr><td colspan="3" style="color:#9ca3af;font-size:13px;">Žádné účty</td></tr>';
+        return;
+      }
+      const me = this.auth?.user?.email || '';
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>${esc(u.email)}${u.email === me ? ' <span class="badge badge-success">vy</span>' : ''}</td>
+          <td>${esc(u.role || 'admin')}</td>
+          <td>${u.created_at ? new Date(u.created_at).toLocaleDateString('cs-CZ') : '–'}</td>
+        </tr>`).join('');
+    } catch (err) {
+      console.error('Admins load error:', err);
+      tbody.innerHTML = `<tr><td colspan="3" style="color:#ef4444;font-size:13px;">Chyba načítání: ${esc(err.message)}</td></tr>`;
+    }
+  }
+
+  async changePassword() {
+    const btn = document.getElementById('btnChangePassword');
+    if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
+    try {
+      const current = document.getElementById('pwCurrent').value;
+      const pwNew = document.getElementById('pwNew').value;
+      const pwConfirm = document.getElementById('pwNewConfirm').value;
+      if (!current) throw new Error('Zadejte současné heslo');
+      if (!pwNew) throw new Error('Zadejte nové heslo');
+      if (pwNew !== pwConfirm) throw new Error('Nové heslo a potvrzení se neshodují');
+
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_password: current, new_password: pwNew })
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json')
+          ? await response.json()
+          : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      await response.json();
+      document.getElementById('pwCurrent').value = '';
+      document.getElementById('pwNew').value = '';
+      document.getElementById('pwNewConfirm').value = '';
+      window.admin?.showNotification('Heslo úspěšně změněno', 'success');
+    } catch (err) {
+      window.admin?.showNotification('Chyba: ' + err.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Změnit heslo'; }
+    }
+  }
+
+  async addAdmin() {
+    const btn = document.getElementById('btnAddAdmin');
+    if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
+    try {
+      const email = document.getElementById('newAdminEmail').value.trim();
+      const password = document.getElementById('newAdminPassword').value;
+      if (!email) throw new Error('Zadejte email');
+      if (!password) throw new Error('Zadejte heslo');
+
+      const response = await fetch('/api/auth/admin', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json')
+          ? await response.json()
+          : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      await response.json();
+      document.getElementById('newAdminEmail').value = '';
+      document.getElementById('newAdminPassword').value = '';
+      await this.loadAdmins();
+      window.admin?.showNotification('Správce přidán', 'success');
+    } catch (err) {
+      window.admin?.showNotification('Chyba: ' + err.message, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Přidat správce'; }
+    }
+  }
+}
+
+function esc(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

@@ -3,10 +3,11 @@
  * Admin Manager Pattern.
  */
 export class PagesManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
     this._editing = null;
+    this._saving = false;
   }
 
   async init() {
@@ -23,10 +24,11 @@ export class PagesManager {
   }
 
   async loadItems() {
-    try {
-      const response = await fetch('/api/pages/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+  try {
+    const response = await fetch('/api/pages/admin/all', {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -100,12 +102,13 @@ export class PagesManager {
     const tbody = document.getElementById('specialPagesTableBody');
     if (!tbody) return;
 
-    // Načteme stránku "caste-dotazy" přímo z DB
-    let faqPage = null;
-    try {
-      const response = await fetch('/api/pages/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+  // Načteme stránku "caste-dotazy" přímo z DB
+  let faqPage = null;
+  try {
+    const response = await fetch('/api/pages/admin/all', {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (response.ok && contentType?.includes('application/json')) {
         const pages = await response.json();
@@ -223,40 +226,45 @@ export class PagesManager {
     this._editing = null;
   }
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     const title_cz = document.getElementById('pagesTitleCz').value.trim();
     if (!title_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const data = {
-      slug:          document.getElementById('pagesSlug').value.trim()       || null,
+      slug: document.getElementById('pagesSlug').value.trim() || null,
       title_cz,
-      title_en:      document.getElementById('pagesTitleEn').value.trim()    || null,
-      excerpt_cz:    document.getElementById('pagesExcerptCz').value.trim()  || null,
-      excerpt_en:    document.getElementById('pagesExcerptEn').value.trim()  || null,
-      content_cz:    document.getElementById('pagesContentCz').value.trim()  || null,
-      content_en:    document.getElementById('pagesContentEn').value.trim()  || null,
-      cover_image:   document.getElementById('pagesCoverImage').value.trim() || null,
-      seo_title_cz:  document.getElementById('pagesSeoTitleCz').value.trim() || null,
-      seo_title_en:  document.getElementById('pagesSeoTitleEn').value.trim() || null,
-      seo_desc_cz:   document.getElementById('pagesSeoDescCz').value.trim()  || null,
-      seo_desc_en:   document.getElementById('pagesSeoDescEn').value.trim()  || null,
-      is_published:  document.getElementById('pagesPublished').checked ? 1 : 0,
-      display_order: Number(document.getElementById('pagesOrder').value)     || 0,
+      title_en: document.getElementById('pagesTitleEn').value.trim() || null,
+      excerpt_cz: document.getElementById('pagesExcerptCz').value.trim() || null,
+      excerpt_en: document.getElementById('pagesExcerptEn').value.trim() || null,
+      content_cz: document.getElementById('pagesContentCz').value.trim() || null,
+      content_en: document.getElementById('pagesContentEn').value.trim() || null,
+      cover_image: document.getElementById('pagesCoverImage').value.trim() || null,
+      seo_title_cz: document.getElementById('pagesSeoTitleCz').value.trim() || null,
+      seo_title_en: document.getElementById('pagesSeoTitleEn').value.trim() || null,
+      seo_desc_cz: document.getElementById('pagesSeoDescCz').value.trim() || null,
+      seo_desc_en: document.getElementById('pagesSeoDescEn').value.trim() || null,
+      is_published: document.getElementById('pagesPublished').checked ? 1 : 0,
+      display_order: Number(document.getElementById('pagesOrder').value) || 0,
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/pages/admin/${this._editing.id}` : '/api/pages/admin';
+    const url = isEdit ? `/api/pages/admin/${this._editing.id}` : '/api/pages/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -270,6 +278,8 @@ export class PagesManager {
     } catch (err) {
       console.error('Pages save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -280,9 +290,10 @@ export class PagesManager {
 
     try {
       const response = await fetch(`/api/pages/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

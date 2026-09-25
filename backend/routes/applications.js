@@ -6,7 +6,27 @@ const router = express.Router();
 export const groupsRouter = express.Router();
 
 function generateSlug(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
+  const replacements = {
+    'á': 'a', 'ä': 'a', 'å': 'a', 'ā': 'a', 'ą': 'a', 'ă': 'a', 'ȧ': 'a', 'α': 'a',
+    'č': 'c', 'ć': 'c', 'ç': 'c', 'ċ': 'c', 'ĉ': 'c', 'χ': 'c',
+    'ď': 'd', 'đ': 'd', 'δ': 'd',
+    'ě': 'e', 'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e', 'ę': 'e', 'ė': 'e', 'ē': 'e', 'ε': 'e',
+    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i', 'į': 'i', 'ī': 'i', 'ι': 'i',
+    'ň': 'n', 'ń': 'n', 'ñ': 'n', 'ν': 'n',
+    'ř': 'r', 'ŕ': 'r', 'ρ': 'r',
+    'š': 's', 'ś': 's', 'ş': 's', 'ș': 's', 'σ': 's',
+    'ť': 't', 'ț': 't', 'τ': 't',
+    'ů': 'u', 'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ų': 'u', 'ū': 'u', 'ȳ': 'u', 'ύ': 'u', 'υ': 'u',
+    'ý': 'y', 'ÿ': 'y', 'ψ': 'y',
+    'ž': 'z', 'ź': 'z', 'ż': 'z', 'ζ': 'z',
+    'ö': 'o', 'ő': 'o', 'ø': 'o', 'ō': 'o', 'ô': 'o', 'ò': 'o', 'ó': 'o', 'õ': 'o',
+    'ß': 'ss',
+  };
+  let result = name.toLowerCase();
+  for (const [from, to] of Object.entries(replacements)) {
+    result = result.split(from).join(to);
+  }
+  return result.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
 // Batch-load products for a list of applications (2 queries total)
@@ -142,7 +162,7 @@ groupsRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adm
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM application_groups WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Skupina nenalezena' });
-    res.json({ message: 'Skupina smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }
@@ -200,7 +220,7 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
   try {
     const {
       group_id, slug: slugInput, name_cz, name_en, content_cz, content_en,
-      cover_image, thumbnail_url, cover_caption, cover_align,
+      excerpt_cz, excerpt_en, cover_image, thumbnail_url, cover_caption, cover_align,
       is_published, is_featured, display_order,
       seo_title_cz, seo_title_en, product_ids
     } = req.body;
@@ -211,9 +231,9 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
 
     const result = await db.prepare(`
       INSERT INTO applications (group_id, slug, name_cz, name_en, content_cz, content_en,
-        cover_image, thumbnail_url, cover_caption, cover_align,
+        excerpt_cz, excerpt_en, cover_image, thumbnail_url, cover_caption, cover_align,
         is_published, is_featured, display_order, seo_title_cz, seo_title_en)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       group_id || null,
       slug,
@@ -221,6 +241,8 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
       name_en?.trim() || null,
       content_cz?.trim() || null,
       content_en?.trim() || null,
+      excerpt_cz?.trim() || null,
+      excerpt_en?.trim() || null,
       cover_image?.trim() || null,
       thumbnail_url?.trim() || null,
       cover_caption?.trim() || null,
@@ -251,7 +273,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const { id } = req.params;
     const {
       group_id, slug, name_cz, name_en, content_cz, content_en,
-      cover_image, thumbnail_url, cover_caption, cover_align,
+      excerpt_cz, excerpt_en, cover_image, thumbnail_url, cover_caption, cover_align,
       is_published, is_featured, display_order,
       seo_title_cz, seo_title_en, product_ids
     } = req.body;
@@ -262,7 +284,7 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const result = await db.prepare(`
       UPDATE applications
       SET group_id = ?, slug = ?, name_cz = ?, name_en = ?, content_cz = ?, content_en = ?,
-          cover_image = ?, thumbnail_url = ?, cover_caption = ?, cover_align = ?,
+          excerpt_cz = ?, excerpt_en = ?, cover_image = ?, thumbnail_url = ?, cover_caption = ?, cover_align = ?,
           is_published = ?, is_featured = ?, display_order = ?,
           seo_title_cz = ?, seo_title_en = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -273,6 +295,8 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       name_en?.trim() || null,
       content_cz?.trim() || null,
       content_en?.trim() || null,
+      excerpt_cz?.trim() || null,
+      excerpt_en?.trim() || null,
       cover_image?.trim() || null,
       thumbnail_url?.trim() || null,
       cover_caption?.trim() || null,
@@ -307,7 +331,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     const { id } = req.params;
     const result = await db.prepare('DELETE FROM applications WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Aplikace nenalezena' });
-    res.json({ message: 'Aplikace smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

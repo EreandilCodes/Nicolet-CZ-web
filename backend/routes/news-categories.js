@@ -99,7 +99,7 @@ router.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly
     await db.prepare('UPDATE news_posts SET category_id = NULL WHERE category_id = ?').run(id);
     const result = await db.prepare('DELETE FROM news_categories WHERE id = ?').run(id);
     if (result.changes === 0) return res.status(404).json({ error: 'Kategorie nenalezena' });
-    res.json({ message: 'Kategorie smazána' });
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Chyba serveru' });
   }

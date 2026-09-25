@@ -2,13 +2,14 @@
  * ApplicationsManager – CRUD for applications (autocomplete products, thumbnail, caption/align).
  */
 export class ApplicationsManager {
-  constructor(auth) {
-    this.auth     = auth;
-    this.items    = [];
-    this.groups   = [];
+constructor(auth) {
+    this.auth = auth;
+    this.items = [];
+    this.groups = [];
     this.products = [];
     this._editing = null;
     this._selectedProductIds = new Set();
+    this._saving = false;
   }
 
   async init() {
@@ -28,8 +29,9 @@ export class ApplicationsManager {
   async loadProducts() {
     try {
       const response = await fetch('/api/products/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -47,8 +49,9 @@ export class ApplicationsManager {
   async loadGroups() {
     try {
       const response = await fetch('/api/application-groups/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -66,8 +69,9 @@ export class ApplicationsManager {
   async loadItems() {
     try {
       const response = await fetch('/api/applications/admin/all', {
-        headers: this.auth.getAuthHeaders()
-      });
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -182,6 +186,8 @@ export class ApplicationsManager {
     document.getElementById('appSlug').value          = item?.slug          || '';
     document.getElementById('appContentCz').value     = item?.content_cz    || '';
     document.getElementById('appContentEn').value     = item?.content_en    || '';
+    document.getElementById('appExcerptCz').value     = item?.excerpt_cz    || '';
+    document.getElementById('appExcerptEn').value     = item?.excerpt_en    || '';
     document.getElementById('appCoverImage').value    = item?.cover_image   || '';
     document.getElementById('appCoverCaption').value  = item?.cover_caption || '';
     document.getElementById('appCoverAlign').value    = item?.cover_align   || 'center';
@@ -296,7 +302,10 @@ export class ApplicationsManager {
 
   // ─── Save / Toggle / Delete ─────────────────────────────────────────────────
 
-  async saveItem() {
+async saveItem() {
+    if (this._saving) return;
+    this._saving = true;
+
     // Sync contenteditable → textarea before reading values
     window.syncEditorToHtml?.('appContentCz');
     window.syncEditorToHtml?.('appContentEn');
@@ -304,37 +313,41 @@ export class ApplicationsManager {
     const name_cz = document.getElementById('appNameCz').value.trim();
     if (!name_cz) {
       window.admin?.showNotification('Název CZ je povinný', 'error');
+      this._saving = false;
       return;
     }
 
     const groupVal = document.getElementById('appGroupId').value;
     const data = {
       name_cz,
-      name_en:       document.getElementById('appNameEn').value.trim()      || null,
-      slug:          document.getElementById('appSlug').value.trim()        || null,
-      group_id:      groupVal ? Number(groupVal) : null,
-      content_cz:    document.getElementById('appContentCz').value.trim()   || null,
-      content_en:    document.getElementById('appContentEn').value.trim()   || null,
-      cover_image:   document.getElementById('appCoverImage').value.trim()  || null,
+      name_en: document.getElementById('appNameEn').value.trim() || null,
+      slug: document.getElementById('appSlug').value.trim() || null,
+      group_id: groupVal ? Number(groupVal) : null,
+      content_cz: document.getElementById('appContentCz').value.trim() || null,
+      content_en: document.getElementById('appContentEn').value.trim() || null,
+      excerpt_cz: document.getElementById('appExcerptCz').value.trim() || null,
+      excerpt_en: document.getElementById('appExcerptEn').value.trim() || null,
+      cover_image: document.getElementById('appCoverImage').value.trim() || null,
       cover_caption: document.getElementById('appCoverCaption').value.trim() || null,
-      cover_align:   document.getElementById('appCoverAlign').value         || 'center',
+      cover_align: document.getElementById('appCoverAlign').value || 'center',
       thumbnail_url: document.getElementById('appThumbnailUrl').value.trim() || null,
-      is_featured:   document.getElementById('appFeatured').checked ? 1 : 0,
-      is_published:  document.getElementById('appPublished').checked ? 1 : 0,
-      display_order: Number(document.getElementById('appOrder').value)      || 0,
-      product_ids:   [...this._selectedProductIds],
+      is_featured: document.getElementById('appFeatured').checked ? 1 : 0,
+      is_published: document.getElementById('appPublished').checked ? 1 : 0,
+      display_order: Number(document.getElementById('appOrder').value) || 0,
+      product_ids: [...this._selectedProductIds],
     };
 
     const isEdit = !!this._editing;
-    const url    = isEdit ? `/api/applications/admin/${this._editing.id}` : '/api/applications/admin';
+    const url = isEdit ? `/api/applications/admin/${this._editing.id}` : '/api/applications/admin';
     const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const response = await fetch(url, {
-        method,
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify(data)
-      });
+    const response = await fetch(url, {
+      method,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -348,6 +361,8 @@ export class ApplicationsManager {
     } catch (err) {
       console.error('Applications save error:', err);
       window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+this._saving = false;
     }
   }
 
@@ -357,9 +372,10 @@ export class ApplicationsManager {
 
     try {
       const response = await fetch(`/api/applications/admin/${id}`, {
-        method: 'PUT',
-        headers: this.auth.getAuthHeaders(),
-        body: JSON.stringify({
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
           name_cz:       item.name_cz,
           name_en:       item.name_en,
           slug:          item.slug,
@@ -400,9 +416,10 @@ export class ApplicationsManager {
 
     try {
       const response = await fetch(`/api/applications/admin/${id}`, {
-        method: 'DELETE',
-        headers: this.auth.getAuthHeaders()
-      });
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

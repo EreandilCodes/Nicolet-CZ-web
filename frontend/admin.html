@@ -11,6 +11,20 @@
 </head>
 <body>
 
+<!-- ══ AUTH CHECK — verify session via API ════════════════════════════════════ -->
+<script>
+(async function() {
+  try {
+    const response = await fetch('/api/auth/me', { credentials: 'include' });
+    if (!response.ok) {
+      window.location.replace('/login');
+    }
+  } catch {
+    window.location.replace('/login');
+  }
+})();
+</script>
+
 <!-- ══ AURORA LAYER — behind all content, pointer-events:none ═══════════ -->
 <div class="aurora-layer aurora-layer--admin" aria-hidden="true">
   <div class="aurora-blob aurora-blob--primary"></div>
@@ -476,15 +490,13 @@
             </thead>
             <tbody id="specialPagesTableBody">
               <tr><td colspan="4"><div class="table-empty"><p>Načítám…</p></div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-      </div>
-    </section>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
 
-    <!-- ── PRODUCT CATEGORIES ─────────────────────────────────────────────── -->
+<!-- ── PRODUCT CATEGORIES ─────────────────────────────────────────────── -->
     <section id="productCategoriesSection" class="admin-section">
       <!-- Tab navigation -->
       <div style="display:flex;gap:0;border-bottom:2px solid #e5e7eb;margin-bottom:20px;">
@@ -1143,6 +1155,63 @@
           <button class="btn btn-primary" onclick="admin.settings.saveLogo()">Uložit</button>
         </div>
 
+        <!-- Změna hesla -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Účet a zabezpečení
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Změna hesla</label>
+            <div class="form-hint">Aktuálně přihlášený účet: <span id="settingsCurrentEmail">—</span></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Současné heslo</label>
+            <input type="password" id="pwCurrent" class="form-input" placeholder="Současné heslo" autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nové heslo</label>
+            <input type="password" id="pwNew" class="form-input" placeholder="Min. 8 znaků, velké písmeno a číslo" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Potvrzení nového hesla</label>
+            <input type="password" id="pwNewConfirm" class="form-input" placeholder="Zopakujte nové heslo" autocomplete="new-password">
+          </div>
+          <button id="btnChangePassword" class="btn btn-primary" onclick="admin.settings.changePassword()">Změnit heslo</button>
+        </div>
+
+        <!-- Správci účtu -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Správci účtu
+          </h3>
+          <div class="form-group">
+            <label class="form-label">Přidat nového správce</label>
+            <input type="email" id="newAdminEmail" class="form-input" placeholder="email@firma.cz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heslo</label>
+            <input type="password" id="newAdminPassword" class="form-input" placeholder="Min. 8 znaků, velké písmeno a číslo" autocomplete="new-password">
+          </div>
+          <button id="btnAddAdmin" class="btn btn-primary" onclick="admin.settings.addAdmin()">Přidat správce</button>
+          <div style="margin-top:16px;">
+            <label class="form-label">Aktivní účty</label>
+            <table class="table" style="margin-top:8px;">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Vytvořen</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersListBody">
+                <tr><td colspan="3" style="color:#9ca3af;font-size:13px;">Načítám…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1252,6 +1321,16 @@
  <option value="">— Vyberte kategorii —</option>
  </select>
  </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Perex (CZ)</label>
+            <textarea id="newsExcerptCz" class="form-textarea" rows="3" placeholder="Krátký úvod článku… (3–5 vět)"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perex (EN)</label>
+            <textarea id="newsExcerptEn" class="form-textarea" rows="3" placeholder="Short article intro… (3–5 sentences)"></textarea>
+          </div>
+        </div>
         <!-- CZ / EN language tabs for content -->
         <div class="form-group">
           <label class="form-label">Obsah</label>
@@ -1638,6 +1717,16 @@
           <label class="form-label">Slug (volitelné)</label>
           <input type="text" id="prodSlug" class="form-input" placeholder="nazev-produktu">
         </div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Perex (CZ)</label>
+            <textarea id="prodExcerptCz" class="form-textarea" rows="3" placeholder="Krátký úvod produktu… (2–3 věty)"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perex (EN)</label>
+            <textarea id="prodExcerptEn" class="form-textarea" rows="3" placeholder="Short product intro… (2–3 sentences)"></textarea>
+          </div>
+        </div>
 <div class="form-group">
   <label class="form-label">Popis</label>
   <div class="lang-tab-bar">
@@ -1857,6 +1946,16 @@
             <select id="appGroupId" class="form-select">
               <option value="">— Vyberte skupinu —</option>
             </select>
+          </div>
+        </div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label">Perex (CZ)</label>
+            <textarea id="appExcerptCz" class="form-textarea" rows="3" placeholder="Krátký úvod aplikace… (2–3 věty)"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Perex (EN)</label>
+            <textarea id="appExcerptEn" class="form-textarea" rows="3" placeholder="Short application intro… (2–3 sentences)"></textarea>
           </div>
         </div>
 <div class="form-group">
@@ -2537,7 +2636,7 @@
 <!-- Toast container -->
 <div id="admin-toast"></div>
 
-<script type="module" src="/js/admin.js?v=5"></script>
+<script type="module" src="/js/admin.js?v=10"></script>
 
 <style>
   .hidden { display: none !important; }
