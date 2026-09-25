@@ -732,3 +732,129 @@ Both Product and Application detail pages share the same single-column layout st
 - Application cover wrapper: `<div class="app-detail-cover">`
 - Linked items go INSIDE a tab panel as `linked-items-grid` cards — NOT as a separate section below, NOT in a right column
 - **Do NOT use `.product-detail-layout` (2-column grid) in the detail renderer**
+
+
+# ── FORENSIC DIAGNOSIS PREVENTIVE RULES (2026-09-25) ───────────────────
+# Added after investigation of data-disappearance incident during deploy.
+# These rules prevent the root cause from recurring.
+# Root cause (see below): SQLite DB (gitignored, never in git) was not
+# migrated to PostgreSQL (Neon/Railway) on deploy; deployed PostgreSQL
+# instance started with only default seed data.
+# ───────────────────────────────────────────────────────────────────────
+
+## Produkční data jsou nedotknutelná
+Agent nesmí při běžném developmentu, testování, refactoringu, buildu,
+commitu, pushi nebo deployi automaticky mazat, resetovat, seedovat nebo
+rekonstruovat produkční data.
+
+## Deploy ≠ reset databáze
+Deploy aplikace nesmí implicitně znamenat database reset, truncate,
+destructive seed nebo recreate production database.
+
+## Dual-mode DB safety (SQLite ↔ PostgreSQL)
+Tento projekt podporuje dvě databázová provozovny:
+- **SQLite** (`DB_PROVIDER=sqlite` nebo neuvedeno) → `backend/nicolet.db`
+- **PostgreSQL** (`DB_PROVIDER=postgres`) → `DATABASE_URL` (Neon/Railway)
+
+**`backend/nicolet.db` je v `.gitignore` — nikdy se nedostane do gitu.**
+Při deployu z gitu na platformu používající PostgreSQL (Railway/Neon):
+1. SQLite databáze NEPŘEJDE do nového prostředí (gitignored)
+2. `initDatabase()` vytvoří PRÁZDNÉ tabulky v PostgreSQL a doplní jen výchozí seed data
+3. Veškerá uživatelsky vytvořená data z SQLite budou ZTRÁCENA
+
+**Před deployem musí být data migrována:**
+- Buď data exportovat z SQLite a importovat do PostgreSQL
+- Nebo použít `DATABASE_URL` pointing to existing data-bearing DB
+- Nebo deploy provést ručně s přenosem SQLite souboru
+
+**`initDatabase()` bezpečnost:** Používá pouze `CREATE TABLE IF NOT EXISTS` a
+`INSERT ... ON CONFLICT DO NOTHING`. Nikdy nemaže, nevyprázdnňuje a nemění
+existující data. Bezpečné opakované spuštění.
+
+## Migration safety
+Každá databázová migration musí být před nasazením identifikována, zkontrolována
+na destruktivní operace a posouzena z hlediska zachování existujících produkčních dat.
+Všech `ALTER TABLE ADD COLUMN` v tomto projektu je obaleno v `try/catch` a jen
+přidává sloupce. Žádná migration nemá destrukční operaci.
+
+## Seed safety
+Seed scripts (`initDatabase()` default data) používají `INSERT ... ON CONFLICT DO NOTHING`.
+Seed NEBYL navržen pro produkční databázi s uživatelskými daty — doplní jen výchozí
+záznamy, pokud ještě neexistují. Nikdy neresetuje a nemaže existující data.
+
+## Environment safety
+Před deployem je nutné ověřit, že aplikace používá správnou:
+- databázi (SQLite vs PostgreSQL — ověřit `DB_PROVIDER`)
+- storage (cesty k uploadům, gallery)
+- environment (port, NODE_ENV)
+- credentials (JWT_SECRET, SMTP_*)
+- persistent volume (u PostgreSQL: Neon connection string)
+
+**Kritické proměnné:** `DB_PROVIDER`, `DATABASE_URL`, `SQLITE_PATH`, `PORT`,
+`JWT_SECRET`, `SITE_URL`, `CORS_ORIGIN`, `SMTP_*`.
+
+## Persistent storage
+Produkční data NESMÍ být závislá na ephemeral filesystemu containeru, pokud
+architektura očekává jejich trvalé zachování. SQLite databáze na ephemeral
+filesystemu se ztratí při restartu containeru.
+
+**Pro produkci používejte PostgreSQL (Neon/Railway)** s trvalým úložištěm.
+SQLite je určen výhradně pro lokální vývoj.
+
+## Pre-deploy kontrola
+Před deployem musí agent zkontrolovat:
+- zda se mění `DB_PROVIDER` (SQLite → PostgreSQL?)
+- zda se mění `DATABASE_URL` / `SQLITE_PATH`
+- zda se mění migrations
+- zda se mění seed/init scripts
+- zda se mění storage konfigurace
+- zda deploy obsahuje destruktivní příkaz
+- zda je `backend/nicolet.db` zahrnut do deploy (NENÍ — gitignored!)
+
+Pokud něco takového zjistí, **nesmí to automaticky provést bez explicitního potvrzení**.
+
+## Read-only diagnostika
+Při podezření na problém s produkčními daty se nejdříve provádí read-only diagnostika.
+Nikdy neprovádějte žádný INSERT, UPDATE, DELETE, DROP, TRUNCATE, ALTER na
+produkční databázi bez explicitního potvrzení.
+
+## Explicitní confirmation pro destruktivní operace
+Jakákoli operace typu reset, truncate, drop, destructive migration, destructive seed,
+recreate production DB, smazání storage vyžaduje **explicitní potvrzení člověka**
+před provedením.
+
+## Zásada: data v gitu vs data mimo gitu
+- **V gitu:** kód, schemata, seed data, konfigurace
+- **Mimo gitu (gitignore):** `backend/nicolet.db`, `backend/nicolet.db-shm`,
+  `backend/nicolet.db-wal`, `backend/logs/`, `frontend/uploads/`
+- **Deploy z gitu nikdy nezachová data mimo gitu.**
+- Pokud data nejsou v gitu, musí se data buď exportovat/importovat, nebo
+  deploy provést s přenosem souborů.
+
+## Zjištěná příčina incidentu (forenzní diagnostika)
+**Prokázaná skutečnost:** `backend/nicolet.db` je v `.gitignore`. Při deployu z gitu
+se SQLite databáze s uživatelskými daty nedostane do nového prostředí. Platforma
+Railway/Neon používá `DB_PROVIDER=postgres` a `DATABASE_URL`. `initDatabase()`
+vytvoří prázdné tabulky v PostgreSQL a doplní jen výchozí seed data.
+
+**Silně podporovaná hypotéza:** Data nebyla smazána — nově nasazená aplikace se
+pouze připojuje k jinam (PostgreSQL místo SQLite), kde existují jen výchozí data.
+
+**Nelze ověřit bez přístupu k Railway env vars:** zda `DB_PROVIDER=postgres` a
+`DATABASE_URL` byly skutečně nastaveny v deploy prostředí.
+
+## Co jsi NEZMĚNIL v tomto diagnostickém úkolu
+- application code (kromě AGENTS.md)
+- database (SQLite i PostgreSQL)
+- production data
+- deployment
+- migrations
+- seed
+- configuration
+- storage
+- environment variables
+- Docker/config files (žádné nebyly změněny)
+
+## Git
+Jediná změna v tomto úkolu: doplnění preventivních pravidel do `AGENTS.md`.
+Žádný jiný soubor nebyl změněn.
