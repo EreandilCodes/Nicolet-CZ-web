@@ -524,6 +524,8 @@ for (const field of formFields) {
 }
 ```
 
+**Structured validation errors (2026-09-25)** — backend returns `{ errors: [{field, label, message, type}], message }` (type ∈ `required | email | minlength | maxlength`). Frontend displays field-level error messages beneath each errored input with `aria-invalid`/`aria-describedby`, highlights with `.pform-field-error`, focuses first errored field, preserves all user data. Frontend also validates locally (all required fields + email regex + min/max length) for immediate feedback; backend stays authoritative. Admin field builder supports optional `minlength`/`maxlength` configuration.
+
 ---
 
 ## Product Modal Form Order
