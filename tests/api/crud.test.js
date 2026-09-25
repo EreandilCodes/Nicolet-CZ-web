@@ -977,6 +977,56 @@ describe('Forms /api/forms', () => {
       .send({ _ts: ts, email: 'test@test.cz' });
     expect(res.status).toBe(404);
   });
+   // ── Structured validation errors ───────────────────────────
+   it('POST /:id/submit returns structured errors for required fields', async () => {
+     const formRes = await request(app).post('/api/forms/admin').set(auth())
+       .send({ name: 'Validacni formulář', fields_json: JSON.stringify([
+         { name: 'email', type: 'email', required: true, label_cz: 'E-mail' },
+         { name: 'name', type: 'text', required: true, label_cz: 'Jméno' }
+       ]), is_active: true });
+     const id = formRes.body.id;
+     const ts = Math.floor(Date.now() / 1000) - 5;
+     const res = await request(app).post(`/api/forms/${id}/submit`)
+       .send({ _ts: ts });
+     expect(res.status).toBe(400);
+     expect(res.body.errors).toBeDefined();
+     expect(Array.isArray(res.body.errors)).toBe(true);
+     expect(res.body.errors.length).toBeGreaterThanOrEqual(2);
+     expect(res.body.errors.some(e => e.type === 'required')).toBe(true);
+   });
+
+   it('POST /:id/submit returns email format error', async () => {
+     const formRes = await request(app).post('/api/forms/admin').set(auth())
+       .send({ name: 'Email validace', fields_json: JSON.stringify([
+         { name: 'email', type: 'email', required: true, label_cz: 'E-mail' }
+       ]), is_active: true });
+     const id = formRes.body.id;
+     const ts = Math.floor(Date.now() / 1000) - 5;
+     const res = await request(app).post(`/api/forms/${id}/submit`)
+       .send({ _ts: ts, email: 'not-an-email' });
+     expect(res.status).toBe(400);
+     expect(res.body.errors).toBeDefined();
+     expect(res.body.errors.some(e => e.type === 'email')).toBe(true);
+   });
+
+   it('POST /:id/submit returns all errors at once', async () => {
+     const formRes = await request(app).post('/api/forms/admin').set(auth())
+       .send({ name: 'Vsechy chyby', fields_json: JSON.stringify([
+         { name: 'email', type: 'email', required: true, label_cz: 'E-mail' },
+         { name: 'name', type: 'text', required: true, label_cz: 'Jmeno' }
+       ]), is_active: true });
+     const id = formRes.body.id;
+     const ts = Math.floor(Date.now() / 1000) - 5;
+     const res = await request(app).post(`/api/forms/${id}/submit`)
+       .send({ _ts: ts, email: 'bad', name: '' });
+     expect(res.status).toBe(400);
+     expect(res.body.errors.length).toBeGreaterThanOrEqual(2);
+     const types = res.body.errors.map(e => e.type);
+     expect(types).toContain('required');
+     expect(types).toContain('email');
+   });
+
+
 
   // ── Submissions admin routes ─────────────────────────────────────────────
   it('GET /submissions/admin/all requires auth', async () => {

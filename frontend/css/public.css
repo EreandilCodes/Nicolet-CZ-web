@@ -1346,6 +1346,8 @@ p  { color: var(--text-1); }
 .btn-pform-submit { margin-top: 6px; padding: 11px 26px; background: var(--primary); color: #fff; border: none; border-radius: var(--r-md); font-family: var(--font); font-size: 0.90rem; font-weight: 700; cursor: pointer; transition: background var(--t), transform var(--t); align-self: flex-start; }
 .btn-pform-submit:hover { background: var(--primary-light); transform: translateY(-1px); }
 .btn-pform-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.pform-field-error { color: #dc2626; font-size: 0.82rem; line-height: 1.4; margin-top: 4px; padding-left: 2px; }
+.pform-field-error[role="alert"] { }
 .pform-error { padding: 14px 18px; background: rgba(220,38,38,0.14); border: 1px solid rgba(220,38,38,0.32); border-radius: var(--r-md); color: #ffffff; font-size: 0.90rem; line-height: 1.5; margin-top: 10px; }
 .pform-success { padding: 18px; background: #e7f3ec; border: 1px solid rgba(21,94,56,0.55); border-radius: var(--r-md); color: #14432a; font-size: 0.92rem; line-height: 1.6; margin-top: 14px; }
 

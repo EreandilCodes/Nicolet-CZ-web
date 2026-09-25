@@ -50,6 +50,37 @@ function isRateLimited(ip) {
 
 // ─── Public form routes ───────────────────────────────────────────────────────
 
+// ─── Validation helpers ───────────────────────────────────────────────
+function validateFormFields(formFields, body) {
+  const errors = [];
+  for (const field of formFields) {
+    const value = body[field.name];
+    const isEmpty = field.type === 'checkbox' ? !value : (!value || String(value).trim() === '');
+    if (isEmpty) {
+      const label = field.label_cz || field.label_en || field.name;
+      errors.push({ field: field.name, label, message: `Vyplňte prosím pole "${label}".`, type: 'required' });
+      continue;
+    }
+    if (field.type === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(String(value).trim())) {
+        const label = field.label_cz || field.label_en || field.name;
+        errors.push({ field: field.name, label, message: `Zkontrolujte prosím e-mailovou adresu ve formátu jméno@doména.cz.`, type: 'email' });
+      }
+    }
+    const strVal = String(value || '').trim();
+    if (field.minlength != null && strVal.length < Number(field.minlength)) {
+      const label = field.label_cz || field.label_en || field.name;
+      errors.push({ field: field.name, label, message: `Pole "${label}" musí mít alespoň ${field.minlength} znaků.`, type: 'minlength' });
+    }
+    if (field.maxlength != null && strVal.length > Number(field.maxlength)) {
+      const label = field.label_cz || field.label_en || field.name;
+      errors.push({ field: field.name, label, message: `Pole "${label}" nesmí přesáhnout ${field.maxlength} znaků.`, type: 'maxlength' });
+    }
+  }
+  return errors;
+}
+
 // GET /api/forms – public, active forms with parsed fields_json
 router.get('/', async (req, res) => {
   try {
@@ -127,14 +158,9 @@ router.post('/:id/submit', async (req, res) => {
       formFields = typeof form.fields_json === 'string' ? JSON.parse(form.fields_json) : (form.fields_json || []);
     } catch { formFields = []; }
 
-    for (const field of formFields) {
-      if (field.required) {
-        const value = body[field.name];
-        const isEmpty = field.type === 'checkbox' ? !value : (!value || String(value).trim() === '');
-        if (isEmpty) {
-          return res.status(400).json({ error: `Vyplňte prosím: ${field.label_cz || field.label_en || field.name}` });
-        }
-      }
+    const errors = validateFormFields(formFields, body);
+    if (errors.length) {
+      return res.status(400).json({ errors, message: 'Formulář obsahuje chyby. Zkontrolujte prosím označená pole.' });
     }
 
 // Strip internal fields before storing

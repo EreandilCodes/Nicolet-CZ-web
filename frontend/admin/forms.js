@@ -150,6 +150,10 @@ export class FormsManager {
       if (phCzEl)  this._fields[idx].placeholder_cz   = phCzEl.value;
       if (phEnEl)  this._fields[idx].placeholder_en   = phEnEl.value;
       if (reqEl)   this._fields[idx].required         = reqEl.checked;
+      const minEl  = row.querySelector('[data-prop="minlength"]');
+      const maxEl  = row.querySelector('[data-prop="maxlength"]');
+      if (minEl) this._fields[idx].minlength  = minEl.value ? Number(minEl.value) : null;
+      if (maxEl) this._fields[idx].maxlength  = maxEl.value ? Number(maxEl.value) : null;
     });
   }
 
@@ -212,6 +216,18 @@ export class FormsManager {
             </div>
             <span class="toggle-label" style="font-size:0.8rem;">Povinné pole</span>
           </label>
+          <div class="field-row-grid" style="margin-top:8px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size:0.75rem;">Min. znaky</label>
+              <input type="number" class="form-input form-input-sm" data-prop="minlength"
+                value="${f.minlength ?? ''}" placeholder="žádné" min="0" style="font-size:0.75rem;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:0.75rem;">Max. znaky</label>
+              <input type="number" class="form-input form-input-sm" data-prop="maxlength"
+                value="${f.maxlength ?? ''}" placeholder="žádné" min="0" style="font-size:0.75rem;">
+            </div>
+          </div>
         </div>
       </div>
     `}).join('');

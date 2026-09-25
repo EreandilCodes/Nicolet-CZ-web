@@ -1564,41 +1564,47 @@ class PublicApp {
 
     const lang = getLang();
 
-    // Validate required fields
+    this._clearFieldErrors();
+    if (errorEl) errorEl.style.display = 'none';
+
+    // Validate all fields (required + format)
     const fields = Array.isArray(form.fields_json) ? form.fields_json : [];
-    const requiredFields = fields.filter(f => f.required);
-    
-    for (const field of requiredFields) {
+    const fieldErrors = [];
+
+    for (const field of fields) {
       const input = formEl.querySelector(`[name="${field.name}"]`);
       if (!input) continue;
-      
-      const value = input.type === 'checkbox' 
-        ? input.checked 
-        : input.value.trim();
-      
-      if (!value) {
-        const fieldLabel = lang === 'en' 
-          ? (field.label_en || field.label_cz || field.name)
-          : (field.label_cz || field.label_en || field.name);
-        
-        if (errorEl) {
-          errorEl.textContent = lang === 'en'
-            ? `Please fill in: ${fieldLabel}`
-            : `Vyplňte prosím: ${fieldLabel}`;
-          errorEl.style.display = '';
-          setTimeout(() => { errorEl.style.display = 'none'; }, 6000);
-        }
-        
-        // Highlight the field
-        input.classList.add('pform-error');
-        input.focus();
-        
-        if (submitEl) { submitEl.disabled = false; }
-        return;
+      const value = input.type === 'checkbox' ? input.checked : input.value.trim();
+      const isEmpty = input.type === 'checkbox' ? !value : (!value || value.length === 0);
+      if (isEmpty) {
+        const label = lang === 'en' ? (field.label_en || field.label_cz || field.name) : (field.label_cz || field.label_en || field.name);
+        fieldErrors.push({ field: field.name, label, message: lang === 'en' ? `Please fill in the "${label}" field.` : `Vyplňte prosím pole "${label}".`, type: 'required', input });
+        continue;
       }
-      
-      // Reset highlight if valid
+      if (field.type === 'email') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          const label = lang === 'en' ? (field.label_en || field.label_cz || field.name) : (field.label_cz || field.label_en || field.name);
+          fieldErrors.push({ field: field.name, label, message: lang === 'en' ? `Please check the email address format (name@domain.cz).` : `Zkontrolujte prosím e-mailovou adresu ve formátu jméno@doména.cz.`, type: 'email', input });
+        }
+      }
+      const strVal = String(value || '').trim();
+      if (field.minlength != null && strVal.length < Number(field.minlength)) {
+        const label = lang === 'en' ? (field.label_en || field.label_cz || field.name) : (field.label_cz || field.label_en || field.name);
+        fieldErrors.push({ field: field.name, label, message: lang === 'en' ? `"${label}" must be at least ${field.minlength} characters.` : `Pole "${label}" musí mít alespoň ${field.minlength} znaků.`, type: 'minlength', input });
+      }
+      if (field.maxlength != null && strVal.length > Number(field.maxlength)) {
+        const label = lang === 'en' ? (field.label_en || field.label_cz || field.name) : (field.label_cz || field.label_en || field.name);
+        fieldErrors.push({ field: field.name, label, message: lang === 'en' ? `"${label}" must not exceed ${field.maxlength} characters.` : `Pole "${label}" nesmí přesáhnout ${field.maxlength} znaků.`, type: 'maxlength', input });
+      }
       input.classList.remove('pform-error');
+    }
+
+    if (fieldErrors.length) {
+      this._renderFieldErrors(fieldErrors);
+      if (fieldErrors[0].input) fieldErrors[0].input.focus();
+      if (submitEl) { submitEl.disabled = false; }
+      return;
     }
 
     const data = {};
@@ -1606,7 +1612,6 @@ class PublicApp {
       if (key !== '_hp' && key !== '_ts') data[key] = val;
     });
 
-    // Add honeypot + timestamp
     data._ts = document.getElementById('publicFormTs')?.value || Math.floor(Date.now() / 1000);
 
     if (submitEl) { submitEl.disabled = true; submitEl.textContent = '…'; }
@@ -1619,8 +1624,15 @@ class PublicApp {
       });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
-        const err = contentType?.includes('application/json') ? await response.json() : { error: await response.text() };
-        throw new Error(err.error || 'Chyba odeslání');
+        const errBody = contentType?.includes('application/json') ? await response.json() : { error: await response.text() };
+        if (errBody.errors && Array.isArray(errBody.errors)) {
+          this._renderFieldErrors(errBody.errors.map(e => ({ ...e, input: formEl.querySelector(`[name="${e.field}"]`) })));
+          const firstInput = errBody.errors.find(e => formEl.querySelector(`[name="${e.field}"]`));
+          if (firstInput) firstInput.focus();
+        } else {
+          throw new Error(errBody.error || 'Chyba odeslání');
+        }
+        return;
       }
 
       const msg = lang === 'en'
@@ -1637,6 +1649,47 @@ class PublicApp {
       }
     } finally {
       if (submitEl) { submitEl.disabled = false; }
+    }
+  }
+
+  _clearFieldErrors() {
+    const formEl = document.getElementById('publicFormEl');
+    if (!formEl) return;
+    formEl.querySelectorAll('.pform-field-error').forEach(el => el.remove());
+    formEl.querySelectorAll('.pform-input.pform-error, .pform-textarea.pform-error').forEach(el => {
+      el.classList.remove('pform-error');
+      el.removeAttribute('aria-invalid');
+      el.removeAttribute('aria-describedby');
+    });
+  }
+
+  _renderFieldErrors(errors) {
+    const formEl = document.getElementById('publicFormEl');
+    if (!formEl || !errors.length) return;
+    // Global summary
+    const errorEl = document.getElementById('publicFormError');
+    if (errorEl && !errorEl.textContent) {
+      errorEl.textContent = errors.map(e => e.message).join('\n');
+      errorEl.style.display = '';
+      errorEl.style.whiteSpace = 'pre-line';
+      setTimeout(() => { if (errorEl) errorEl.style.display = 'none'; }, 8000);
+    }
+    for (const err of errors) {
+      const input = err.input || formEl.querySelector(`[name="${err.field}"]`);
+      if (!input) continue;
+      input.classList.add('pform-error');
+      input.setAttribute('aria-invalid', 'true');
+      const errId = `pf_err_${err.field}`;
+      let errDiv = document.getElementById(errId);
+      if (!errDiv) {
+        errDiv = document.createElement('div');
+        errDiv.id = errId;
+        errDiv.className = 'pform-field-error';
+        errDiv.setAttribute('role', 'alert');
+        input.parentNode.appendChild(errDiv);
+      }
+      errDiv.textContent = err.message;
+      input.setAttribute('aria-describedby', errId);
     }
   }
 
