@@ -7,6 +7,8 @@ import express from 'express';
 import request from 'supertest';
 import authRoutes from '../../backend/routes/auth.js';
 import { AuthMiddleware } from '../../backend/middleware/auth.js';
+import { JWT_SECRET } from '../../backend/config.js';
+import jwt from 'jsonwebtoken';
 
 let app;
 
@@ -67,6 +69,45 @@ describe('POST /api/auth/refresh', () => {
   it('returns 401 without token', async () => {
     const res = await request(app).post('/api/auth/refresh');
     expect(res.status).toBe(401);
+  });
+
+  it('returns 401 for a tampered token (wrong secret)', async () => {
+    const forged = jwt.sign(
+      { id: 1, email: 'admin@nicolet.cz', role: 'admin' },
+      'completely-wrong-secret',
+      { expiresIn: '1h' }
+    );
+    const res = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${forged}`);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('Invalid token');
+  });
+
+  it('issues a new token for an expired-but-correctly-signed token (sliding session)', async () => {
+    const expired = jwt.sign(
+      { id: 1, email: 'admin@nicolet.cz', role: 'admin', jti: 'expired-refresh-test' },
+      JWT_SECRET,
+      { expiresIn: '-1h' }
+    );
+    const res = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${expired}`);
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeDefined();
+
+    // The newly issued token must be usable on protected endpoints
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${res.body.token}`);
+    expect(me.status).toBe(200);
+  });
+
+  it('rejects refresh with a logged-out (blacklisted) token', async () => {
+    const login = await request(app).post('/api/auth/login').send({ email: 'admin@nicolet.cz', password: 'admin123' });
+    expect(login.status).toBe(200);
+    const token = login.body.token;
+
+    const logout = await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${token}`);
+    expect(logout.status).toBe(200);
+
+    const res = await request(app).post('/api/auth/refresh').set('Authorization', `Bearer ${token}`);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('Token revoked');
   });
 });
 

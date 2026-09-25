@@ -122,20 +122,40 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/refresh — issue a new token if current is still valid
-router.post('/refresh', AuthMiddleware.verifyToken, async (req, res) => {
+// POST /api/auth/refresh — sliding session: issue a new token when the current
+// token is still correctly signed (may already be expired, but not blacklisted)
+router.post('/refresh', async (req, res) => {
   try {
-    const user = await db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(req.user.id);
+    const token = req.cookies?.auth_token || req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Signature check stays on (ignoreExpiration only skips the time check):
+    // a new token is issued only for a token that was genuinely signed with JWT_SECRET
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+    } catch {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (decoded.jti && tokenBlacklist.has(decoded.jti)) {
+      return res.status(401).json({ error: 'Token revoked' });
+    }
+
+    const user = await db.prepare('SELECT id, email, role FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const jti = crypto.randomUUID();
-    const token = jwt.sign(
+    const nextToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role, jti },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
-    setAuthCookie(res, token);
-    res.json({ token, expiresIn: 3600 });
+    setAuthCookie(res, nextToken);
+    res.json({ token: nextToken, expiresIn: 3600 });
   } catch (err) {
     logger.fromError('auth_refresh_error', err);
     res.status(500).json({ error: 'Chyba serveru' });

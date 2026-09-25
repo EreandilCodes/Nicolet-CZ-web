@@ -26,10 +26,7 @@ export class FormsManager {
 
   async loadItems() {
     try {
-      const response = await fetch('/api/forms/admin/all', {
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+      const response = await this.auth.authenticatedFetch('/api/forms/admin/all');
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -333,12 +330,10 @@ export class FormsManager {
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Ukládám…'; }
 
     try {
-      const response = await fetch(url, {
-      method,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+      const response = await this.auth.authenticatedFetch(url, {
+        method,
+        body: JSON.stringify(data)
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')
@@ -364,11 +359,9 @@ export class FormsManager {
     if (!confirm(`Smazat formulář "${item.name}"?`)) return;
 
     try {
-      const response = await fetch(`/api/forms/admin/${id}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
+      const response = await this.auth.authenticatedFetch(`/api/forms/admin/${id}`, {
+        method: 'DELETE'
+      });
       const contentType = response.headers.get('content-type');
       if (!response.ok) {
         const err = contentType?.includes('application/json')

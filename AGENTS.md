@@ -284,6 +284,8 @@ When adding a new form-related setting that affects visual appearance, ensure:
 - Honeypot + time check on public form submissions
 - helmet.js for security headers (CSP with `useDefaults: false`, HSTS only in production)
 - JWT 1h expiry + auto-refresh + JTI blacklist on logout
+  - `POST /api/auth/refresh` is a **sliding session**: it re-issues a token for an expired-but-correctly-signed JWT (`jwt.verify(..., { ignoreExpiration: true })`), not just a valid one — signature check and JTI-blacklist check still apply
+  - Every new/existing admin manager MUST route all its fetches through `this.auth.authenticatedFetch` (the refresh interceptor); a raw `fetch` in a manager brings back "Chyba ukládání: Invalid token" once the 1h token expires (cookie lasts 24h)
 - Account lockout: 5 failed logins → 15min lock per email
 - DOMPurify self-hosted at `/js/vendor/purify.es.mjs` — no CDN dependency
 - Password policy: min 8 chars, requires uppercase + number
