@@ -840,13 +840,45 @@ await db.exec(`CREATE INDEX IF NOT EXISTS idx_pam_application ON product_applica
     { category_cz: 'Naše podpora', category_en: 'Our Support', question_cz: 'Nic o molekulové spektroskopii nevím, kde se můžu vzdělat?', question_en: 'I know nothing about molecular spectroscopy, where can I learn?', answer_cz: 'Ročně pořádáme řadu kurzů a školení, kde vám podrobně vysvětlíme principy molekulové spektroskopie, naučíme vás ovládat váš přístroj i jeho řídicí software. Pro nové majitele našich přístrojů jsou kurzy zdarma!', answer_en: 'We organize a number of courses and training sessions annually where we will explain the principles of molecular spectroscopy in detail, teach you how to operate your instrument and its control software.', order: 5 },
   ];
 
-  for (const faq of defaultFaqs) {
-    await db.prepare(`
-      INSERT INTO faqs (category_cz, category_en, question_cz, question_en, answer_cz, answer_en, display_order, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-    `).run(faq.category_cz, faq.category_en, faq.question_cz, faq.question_en, faq.answer_cz, faq.answer_en, faq.order);
+  // Unique constraint makes the seed idempotent: ON CONFLICT skips already-seeded
+  // questions on every server restart (previously this inserted duplicates — the
+  // local dev DB accumulated 29 copies of each of the 17 default FAQs).
+  let faqSeedByConflict = true;
+  try {
+    await db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_faqs_question_cz ON faqs(question_cz)`);
+  } catch (err) {
+    // Existing DB with duplicate questions — index creation fails; seed below
+    // uses the exists-check fallback instead of ON CONFLICT.
+    faqSeedByConflict = false;
+    console.warn('⚠️  faqs: unique index not created (duplicates present?):', err.message);
   }
-  console.log('✅ Default FAQs seeded');
+
+  for (const faq of defaultFaqs) {
+    let seeded = false;
+    if (faqSeedByConflict) {
+      try {
+        await db.prepare(`
+          INSERT INTO faqs (category_cz, category_en, question_cz, question_en, answer_cz, answer_en, display_order, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+          ON CONFLICT (question_cz) DO NOTHING
+        `).run(faq.category_cz, faq.category_en, faq.question_cz, faq.question_en, faq.answer_cz, faq.answer_en, faq.order);
+        seeded = true;
+      } catch (err) {
+        // SQLite < 3.24 / other ON CONFLICT failure → fall through to exists-check
+        console.warn('⚠️  faqs seed ON CONFLICT failed, using exists-check:', err.message);
+      }
+    }
+    if (!seeded) {
+      const exists = await db.prepare('SELECT id FROM faqs WHERE question_cz = ?').get(faq.question_cz);
+      if (!exists) {
+        await db.prepare(`
+          INSERT INTO faqs (category_cz, category_en, question_cz, question_en, answer_cz, answer_en, display_order, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+        `).run(faq.category_cz, faq.category_en, faq.question_cz, faq.question_en, faq.answer_cz, faq.answer_en, faq.order);
+      }
+    }
+  }
+  console.log('✅ Default FAQs ensured');
 
   // ── Seed default admin user ────────────────────────────────────────────────
   const passwordHash = bcrypt.hashSync('admin123', 10);

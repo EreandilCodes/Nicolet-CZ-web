@@ -782,6 +782,13 @@ Seed scripts (`initDatabase()` default data) používají `INSERT ... ON CONFLIC
 Seed NEBYL navržen pro produkční databázi s uživatelskými daty — doplní jen výchozí
 záznamy, pokud ještě neexistují. Nikdy neresetuje a nemaže existující data.
 
+**Povinný vzor pro každý nový seed (audit 2026-09-26):** každý seed musí být
+idempotentní — buď `INSERT ... ON CONFLICT (...) DO NOTHING` nad UNIQUE sloupcem/indexem,
+nebo exists-check (`SELECT id ... WHERE ...` před INSERTEM). Historie: nechráněný FAQ seed
+vkládal 17 výchozích FAQ při KAŽDÉM startu serveru → lokální DB měla 29 kopií každé otázky
+(493 řádků). Opraveno unique indexem `idx_faqs_question_cz` na `faqs(question_cz)`.
+Přidáváš-li seed, přidej i test do `tests/unit/db-idempotence.test.js`.
+
 ## Environment safety
 Před deployem je nutné ověřit, že aplikace používá správnou:
 - databázi (SQLite vs PostgreSQL — ověřit `DB_PROVIDER`)
@@ -797,6 +804,15 @@ Před deployem je nutné ověřit, že aplikace používá správnou:
 If `NODE_ENV=production` or `RAILWAY_ENVIRONMENT=production` and `DB_PROVIDER !== 'postgres'`,
 the process exits with code 1. If `DB_PROVIDER=postgres` but `DATABASE_URL` is missing,
 the process exits with code 1. **Production CANNOT silently fall back to SQLite.**
+
+**Dual-DB architecture (potvrzeno auditem 2026-09-26):** záměr je SQLite pro lokální
+vývoj, PostgreSQL jako jediný produkční zdroj pravdy. Ověřeno:
+- guard selže fast (exit 1) ve všech scénářích (prod bez postgres / postgres bez URL),
+- startup log vypisuje `🗄️  Database mode: PostgreSQL|SQLite` (nikdy neloguje DATABASE_URL ani secrets),
+- `ALTER TABLE ADD COLUMN` s try/catch, `ON CONFLICT DO NOTHING` i `RETURNING id` fungují v obou režimech,
+- PG `COUNT(*)` vrací string — v kódu vždy `parseInt(...)` (viz menu seed),
+- PG duplicate-key chyba neobsahuje "UNIQUE" (SQLite ano) — routy kontrolující
+  `err.message?.includes('UNIQUE')` vrátí v PG 500 místo 400. Nízká priorita, jen info.
 
 **Migration rule (2026-09-25):** Before any deploy that changes `DB_PROVIDER` from `sqlite`
 to `postgres`, data must be migrated. `initDatabase()` uses only `CREATE TABLE IF NOT EXISTS`
