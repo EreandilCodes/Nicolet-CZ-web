@@ -10,3 +10,6 @@ frontend/uploads/gallery/*.png
 frontend/uploads/gallery/*.webp
 frontend/uploads/gallery/*.gif
 .test-dbs/
+frontend/uploads/gallery/*.avif
+frontend/uploads/gallery/*.pdf
+frontend/uploads/gallery/*.docx
