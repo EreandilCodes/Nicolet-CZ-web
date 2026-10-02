@@ -112,7 +112,26 @@ frontend/
 
 ## Key Patterns
 
-See AGENTS.md for Safe Fetch, DB migration, Admin Manager, security, Text/HTML editor toggle, and gallery picker rules.
+See AGENTS.md for Safe Fetch, DB migration, Admin Manager, security, Text/HTML editor toggle, gallery picker, rich-text two-modes, menu sub-category order and teaser-grid rules.
+
+### Public modules (`frontend/js/`, plain ESM, Node-importable)
+
+| Module | Exports | Used for |
+|---|---|---|
+| `richtext.js` | `plainText`, `previewText`, `decodeEntities`, `excerptRepeatsLead` | the ONLY way stored rich content becomes a tile / card / search / meta preview |
+| `category-order.js` | `orderEntitiesByMenu`, `menuCategorySlugs`, `normalizeKey`, `SECTIONS` | order of the public filter chips, driven by Admin UI → Menu |
+
+They have no DOM access at import time, so `tests/unit/*.test.js` imports them
+directly instead of re-implementing the logic. `public.js` is a
+`<script type="module">`, so static `import` works without a bundler and
+`script-src 'self'` in the CSP already allows it.
+
+### Rich text: DETAIL vs PREVIEW (see AGENTS.md for the full rules)
+- **DETAIL** = `sanitize()` (DOMPurify), container also carries the `richtext` class
+- **PREVIEW** = `previewText()` + `esc()`, plain text only
+- Never shorten stored HTML in SQL (`SUBSTR(content_cz, 1, 300)` splits tags)
+- `tests/unit/public-render-contract.test.js` guards both modes, the menu
+  ordering and the cache-busting params
 
 ### Promise.all Destructuring (CRITICAL)
 When using `Promise.all` with `_loadDOMPurify()`, the DOMPurify result must be skipped in destructuring:

@@ -3,6 +3,9 @@
  * Full implementation: homepage, carousel, products, applications, trainings, news, pages, search
  */
 
+import { plainText, previewText, excerptRepeatsLead } from './richtext.js';
+import { orderEntitiesByMenu } from './category-order.js';
+
 /** Lazy-loaded DOMPurify — self-hosted, no CDN dependency. */
 let _DOMPurify = null;
 async function _loadDOMPurify() {
@@ -28,10 +31,6 @@ function esc(str) {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;');
-}
-
-function stripHtml(str) {
-  return String(str || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // Count grid columns by measuring how many items share the first row's offsetTop
@@ -409,12 +408,13 @@ class PublicApp {
           if (imgs[0]) imgSrc = typeof imgs[0] === 'string' ? imgs[0] : imgs[0].url;
         } catch {}
       }
+      const desc = previewText(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en), 120);
       return `
       <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
         ${imgSrc ? `<div class="product-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
         <div class="product-card-body">
           <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
-          ${(p.excerpt_cz || p.description_cz) ? `<div class="product-card-desc">${esc(stripHtml(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en))).substring(0, 120)}…</div>` : ''}
+          ${desc ? `<div class="product-card-desc">${esc(desc)}</div>` : ''}
           <span class="product-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`}).join('');
@@ -437,12 +437,13 @@ class PublicApp {
   _renderFeaturedApplications(apps) {
     const cards = apps.slice(0, 4).map(a => {
       const imgSrc = a.thumbnail_url || a.cover_image || null;
+      const desc = previewText(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en), 100);
       return `
       <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
         ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
           <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
-          ${(a.excerpt_cz || a.content_cz) ? `<div class="app-card-desc">${esc(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en)).substring(0, 100)}…</div>` : ''}
+          ${desc ? `<div class="app-card-desc">${esc(desc)}</div>` : ''}
           <span class="app-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`}).join('');
@@ -463,16 +464,18 @@ class PublicApp {
   }
 
   _renderNewsTeaser(posts) {
-    const stripHtml = str => str ? str.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim() : '';
-    const cards = posts.map(p => `
+    const cards = posts.map(p => {
+      const desc = previewText(pick(p.excerpt_cz, p.excerpt_en));
+      return `
       <a class="news-card-teaser" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
         ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
         <div class="news-card-body">
           <div class="news-card-date">${fmtDate(p.published_at)}</div>
           <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
-          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(stripHtml(pick(p.excerpt_cz, p.excerpt_en)))}</p>` : ''}
+          ${desc ? `<p class="news-card-excerpt">${esc(desc)}</p>` : ''}
         </div>
-      </a>`).join('');
+      </a>`;
+    }).join('');
 
     return `
       <section class="section-block">
@@ -551,8 +554,10 @@ class PublicApp {
       safeFetch('/api/news-categories').catch(() => []),
     ]);
 
-    // Show newest categories first
-    const sortedCats = [...cats].sort((a, b) => b.display_order - a.display_order);
+    // Admin UI → Menu decides the order of the rubrika buttons. Categories that
+    // are not in the menu keep the order the API delivered (display_order, id) –
+    // the renderer never invents an order of its own (see category-order.js).
+    const sortedCats = orderEntitiesByMenu(cats, this.menuItems, 'news');
 
     const filterHtml = sortedCats.length ? `
       <div class="filter-bar-pub">
@@ -562,16 +567,19 @@ class PublicApp {
         ${sortedCats.map(c => `<button class="filter-chip" data-cat-filter="${c.id}">${esc(pick(c.name_cz, c.name_en))}</button>`).join('')}
       </div>` : '';
 
-    const cards = posts.map(p => `
+    const cards = posts.map(p => {
+      const desc = previewText(pick(p.excerpt_cz, p.excerpt_en));
+      return `
       <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}" data-news-cat="${p.category_id || ''}">
         ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
         <div class="news-card-body">
           <div class="news-card-date">${fmtDate(p.published_at)}</div>
           <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
-          ${p.excerpt_cz ? `<p class="news-card-excerpt">${esc(pick(p.excerpt_cz, p.excerpt_en))}</p>` : ''}
+          ${desc ? `<p class="news-card-excerpt">${esc(desc)}</p>` : ''}
           <span class="news-card-link">${t('common.read_more')} →</span>
         </div>
-      </a>`).join('');
+      </a>`;
+    }).join('');
 
     el.innerHTML = `
       <div class="container section">
@@ -661,6 +669,14 @@ class PublicApp {
       : null;
     const ctaHtml = defaultBtn ? `<div class="article-cta">${this._renderCtaButton(defaultBtn)}</div>` : '';
 
+    // Imported articles store a perex that is only the opening of the body
+    // (it came from the old site's og:description). Show the lead only once —
+    // read-only, the stored content is never modified.
+    const excerpt = pick(post.excerpt_cz, post.excerpt_en);
+    const content  = pick(post.content_cz, post.content_en);
+    const showExcerpt = !!excerpt && !excerptRepeatsLead(excerpt, content);
+    const excerptHtml = showExcerpt ? `<p class="article-excerpt">${esc(plainText(excerpt))}</p>` : '';
+
     el.innerHTML = `
       <article class="container section article-body">
         <div class="article-meta">
@@ -669,8 +685,8 @@ class PublicApp {
         </div>
         ${post.cover_image ? `<figure class="article-cover-wrap img-align--${esc(post.cover_align || 'center')}"><img class="article-cover" src="${esc(post.cover_image)}" alt="${esc(pick(post.title_cz, post.title_en))}">${post.cover_caption ? `<figcaption class="img-caption img-caption--${esc(post.cover_align || 'center')}">${esc(post.cover_caption)}</figcaption>` : ''}</figure>` : ''}
         <h1 class="article-title">${esc(pick(post.title_cz, post.title_en))}</h1>
-        ${post.excerpt_cz ? `<p class="article-excerpt">${esc(pick(post.excerpt_cz, post.excerpt_en))}</p>` : ''}
-        <div class="article-content">${sanitize(pick(post.content_cz, post.content_en))}</div>
+        ${excerptHtml}
+        <div class="richtext article-content">${sanitize(content)}</div>
         ${ctaHtml}
       </article>`;
 
@@ -685,10 +701,13 @@ class PublicApp {
 
   async renderProducts(el) {
     updateMeta({ title: getLang() === 'en' ? 'Products' : 'Produkty' });
-    const [prods, cats] = await Promise.all([
+    const [prods, allCats] = await Promise.all([
       safeFetch('/api/products?fields=list'),
       this._getCategories(),
     ]);
+
+    // Admin UI → Menu decides the order of the category buttons
+    const cats = orderEntitiesByMenu(allCats, this.menuItems, 'product');
 
     const filterHtml = cats.length ? `
       <div class="filter-bar-pub">
@@ -704,14 +723,14 @@ class PublicApp {
       let thumb = p.thumbnail_url || '';
       if (!thumb) { try { const imgs = JSON.parse(p.images_json || '[]'); thumb = (typeof imgs[0] === 'string' ? imgs[0] : imgs[0]?.url) || ''; } catch {} }
       if (!thumb) thumb = defaultThumb;
-      const desc = stripHtml(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en));
+      const desc = previewText(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en), 120);
       return `
         <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}" data-product-cats="${esc(catIds)}">
           ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
           <div class="product-card-body">
             ${p.is_featured ? `<span class="badge-featured">${t('common.featured')}</span>` : ''}
             <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
-            ${desc ? `<div class="product-card-desc">${esc(desc).substring(0, 120)}</div>` : ''}
+            ${desc ? `<div class="product-card-desc">${esc(desc)}</div>` : ''}
             <span class="product-card-link">${t('common.read_more')} →</span>
           </div>
         </a>`;
@@ -814,9 +833,9 @@ class PublicApp {
 
     const tabContentDesc = `
       <div class="product-detail-desc-wrap">
-        ${p.description_cz ? `<div class="product-detail-desc">${sanitize(pick(p.description_cz, p.description_en))}</div>` : ''}
+        ${p.description_cz ? `<div class="richtext product-detail-desc">${sanitize(pick(p.description_cz, p.description_en))}</div>` : ''}
         ${galleryHtml}
-        ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="product-spec-content">${sanitize(pick(p.spec_cz, p.spec_en))}</div></div>` : ''}
+        ${p.spec_cz ? `<div class="product-spec-section"><h3>${getLang() === 'en' ? 'Technical specification' : 'Technická specifikace'}</h3><div class="richtext product-spec-content">${sanitize(pick(p.spec_cz, p.spec_en))}</div></div>` : ''}
       </div>`;
 
     const tabContentApps = linkedApps.length
@@ -873,7 +892,7 @@ class PublicApp {
 
     updateMeta({
       title: pick(p.seo_title_cz || p.name_cz, p.seo_title_en || p.name_en),
-      description: pick(p.seo_desc_cz, p.seo_desc_en) || stripHtml(pick(p.description_cz, p.description_en)).slice(0, 160),
+      description: pick(p.seo_desc_cz, p.seo_desc_en) || previewText(pick(p.description_cz, p.description_en), 160),
       ogImage: images[0]?.url || p.thumbnail_url || '',
     });
   }
@@ -882,10 +901,13 @@ class PublicApp {
 
   async renderApplications(el) {
     updateMeta({ title: getLang() === 'en' ? 'Applications' : 'Aplikace' });
-    const [apps, groups] = await Promise.all([
+    const [apps, allGroups] = await Promise.all([
       safeFetch('/api/applications?fields=list'),
       this._getAppGroups(),
     ]);
+
+    // Admin UI → Menu decides the order of the group buttons
+    const groups = orderEntitiesByMenu(allGroups, this.menuItems, 'application');
 
     const filterHtml = groups.length ? `
       <div class="filter-bar-pub">
@@ -899,12 +921,13 @@ class PublicApp {
     const cards = apps.map(a => {
       const thumb = a.thumbnail_url || defaultThumb;
       const imgSrc = thumb || a.cover_image;
+      const desc = previewText(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en), 120);
       return `
       <a class="app-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}" data-app-group="${a.group_id || ''}">
         ${imgSrc ? `<div class="app-card-img"><img src="${esc(imgSrc)}" alt="${esc(pick(a.name_cz, a.name_en))}" loading="lazy"></div>` : '<div class="app-card-img app-card-img-empty"></div>'}
         <div class="app-card-body">
           <div class="app-card-name">${esc(pick(a.name_cz, a.name_en))}</div>
-          ${(a.excerpt_cz || a.content_cz) ? `<div class="app-card-desc">${esc(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en)).substring(0, 120)}</div>` : ''}
+          ${desc ? `<div class="app-card-desc">${esc(desc)}</div>` : ''}
           <span class="app-card-link">${t('common.read_more')} →</span>
         </div>
       </a>`;
@@ -946,12 +969,14 @@ class PublicApp {
 
     const coverHtml = a.cover_image
       ? `<div class="app-detail-cover">
-           <img class="article-cover img-align--${esc(a.cover_align || 'center')}" src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}">
+           <div class="app-detail-cover-img">
+             <img class="article-cover img-align--${esc(a.cover_align || 'center')}" src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}">
+           </div>
            ${a.cover_caption ? `<p class="img-caption img-caption--${esc(a.cover_align || 'center')}">${esc(a.cover_caption)}</p>` : ''}
          </div>`
       : '';
 
-    const tabContentDesc = `<div class="article-content">${sanitize(pick(a.content_cz, a.content_en))}</div>`;
+    const tabContentDesc = `<div class="richtext article-content">${sanitize(pick(a.content_cz, a.content_en))}</div>`;
 
     const tabContentProds = linkedProds.length
       ? `<div class="linked-items-grid">${linkedProds.map(p => `
@@ -1000,7 +1025,7 @@ class PublicApp {
 
     updateMeta({
       title: pick(a.seo_title_cz || a.name_cz, a.seo_title_en || a.name_en),
-      description: pick(a.seo_desc_cz, a.seo_desc_en) || stripHtml(pick(a.content_cz, a.content_en)).slice(0, 160),
+      description: pick(a.seo_desc_cz, a.seo_desc_en) || previewText(pick(a.content_cz, a.content_en), 160),
       ogImage: a.cover_image || a.thumbnail_url || '',
     });
   }
@@ -1048,7 +1073,7 @@ class PublicApp {
         <div class="training-card-body">
           <h3 class="training-card-title">${esc(pick(tr.title_cz, tr.title_en))}</h3>
           ${tr.location_cz ? `<div class="training-card-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(pick(tr.location_cz, tr.location_en))}</div>` : ''}
-          ${tr.content_cz ? `<div class="training-card-desc">${sanitize(pick(tr.content_cz, tr.content_en))}</div>` : ''}
+          ${tr.content_cz ? `<div class="richtext training-card-desc">${sanitize(pick(tr.content_cz, tr.content_en))}</div>` : ''}
           ${ctaBtn ? `<div class="training-card-cta">${this._renderCtaButton(ctaBtn)}</div>` : ''}
         </div>
       </div>`;
@@ -1067,17 +1092,18 @@ class PublicApp {
 
   async renderPage(el, slug) {
     const [page] = await Promise.all([safeFetch(`/api/pages/${slug}`), _loadDOMPurify()]);
+    const excerpt = plainText(pick(page.excerpt_cz, page.excerpt_en));
     el.innerHTML = `
       <article class="container section article-body">
         ${page.cover_image ? `<img class="article-cover" src="${esc(page.cover_image)}" alt="${esc(pick(page.title_cz, page.title_en))}">` : ''}
         <h1 class="article-title">${esc(pick(page.title_cz, page.title_en))}</h1>
-        ${page.excerpt_cz ? `<p class="article-excerpt">${esc(pick(page.excerpt_cz, page.excerpt_en))}</p>` : ''}
-        <div class="article-content">${sanitize(pick(page.content_cz, page.content_en))}</div>
+        ${excerpt ? `<p class="article-excerpt">${esc(excerpt)}</p>` : ''}
+        <div class="richtext article-content">${sanitize(pick(page.content_cz, page.content_en))}</div>
       </article>`;
 
     updateMeta({
       title: pick(page.seo_title_cz || page.title_cz, page.seo_title_en || page.title_en),
-      description: pick(page.seo_desc_cz || page.excerpt_cz, page.seo_desc_en || page.excerpt_en),
+      description: pick(page.seo_desc_cz, page.seo_desc_en) || excerpt,
       ogImage: page.cover_image || '',
     });
   }
@@ -1114,7 +1140,7 @@ class PublicApp {
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
               </button>
-              <div class="faq-answer">${sanitize(pick(faq.answer_cz, faq.answer_en))}</div>
+              <div class="richtext faq-answer">${sanitize(pick(faq.answer_cz, faq.answer_en))}</div>
             </div>
           `).join('')}
         </div>
@@ -1182,24 +1208,33 @@ class PublicApp {
         <h1 class="page-title">${t('common.search_results')}: <em>"${esc(q)}"</em></h1>
         <p style="color:var(--text-2);margin-bottom:32px">${total} ${getLang() === 'en' ? 'result(s)' : 'výsledek/výsledků'}</p>
         ${!total ? `<p class="empty-state">${t('search.no_results')}</p>` : ''}
-        ${section(t('nav.products'), matchProd, p => `
+        ${section(t('nav.products'), matchProd, p => {
+          const desc = previewText(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en), 100);
+          return `
           <a class="search-result-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
             <div class="search-result-type">${t('nav.products')}</div>
             <div class="search-result-title">${esc(pick(p.name_cz, p.name_en))}</div>
-            ${p.description_cz ? `<div class="search-result-desc">${esc(pick(p.description_cz, p.description_en)).substring(0, 100)}</div>` : ''}
-          </a>`)}
-        ${section(t('nav.applications'), matchApp, a => `
+            ${desc ? `<div class="search-result-desc">${esc(desc)}</div>` : ''}
+          </a>`;
+        })}
+        ${section(t('nav.applications'), matchApp, a => {
+          const desc = previewText(pick(a.excerpt_cz, a.excerpt_en) || pick(a.content_cz, a.content_en), 100);
+          return `
           <a class="search-result-card" href="/aplikace/${esc(a.slug)}" data-nav="/aplikace/${esc(a.slug)}">
             <div class="search-result-type">${t('nav.applications')}</div>
             <div class="search-result-title">${esc(pick(a.name_cz, a.name_en))}</div>
-            ${a.content_cz ? `<div class="search-result-desc">${esc(pick(a.content_cz, a.content_en)).substring(0, 100)}</div>` : ''}
-          </a>`)}
-        ${section(t('nav.news'), matchNews, n => `
+            ${desc ? `<div class="search-result-desc">${esc(desc)}</div>` : ''}
+          </a>`;
+        })}
+        ${section(t('nav.news'), matchNews, n => {
+          const desc = previewText(pick(n.excerpt_cz, n.excerpt_en), 100);
+          return `
           <a class="search-result-card" href="/novinky/${esc(n.slug)}" data-nav="/novinky/${esc(n.slug)}">
             <div class="search-result-type">${t('nav.news')}</div>
             <div class="search-result-title">${esc(pick(n.title_cz, n.title_en))}</div>
-            ${n.excerpt_cz ? `<div class="search-result-desc">${esc(pick(n.excerpt_cz, n.excerpt_en)).substring(0, 100)}</div>` : ''}
-          </a>`)}
+            ${desc ? `<div class="search-result-desc">${esc(desc)}</div>` : ''}
+          </a>`;
+        })}
       </div>`;
   }
 

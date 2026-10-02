@@ -201,10 +201,15 @@ categoriesRouter.delete('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware
 // GET /api/products – public, published products with categories
 router.get('/', async (req, res) => {
   try {
-    // ?fields=list returns lightweight payload for list views (no spec, no SEO, truncated desc)
+    // ?fields=list returns lightweight payload for list views (no spec, no SEO)
+    // excerpt_cz/excerpt_en are the plain-text preview fields and are included
+    // on purpose: the description is stored as Elementor HTML and can only be
+    // shortened by SUBSTR() by cutting a tag in half, which used to leak raw
+    // markup into every product tile. When no excerpt exists yet the truncated
+    // description is still returned as a fallback.
     const listMode = req.query.fields === 'list';
     const cols = listMode
-      ? 'id, slug, name_cz, name_en, thumbnail_url, images_json, is_featured, display_order, SUBSTR(description_cz, 1, 300) AS description_cz, SUBSTR(description_en, 1, 300) AS description_en'
+      ? 'id, slug, name_cz, name_en, thumbnail_url, images_json, is_featured, display_order, excerpt_cz, excerpt_en, SUBSTR(description_cz, 1, 300) AS description_cz, SUBSTR(description_en, 1, 300) AS description_en'
       : '*';
     const products = await db.prepare(
       `SELECT ${cols} FROM products WHERE is_published = 1 ORDER BY display_order, id`

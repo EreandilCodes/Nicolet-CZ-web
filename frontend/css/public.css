@@ -696,9 +696,12 @@ p  { color: var(--text-1); }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
   .form-section { padding: 32px 20px; }
   .product-detail-layout { grid-template-columns: 1fr; }
-  .product-grid, .app-grid, .news-grid, .gallery-image-grid { grid-template-columns: 1fr; }
-  .gallery-image-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* Mobile column counts for .product-grid / .app-grid / .news-grid* /
+   .gallery-image-grid are declared in "Mobile (SPA components)" further down.
+   They MUST come after the base grid rules: with equal specificity the later
+   declaration wins, so rules placed here would be silently overridden by the
+   base `repeat(auto-fit, …)` and the mobile layout would be dead CSS. */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SPA View Components
@@ -854,7 +857,9 @@ p  { color: var(--text-1); }
 /* ── Product cards ───────────────────────────────────────────────────────── */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  /* auto-fit (not auto-fill): auto-fill reserves empty tracks, so a short
+     teaser row left the cards at ~2/3 of the container width. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 .product-card {
@@ -917,7 +922,8 @@ p  { color: var(--text-1); }
 /* Same structure as products — vice versa accent color */
 .app-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  /* auto-fit (not auto-fill) – see .product-grid */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
 }
 .app-card {
@@ -971,7 +977,7 @@ p  { color: var(--text-1); }
 .news-card:hover .news-card-link { gap: 8px; }
 
 /* News teaser on landing page (smaller) */
-.news-grid-teaser { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+.news-grid-teaser { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
 .news-card-teaser { background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; text-decoration: none; display: flex; flex-direction: column; transition: all var(--t); box-shadow: var(--shadow-sm); }
 .news-card-teaser:hover { border-color: rgba(27,111,184,0.18); transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .news-card-teaser .news-card-img { height: 110px; }
@@ -998,6 +1004,46 @@ p  { color: var(--text-1); }
 .article-content ul ul, .article-content ol ol, .article-content ul ol, .article-content ol ul { margin: 0.4em 0 0.4em 1.5em; }
 .article-content a  { color: var(--primary); }
 .article-content img { border-radius: var(--r-md); margin: 16px 0; max-width: 100%; }
+
+/* ── Rich text (one block for ALL sanitized article content) ─────────────────
+   Added as an extra class next to the existing container classes
+   (article-content / product-detail-desc / product-spec-content /
+   training-card-desc / faq-answer), never replacing them.
+   Imported content uses WordPress markup: <figure class="wp-caption
+   aligncenter" style="width:500px"><img …><figcaption class="wp-caption-text">.
+   These rules center the image, keep the caption italic and – crucially –
+   never distort the picture (no fixed height) while staying inside the column
+   on narrow screens.                                                               */
+.richtext { overflow-wrap: break-word; }
+.richtext img {
+  display: block;
+  height: auto;               /* aspect ratio is never broken */
+  max-width: 100% !important; /* beats inline width from the import */
+  width: auto;
+  margin: 20px auto;         /* horizontally centered */
+  border-radius: var(--r-md);
+}
+.richtext figure {
+  margin: 24px 0;
+  max-width: 100% !important; /* beats inline width from the import */
+  text-align: center;
+}
+.richtext figure img { margin: 0 auto; }
+.richtext figcaption,
+.richtext .wp-caption-text {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-3);
+  font-style: italic;
+  text-align: center;
+}
+.richtext .alignleft  { margin-right: 24px; margin-left: 0; }
+.richtext .alignright { margin-left: 24px;  margin-right: 0; }
+@media (max-width: 600px) {
+  .richtext .alignleft, .richtext .alignright { margin-left: 0; margin-right: 0; }
+}
 
 .back-link { font-size: 0.84rem; color: var(--text-3); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 28px; transition: color var(--t); }
 .back-link:hover { color: var(--primary); }
@@ -1308,6 +1354,29 @@ p  { color: var(--text-1); }
   border-radius: var(--r-lg); 
   max-height: 600px;
 }
+/* Application cover = compact wide banner.
+   Application covers come in very different ratios (panoramic, square,
+   portrait). Rendering them at their natural size made portrait covers fill
+   most of the page, so the image is cropped to a fixed, shallow band instead.
+   The stored file is untouched – object-fit only controls how it is displayed. */
+.app-detail-cover-img {
+  width: 100%;
+  height: clamp(150px, 22vw, 260px);
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-1);
+}
+.app-detail-cover-img .article-cover {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  object-position: center;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
 
 /* ── Linked section (below detail) ──────────────────────────────────────── */
 .linked-section { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--border); }
@@ -1372,6 +1441,20 @@ p  { color: var(--text-1); }
   .product-detail-layout { grid-template-columns: 1fr; }
   .linked-items-grid { grid-template-columns: repeat(2, 1fr); }
   .section-block, .section-block-alt { padding: 48px 0; }
+
+  /* Grid columns (declared after the base grid rules on purpose – see the
+     note in "Responsive (base)"). Small tiles keep two columns instead of
+     stretching one card across the whole screen. */
+  .news-grid { grid-template-columns: 1fr; }
+  .gallery-image-grid { grid-template-columns: repeat(2, 1fr); }
+  .product-grid, .app-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .news-grid-teaser { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Phone: one card per row. Below this width a 2-column grid leaves tiles
+   too narrow to read, so the landing teasers fall back to a single column. */
+@media (max-width: 420px) {
+  .product-grid, .app-grid, .news-grid-teaser { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {

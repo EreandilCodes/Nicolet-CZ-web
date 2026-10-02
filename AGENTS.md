@@ -729,9 +729,97 @@ Both Product and Application detail pages share the same single-column layout st
 ```
 
 - Product cover wrapper: `<div class="product-detail-cover">` (same margin-bottom as app-detail-cover)
-- Application cover wrapper: `<div class="app-detail-cover">`
+- Application cover wrapper: `<div class="app-detail-cover">` containing a **crop box**
+  `<div class="app-detail-cover-img">` with the `<img>` inside and the caption as a
+  sibling **after** it. Covers have mixed ratios (panoramic → portrait); the box
+  is `height: clamp(150px, 22vw, 260px)` + `object-fit: cover` so no cover eats the
+  page. Never change the stored file.
 - Linked items go INSIDE a tab panel as `linked-items-grid` cards — NOT as a separate section below, NOT in a right column
 - **Do NOT use `.product-detail-layout` (2-column grid) in the detail renderer**
+
+
+# ── RICH TEXT: TWO MODES, ONE MECHANISM (2026-10-02) ───────────────────
+# Added after the audit of raw HTML / `[&hellip;]` / duplicated body text in tiles.
+# All of those symptoms were one bug: five different ad-hoc `stripHtml()` /
+# `esc()` variants and no single place where stored rich content became a preview.
+# `tests/unit/public-render-contract.test.js` enforces every rule below.
+# ───────────────────────────────────────────────────────────────────────
+
+Stored content (`*_cz` / `*_en` text columns) is **rich HTML** (WordPress /
+Elementor). It may only reach the page in one of two modes:
+
+| Mode | Used for | Mechanism |
+|---|---|---|
+| **DETAIL** | article bodies, product description/spec, page content, FAQ answers | `sanitize()` (DOMPurify) — HTML allowed |
+| **PREVIEW** | tiles, cards, search results, meta descriptions, SEO snippets | `plainText()` / `previewText()` from `frontend/js/richtext.js`, then `esc()` |
+
+**Rules**
+
+1. **PREVIEW never contains markup.** Raw `<p>`, `<div …>`, `&nbsp;` and the
+   import marker `[&hellip;]` in a tile are always a bug.
+   ```javascript
+   const desc = previewText(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en), 120);
+   // then: ${desc ? `<div class="product-card-desc">${esc(desc)}</div>` : ''}
+   ```
+2. **Gate the render on the computed preview**, never on a `_cz` column
+   (`${p.excerpt_cz ? …}` hides the text for `?lang=en`).
+3. **No second implementation.** No local `stripHtml`, no inline
+   `.replace(/<[^>]*>/g,'')`, no `&nbsp;`/`&hellip;` literals in `public.js`.
+   `sanitizeFallback()` (inside `sanitize()`) is the only allowed tag-strip.
+4. **Do NOT shorten stored HTML in SQL.** `SUBSTR(content_cz, 1, 300)` cuts a tag
+   in half (`…<div cla`) — the imported Elementor content has up to 7.7 kB of
+   markup before the first word. List endpoints (`?fields=list`) must return the
+   **plain-text excerpt column** (`excerpt_cz`, `excerpt_en`), which the
+   frontend already prefers via `p.excerpt_cz || p.description_cz`.
+5. **Imported perex = body's lead.** `excerptRepeatsLead(excerpt, content)` hides
+   the separate perex when it is only the opening of the body (116/118 news
+   posts). Display-only — never rewrite the stored text.
+6. **Every DETAIL container gets the `richtext` class** (added next to the
+   existing class, never replacing it): `article-content`,
+   `product-detail-desc`, `product-spec-content`, `training-card-desc`,
+   `faq-answer`. One CSS block (`.richtext` in `public.css`) then governs all
+   rich-text images: centered, `height: auto` (never distorted),
+   `max-width: 100% !important` (beats the import's `style="width:500px"`),
+   italic `figcaption`.
+
+## Public sub-category button order — Admin UI → Menu
+
+`Admin UI → Menu` is the single source of truth for the order of the public
+filter chips (Novinky rubriky, Produkty kategorie, Aplikace okruhy).
+
+```javascript
+import { orderEntitiesByMenu } from './category-order.js';
+const cats = orderEntitiesByMenu(allCats, this.menuItems, 'product');
+```
+
+- Menu children of the section root (`/produkty`, `/novinky`, `/aplikace`) are
+  matched by the parameter the admin picker writes — `?kategorie=`,
+  `?rubrika=`, `?okruh=` (a hand-written `/aplikace/polymery` also works).
+- Entities that are not in the menu keep the order the API returned
+  (`ORDER BY display_order, id`) and are appended.
+- **Never sort the chips in the renderer** — no `display_order` comparison, no
+  alphabetical order, no hardcoded slug list. `display_order` is all `0` for
+  product categories, so any renderer-side sort degenerates to DB id.
+- A menu link with a stale slug simply matches nothing; it can never break the
+  order of the real ones. Fix the link in Admin UI → Menu, never in code.
+
+## Teaser grids fill the available width
+
+Landing teasers render only 4 cards, so `repeat(auto-fill, …)` reserves empty
+tracks and the cards stop at ~2/3 of the container. Use **`auto-fit`** for
+`.product-grid`, `.app-grid`, `.news-grid-teaser`. `auto-fill` is still correct
+for grids that render every record (`.news-grid`, `.cards-grid`).
+
+**Mobile grid overrides must be declared AFTER the base rule.**
+Equal specificity + later declaration wins, so a `@media` rule placed in the
+`Responsive (base)` block (which sits *before* the SPA component definitions in
+`public.css`) is silently overridden by the base `repeat(auto-fit, …)` and
+becomes dead CSS — the layout just looks wrong at ≤768 px with nothing in the
+devtools to explain it. All responsive column counts for `.product-grid`,
+`.app-grid`, `.news-grid*` and `.gallery-image-grid` therefore live in the
+**`Mobile (SPA components)`** block (after the component base rules).
+`tests/unit/public-render-contract.test.js` parses the stylesheet and fails if
+any media override for those grids precedes its base rule.
 
 
 # ── FORENSIC DIAGNOSIS PREVENTIVE RULES (2026-09-25) ───────────────────
