@@ -1074,6 +1074,20 @@ p  { color: var(--text-1); }
 .filter-chip:hover  { border-color: var(--primary); color: var(--primary); }
 .filter-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 
+/* ── Product category hierarchy ─────────────────────────────────────────────
+   .filter-chip above = MAIN categories (dominant level, --text-2).
+   .category-tile below = their SUBCATEGORIES (visually secondary level).
+   #5A6672 keeps the second level clearly grey but passes WCAG AA on both the
+   white page (5.87:1) and the tile background (5.47:1) — --text-3 is only
+   3.55:1 and is therefore never used for these links.
+   The row collapses completely when the selected category has no children. */
+.category-level2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: -16px 0 28px; }
+.category-level2:empty { display: none; }
+.category-tile { padding: 6px 14px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--bg-1); color: #5A6672; font-family: var(--font); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: all var(--t); }
+.category-tile:hover { border-color: var(--primary); color: var(--primary); }
+.category-tile:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.products-filter-empty { grid-column: 1 / -1; }
+
 /* ── Contact banner ──────────────────────────────────────────────────────── */
 .contact-banner {
   padding: 80px 0;

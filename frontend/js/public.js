@@ -465,10 +465,13 @@ class PublicApp {
 
   _renderNewsTeaser(posts) {
     const cards = posts.map(p => {
-      const desc = previewText(pick(p.excerpt_cz, p.excerpt_en));
+      const excerpt = pick(p.excerpt_cz, p.excerpt_en);
+      const content = pick(p.content_cz, p.content_en);
+      const showExcerpt = !!excerpt && !excerptRepeatsLead(excerpt, content);
+      const desc = showExcerpt ? previewText(excerpt) : '';
       return `
       <a class="news-card-teaser" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}">
-        ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
+        ${p.cover_image ? `<div class="news-card-img"><img class="img-align--center" src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
         <div class="news-card-body">
           <div class="news-card-date">${fmtDate(p.published_at)}</div>
           <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
@@ -571,7 +574,7 @@ class PublicApp {
       const desc = previewText(pick(p.excerpt_cz, p.excerpt_en));
       return `
       <a class="news-card" href="/novinky/${esc(p.slug)}" data-nav="/novinky/${esc(p.slug)}" data-news-cat="${p.category_id || ''}">
-        ${p.cover_image ? `<div class="news-card-img"><img src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
+        ${p.cover_image ? `<div class="news-card-img"><img class="img-align--center" src="${esc(p.cover_image)}" alt="${esc(pick(p.title_cz, p.title_en))}" loading="lazy"></div>` : ''}
         <div class="news-card-body">
           <div class="news-card-date">${fmtDate(p.published_at)}</div>
           <h3 class="news-card-title">${esc(pick(p.title_cz, p.title_en))}</h3>
@@ -706,16 +709,85 @@ class PublicApp {
       this._getCategories(),
     ]);
 
-    // Admin UI → Menu decides the order of the category buttons
-    const cats = orderEntitiesByMenu(allCats, this.menuItems, 'product');
+    // ── Category hierarchy ──────────────────────────────────────────────────
+    // The tree comes from the DB relation only (parent_id) — never from names
+    // or slugs, so a new category works without any frontend change. A category
+    // without a parent is a MAIN category, every other one is its subcategory.
+    const byId = new Map(allCats.map(c => [c.id, c]));
+    const childrenByParent = new Map();
+    allCats.forEach(c => {
+      const key = c.parent_id == null ? null : c.parent_id;
+      if (!childrenByParent.has(key)) childrenByParent.set(key, []);
+      childrenByParent.get(key).push(c);
+    });
+    const rootCategories = childrenByParent.get(null) || [];
 
-    const filterHtml = cats.length ? `
+    // Admin UI → Menu decides the order of the MAIN categories. Subcategories
+    // are not referenced by the menu, so they keep the API order (see category-order.js).
+    const mainCats = orderEntitiesByMenu(rootCategories, this.menuItems, 'product');
+
+    /** Walks up the tree to the MAIN category a (sub)category belongs to. */
+    const mainCategoryOf = (cat) => {
+      let cur = cat;
+      const seen = new Set();
+      while (cur && cur.parent_id != null && !seen.has(cur.id)) {
+        seen.add(cur.id);
+        cur = byId.get(cur.parent_id) || null;
+      }
+      return cur;
+    };
+
+    /** The branch a category selects for the grid: itself plus all descendants. */
+    const branchIds = (cat) => {
+      if (!cat) return null;
+      const ids = new Set([String(cat.id)]);
+      let queue = [cat.id];
+      while (queue.length) {
+        const next = [];
+        for (const pid of queue) {
+          for (const child of childrenByParent.get(pid) || []) {
+            ids.add(String(child.id));
+            next.push(child.id);
+          }
+        }
+        queue = next;
+      }
+      return ids;
+    };
+
+    // ── Selected state ──────────────────────────────────────────────────────
+    // `selectedCat` is the category the grid is filtered by (null = "Vše"). It is
+    // read from ?kategorie=slug, so a direct link to a subcategory
+    // (/produkty?kategorie=ftir-spektroskopie/ft-ir-spektrometry) and a plain F5
+    // both light up the MAIN category that subcategory belongs to and open the
+    // right subcategory row instead of showing "nothing selected".
+    const slugParam = new URLSearchParams(window.location.search).get('kategorie');
+    let selectedCat = (slugParam ? allCats.find(c => c.slug === slugParam) : null) || null;
+    const activeMain  = mainCategoryOf(selectedCat);
+    let activeIds     = branchIds(selectedCat);
+
+    /** Subcategory tiles for one MAIN category ('' when it has no children). */
+    const subcategoryTiles = (mainId) => {
+      const kids = orderEntitiesByMenu(childrenByParent.get(mainId) || [], this.menuItems, 'product');
+      return kids.map(k => {
+        const href = `/produkty?kategorie=${encodeURIComponent(k.slug)}`;
+        return `<a class="category-tile" href="${esc(href)}" data-nav="${esc(href)}">${esc(pick(k.name_cz, k.name_en))}</a>`;
+      }).join('');
+    };
+
+    const ariaPressed = (on) => ` aria-pressed="${on ? 'true' : 'false'}"`;
+
+    // The MAIN row is one navigation level: "Vše" plus every root category.
+    // The subcategory row lives in its own (empty-hidden) container so the two
+    // levels can never overwrite each other.
+    const filterHtml = mainCats.length ? `
       <div class="filter-bar-pub">
-        <button class="filter-chip active" data-cat-filter="">
+        <button class="filter-chip${activeMain ? '' : ' active'}" data-cat-filter=""${ariaPressed(!activeMain)}>
           ${getLang() === 'en' ? 'All' : 'Vše'}
         </button>
-        ${cats.map(c => `<button class="filter-chip" data-cat-filter="${c.id}">${esc(pick(c.name_cz, c.name_en))}</button>`).join('')}
-      </div>` : '';
+        ${mainCats.map(c => `<button class="filter-chip${activeMain && activeMain.id === c.id ? ' active' : ''}" data-cat-filter="${c.id}"${ariaPressed(!!activeMain && activeMain.id === c.id)}>${esc(pick(c.name_cz, c.name_en))}</button>`).join('')}
+      </div>
+      <div class="category-level2" id="categoryLevel2" role="group" aria-label="${getLang() === 'en' ? 'Subcategories' : 'Podkategorie'}">${activeMain ? subcategoryTiles(activeMain.id) : ''}</div>` : '';
 
     const defaultThumb = this.settings.default_thumbnail || '';
     const cards = prods.map(p => {
@@ -747,57 +819,77 @@ class PublicApp {
       </div>`;
 
     const grid         = el.querySelector('#productsGrid');
+    const level2El     = el.querySelector('#categoryLevel2');
     const loadMoreWrap = el.querySelector('#productsLoadMore');
     const loadMoreBtn  = el.querySelector('#productsLoadMoreBtn');
 
     // Measure 2 rows worth of items based on actual rendered column count
     const PAGE_SIZE = gridColumns(grid, '.product-card') * 2;
 
-    function applyFilter(catId) {
+    // A card matches when it belongs to the selected branch — the selected
+    // category plus every category below it. No selection → show everything.
+    const matchesSelection = (card) => {
+      if (!activeIds) return true;
+      return (card.dataset.productCats || '').split(' ').some(id => id && activeIds.has(id));
+    };
+
+    function updateFilterEmpty(matched) {
+      const empty = grid.querySelector('.products-filter-empty')
+        || grid.appendChild(document.createElement('p'));
+      empty.className = 'empty-state products-filter-empty';
+      empty.textContent = t('common.no_items');
+      empty.style.display = matched.length ? 'none' : '';
+    }
+
+    function applyFilter() {
       const all     = Array.from(grid.querySelectorAll('.product-card'));
-      const matched = catId
-        ? all.filter(c => (c.dataset.productCats || '').split(' ').includes(catId))
-        : all;
+      const matched = all.filter(matchesSelection);
       all.filter(c => !matched.includes(c)).forEach(c => { c.style.display = 'none'; });
       matched.forEach((c, i) => { c.style.display = i < PAGE_SIZE ? '' : 'none'; });
       const shown = Math.min(PAGE_SIZE, matched.length);
-      loadMoreBtn.dataset.catFilter = catId;
-      loadMoreBtn.dataset.shown     = String(shown);
-      loadMoreWrap.style.display    = matched.length > shown ? '' : 'none';
+      loadMoreBtn.dataset.shown  = String(shown);
+      loadMoreWrap.style.display = matched.length > shown ? '' : 'none';
+      updateFilterEmpty(matched);
     }
 
     el.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
-        el.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        const rawId = btn.dataset.catFilter;
+        const main  = rawId ? byId.get(parseInt(rawId, 10)) || null : null;
+
+        selectedCat = main;
+        activeIds   = branchIds(selectedCat);
+
+        el.querySelectorAll('.filter-chip').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('active');
-        applyFilter(btn.dataset.catFilter);
+        btn.setAttribute('aria-pressed', 'true');
+
+        // Second level = the children of the selected MAIN category only. The
+        // previous row is always replaced, and a MAIN category without children
+        // simply leaves the container empty (the row collapses via :empty).
+        if (level2El) level2El.innerHTML = main ? subcategoryTiles(main.id) : '';
+
+        // Keep the URL in sync so F5 restores the same selection.
+        history.replaceState(null, '', main ? `/produkty?kategorie=${encodeURIComponent(main.slug)}` : '/produkty');
+
+        applyFilter();
       });
     });
 
     loadMoreBtn.addEventListener('click', () => {
-      const catId    = loadMoreBtn.dataset.catFilter;
       const shown    = Number(loadMoreBtn.dataset.shown);
-      const all      = Array.from(grid.querySelectorAll('.product-card'));
-      const matched  = catId
-        ? all.filter(c => (c.dataset.productCats || '').split(' ').includes(catId))
-        : all;
+      const matched  = Array.from(grid.querySelectorAll('.product-card')).filter(matchesSelection);
       const newShown = Math.min(shown + PAGE_SIZE, matched.length);
       matched.slice(shown, newShown).forEach(c => { c.style.display = ''; });
       loadMoreBtn.dataset.shown = String(newShown);
       if (newShown >= matched.length) loadMoreWrap.style.display = 'none';
     });
 
-    applyFilter('');
-
-    // Pre-select filter from URL ?kategorie=slug
-    const slugParam = new URLSearchParams(window.location.search).get('kategorie');
-    if (slugParam) {
-      const matched = cats.find(c => c.slug === slugParam);
-      if (matched) {
-        const chip = el.querySelector(`.filter-chip[data-cat-filter="${matched.id}"]`);
-        if (chip) chip.click();
-      }
-    }
+    // Initial filter — already derived from ?kategorie= above.
+    applyFilter();
   }
 
   async renderProductDetail(el, slug) {
