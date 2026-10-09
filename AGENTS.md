@@ -803,6 +803,39 @@ const cats = orderEntitiesByMenu(allCats, this.menuItems, 'product');
 - A menu link with a stale slug simply matches nothing; it can never break the
   order of the real ones. Fix the link in Admin UI → Menu, never in code.
 
+## Product ordering inside categories — Admin UI → Categories + Products
+
+Product order is stored **per (product, category) pair** in
+`product_categories_map.display_order` (nullable). A product can live in several
+categories, so there is **no global product position** and each category has its
+own sequence. `NULL` = not configured → the fallback is the product's global
+`products.display_order` then `id` (deterministic, never insertion order).
+
+Two admin surfaces drive it:
+
+- **Admin UI → Categories** — the category `display_order` (siblings only; the
+  ↑/↓ buttons swap within the same `parent_id`, never across the hierarchy).
+  This controls the **order of the product groups** on the public listing.
+- **Admin UI → Products → „Řazení produktů v kategorii"** — pick a
+  second-level category, move products with the accessible ↑/↓ buttons, save.
+  `PUT /api/products/admin/category/:id/order` with `{ product_ids: [...] }`
+  (full desired sequence). Every id must already belong to the category;
+  omitted ids are reset to the fallback instead of colliding.
+
+The **public renderer** must not sort products itself. `renderProducts()` calls
+the shared `orderProductsForCategory(products, categories, selectedId)` from
+`frontend/js/product-order.js`, which walks the tree (children before their
+parent) and emits each product once, using the saved position. `selectedId=null`
+is the All Products view and appends category-less products last.
+
+**Do not** re-introduce a second ordering algorithm (CSS `order`, renderer-side
+`display_order` comparisons, alphabetical, or a hardcoded list) and **do not**
+shorten the stored rich HTML in SQL to "order" it.
+
+**Filter chips vs. product groups:** the visible chips still follow
+`Admin UI → Menu` (rule above) — that is unchanged. `product_categories.display_order`
+controls the grouping/sequence of the products under those chips.
+
 ## Teaser grids fill the available width
 
 Landing teasers render only 4 cards, so `repeat(auto-fill, …)` reserves empty

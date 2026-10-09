@@ -5,6 +5,7 @@
 
 import { plainText, previewText, excerptRepeatsLead } from './richtext.js';
 import { orderEntitiesByMenu } from './category-order.js';
+import { orderProductsForCategory } from './product-order.js';
 
 /** Lazy-loaded DOMPurify — self-hosted, no CDN dependency. */
 let _DOMPurify = null;
@@ -722,8 +723,9 @@ class PublicApp {
     });
     const rootCategories = childrenByParent.get(null) || [];
 
-    // Admin UI → Menu decides the order of the MAIN categories. Subcategories
-    // are not referenced by the menu, so they keep the API order (see category-order.js).
+    // Admin UI → Menu decides the order of the MAIN filter chips. The product
+    // GROUPS inside the grid follow Admin UI → Categories (display_order) and
+    // are resolved only by orderProductsForCategory() — one shared orderer.
     const mainCats = orderEntitiesByMenu(rootCategories, this.menuItems, 'product');
 
     /** Walks up the tree to the MAIN category a (sub)category belongs to. */
@@ -737,34 +739,15 @@ class PublicApp {
       return cur;
     };
 
-    /** The branch a category selects for the grid: itself plus all descendants. */
-    const branchIds = (cat) => {
-      if (!cat) return null;
-      const ids = new Set([String(cat.id)]);
-      let queue = [cat.id];
-      while (queue.length) {
-        const next = [];
-        for (const pid of queue) {
-          for (const child of childrenByParent.get(pid) || []) {
-            ids.add(String(child.id));
-            next.push(child.id);
-          }
-        }
-        queue = next;
-      }
-      return ids;
-    };
-
     // ── Selected state ──────────────────────────────────────────────────────
-    // `selectedCat` is the category the grid is filtered by (null = "Vše"). It is
-    // read from ?kategorie=slug, so a direct link to a subcategory
+    // `selectedCat` is the category the grid shows (null = "Vše"). It is read
+    // from ?kategorie=slug, so a direct link to a subcategory
     // (/produkty?kategorie=ftir-spektroskopie/ft-ir-spektrometry) and a plain F5
     // both light up the MAIN category that subcategory belongs to and open the
     // right subcategory row instead of showing "nothing selected".
     const slugParam = new URLSearchParams(window.location.search).get('kategorie');
     let selectedCat = (slugParam ? allCats.find(c => c.slug === slugParam) : null) || null;
     const activeMain  = mainCategoryOf(selectedCat);
-    let activeIds     = branchIds(selectedCat);
 
     /** Subcategory tiles for one MAIN category ('' when it has no children). */
     const subcategoryTiles = (mainId) => {
@@ -790,14 +773,13 @@ class PublicApp {
       <div class="category-level2" id="categoryLevel2" role="group" aria-label="${getLang() === 'en' ? 'Subcategories' : 'Podkategorie'}">${activeMain ? subcategoryTiles(activeMain.id) : ''}</div>` : '';
 
     const defaultThumb = this.settings.default_thumbnail || '';
-    const cards = prods.map(p => {
-      const catIds = (p.categories || []).map(c => c.id).join(' ');
+    const cardHtml = (p) => {
       let thumb = p.thumbnail_url || '';
       if (!thumb) { try { const imgs = JSON.parse(p.images_json || '[]'); thumb = (typeof imgs[0] === 'string' ? imgs[0] : imgs[0]?.url) || ''; } catch {} }
       if (!thumb) thumb = defaultThumb;
       const desc = previewText(pick(p.excerpt_cz, p.excerpt_en) || pick(p.description_cz, p.description_en), 120);
       return `
-        <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}" data-product-cats="${esc(catIds)}">
+        <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
           ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
           <div class="product-card-body">
             ${p.is_featured ? `<span class="badge-featured">${t('common.featured')}</span>` : ''}
@@ -806,13 +788,13 @@ class PublicApp {
             <span class="product-card-link">${t('common.read_more')} →</span>
           </div>
         </a>`;
-    }).join('');
+    };
 
     el.innerHTML = `
       <div class="container section">
         <h1 class="page-title">${t('nav.products')}</h1>
         ${filterHtml}
-        <div class="product-grid" id="productsGrid">${cards || `<p class="empty-state">${t('common.no_items')}</p>`}</div>
+        <div class="product-grid" id="productsGrid"></div>
         <div id="productsLoadMore" style="text-align:center;margin-top:32px;display:none">
           <button class="btn-outline-pub" id="productsLoadMoreBtn">${t('common.load_more')}</button>
         </div>
@@ -823,34 +805,30 @@ class PublicApp {
     const loadMoreWrap = el.querySelector('#productsLoadMore');
     const loadMoreBtn  = el.querySelector('#productsLoadMoreBtn');
 
-    // Measure 2 rows worth of items based on actual rendered column count
-    const PAGE_SIZE = gridColumns(grid, '.product-card') * 2;
+    let pageSize = 0;
 
-    // A card matches when it belongs to the selected branch — the selected
-    // category plus every category below it. No selection → show everything.
-    const matchesSelection = (card) => {
-      if (!activeIds) return true;
-      return (card.dataset.productCats || '').split(' ').some(id => id && activeIds.has(id));
+    // Two rows worth of items, based on the actual rendered column count.
+    const paginate = () => {
+      const cards   = Array.from(grid.querySelectorAll('.product-card'));
+      const perPage = pageSize || cards.length || 1;
+      const shown   = Math.min(perPage, cards.length);
+      cards.forEach((c, i) => { c.style.display = i < shown ? '' : 'none'; });
+      loadMoreBtn.dataset.shown = String(shown);
+      loadMoreWrap.style.display = cards.length > shown ? '' : 'none';
     };
 
-    function updateFilterEmpty(matched) {
-      const empty = grid.querySelector('.products-filter-empty')
-        || grid.appendChild(document.createElement('p'));
-      empty.className = 'empty-state products-filter-empty';
-      empty.textContent = t('common.no_items');
-      empty.style.display = matched.length ? 'none' : '';
-    }
-
-    function applyFilter() {
-      const all     = Array.from(grid.querySelectorAll('.product-card'));
-      const matched = all.filter(matchesSelection);
-      all.filter(c => !matched.includes(c)).forEach(c => { c.style.display = 'none'; });
-      matched.forEach((c, i) => { c.style.display = i < PAGE_SIZE ? '' : 'none'; });
-      const shown = Math.min(PAGE_SIZE, matched.length);
-      loadMoreBtn.dataset.shown  = String(shown);
-      loadMoreWrap.style.display = matched.length > shown ? '' : 'none';
-      updateFilterEmpty(matched);
-    }
+    // The grid is always rebuilt from the shared orderer — the saved sequence
+    // lives in the data, never in CSS and never in an ad-hoc comparison here.
+    // A category view contains exactly the selected branch; "Vše" contains all
+    // published products in the same hierarchical order.
+    const renderGrid = () => {
+      const ordered = orderProductsForCategory(prods, allCats, selectedCat ? selectedCat.id : null);
+      grid.innerHTML = ordered.length
+        ? ordered.map(cardHtml).join('')
+        : `<p class="empty-state">${t('common.no_items')}</p>`;
+      if (!pageSize) pageSize = gridColumns(grid, '.product-card') * 2;
+      paginate();
+    };
 
     el.querySelectorAll('.filter-chip').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -858,7 +836,6 @@ class PublicApp {
         const main  = rawId ? byId.get(parseInt(rawId, 10)) || null : null;
 
         selectedCat = main;
-        activeIds   = branchIds(selectedCat);
 
         el.querySelectorAll('.filter-chip').forEach(b => {
           b.classList.remove('active');
@@ -875,21 +852,21 @@ class PublicApp {
         // Keep the URL in sync so F5 restores the same selection.
         history.replaceState(null, '', main ? `/produkty?kategorie=${encodeURIComponent(main.slug)}` : '/produkty');
 
-        applyFilter();
+        renderGrid();
       });
     });
 
     loadMoreBtn.addEventListener('click', () => {
       const shown    = Number(loadMoreBtn.dataset.shown);
-      const matched  = Array.from(grid.querySelectorAll('.product-card')).filter(matchesSelection);
-      const newShown = Math.min(shown + PAGE_SIZE, matched.length);
-      matched.slice(shown, newShown).forEach(c => { c.style.display = ''; });
+      const cards    = Array.from(grid.querySelectorAll('.product-card'));
+      const newShown = Math.min(shown + (pageSize || cards.length || 1), cards.length);
+      cards.slice(shown, newShown).forEach(c => { c.style.display = ''; });
       loadMoreBtn.dataset.shown = String(newShown);
-      if (newShown >= matched.length) loadMoreWrap.style.display = 'none';
+      if (newShown >= cards.length) loadMoreWrap.style.display = 'none';
     });
 
-    // Initial filter — already derived from ?kategorie= above.
-    applyFilter();
+    // Initial render — already derived from ?kategorie= above.
+    renderGrid();
   }
 
   async renderProductDetail(el, slug) {

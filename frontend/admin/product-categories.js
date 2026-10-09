@@ -59,14 +59,19 @@ const response = await this.auth.authenticatedFetch('/api/product-categories/adm
       return;
     }
 
-    tbody.innerHTML = this.items.map((item, idx) => {
-      const parent = item.parent_id ? this.items.find(c => c.id === item.parent_id) : null;
-      const isFirst = idx === 0;
-      const isLast  = idx === this.items.length - 1;
+    // Grouped by the real parent relation: roots in their saved order, each
+    // root's children right below it. The ↑/↓ buttons only ever swap a category
+    // with a sibling (same parent), never across the hierarchy.
+    const byOrder = (a, b) =>
+      (Number(a.display_order) || 0) - (Number(b.display_order) || 0) || a.id - b.id;
+
+    const rowHtml = (item, parent, siblingIndex, siblingCount) => {
+      const isFirst = siblingIndex === 0;
+      const isLast  = siblingIndex === siblingCount - 1;
       return `<tr>
         <td class="col-id">${item.id}</td>
         <td>
-          <div class="table-title">${esc(item.name_cz || '–')}</div>
+          <div class="table-title">${parent ? '<span style="color:var(--text-3);">↳ </span>' : ''}${esc(item.name_cz || '–')}</div>
           <div class="table-sub">${esc(item.name_en || '')}</div>
         </td>
         <td>${esc(parent?.name_cz || '–')}</td>
@@ -112,7 +117,23 @@ const response = await this.auth.authenticatedFetch('/api/product-categories/adm
           </div>
         </td>
       </tr>`;
-    }).join('');
+    };
+
+    const roots = this.items.filter(c => c.parent_id == null).sort(byOrder);
+    const rootIds = new Set(roots.map(r => r.id));
+    const rows = [];
+    roots.forEach((root, rootIdx) => {
+      rows.push(rowHtml(root, null, rootIdx, roots.length));
+      const kids = this.items.filter(c => c.parent_id === root.id).sort(byOrder);
+      kids.forEach((kid, i) => rows.push(rowHtml(kid, root, i, kids.length)));
+    });
+    // Orphaned children (their parent is gone) are shown last – never hidden.
+    const orphans = this.items
+      .filter(c => c.parent_id != null && !rootIds.has(c.parent_id) && !this.items.some(p => p.id === c.parent_id))
+      .sort(byOrder);
+    orphans.forEach((c, i) => rows.push(rowHtml(c, null, i, orphans.length)));
+
+    tbody.innerHTML = rows.join('');
   }
 
   _generateSlug(text) {
@@ -241,16 +262,28 @@ this._saving = false;
   }
 
   async moveItem(id, direction) {
-    const idx = this.items.findIndex(i => i.id === id);
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+
+    // Siblings only – the arrows must never jump across the hierarchy (a root
+    // swaps with a root, a child only with another child of the same parent).
+    const byOrder = (a, b) =>
+      (Number(a.display_order) || 0) - (Number(b.display_order) || 0) || a.id - b.id;
+    const siblings = this.items
+      .filter(c => (c.parent_id ?? null) === (item.parent_id ?? null))
+      .sort(byOrder);
+
+    const idx = siblings.findIndex(s => s.id === id);
     const swapIdx = idx + direction;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= this.items.length) return;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= siblings.length) return;
 
-    const a = this.items[idx];
-    const b = this.items[swapIdx];
+    const a = siblings[idx];
+    const b = siblings[swapIdx];
 
-    // Swap display_order values
-    const orderA = a.display_order ?? idx;
-    const orderB = b.display_order ?? swapIdx;
+    // Normalise to the sibling index so equal (e.g. all-zero) display_order
+    // values can never make the swap a silent no-op.
+    const orderA = swapIdx;
+    const orderB = idx;
 
     try {
       await Promise.all([

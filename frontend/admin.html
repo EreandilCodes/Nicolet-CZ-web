@@ -639,6 +639,25 @@
           <option value="">Všechny kategorie</option>
         </select>
       </div>
+
+      <!-- Order of products inside one (second-level) category. The position is
+           stored per (product, category) pair, so a product in several
+           categories keeps an independent order in each of them. -->
+      <div class="section-header-row" style="margin-top:28px;">
+        <h3 style="margin:0;font-size:1rem;color:var(--text-1);">Řazení produktů v kategorii</h3>
+      </div>
+      <p style="color:var(--text-3);font-size:12px;margin:4px 0 10px;">
+        Vyberte podkategorii a nastavte pořadí, v jakém se její produkty zobrazují na webu.
+      </p>
+      <div class="filter-bar">
+        <select id="productOrderCategory" class="filter-select" aria-label="Kategorie pro řazení produktů">
+          <option value="">— Vyberte kategorii —</option>
+        </select>
+        <button type="button" id="btnSaveProductOrder" class="btn btn-primary" disabled>Uložit pořadí</button>
+        <span id="productOrderStatus" role="status" style="align-self:center;font-size:12px;color:var(--text-3);"></span>
+      </div>
+      <ol id="productOrderList" class="product-order-list" aria-label="Pořadí produktů v kategorii"></ol>
+
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
@@ -2636,7 +2655,7 @@
 <!-- Toast container -->
 <div id="admin-toast"></div>
 
-<script type="module" src="/js/admin.js?v=13"></script>
+<script type="module" src="/js/admin.js?v=14"></script>
 
 <style>
   .hidden { display: none !important; }
@@ -2686,6 +2705,17 @@
  .lang-tab-btn:hover { background: #eff6ff; color: #2563eb; }
  .lang-tab-active { background: #fff !important; color: #2563eb !important; border-bottom: 2px solid #2563eb; }
  .lang-tab-panel { border: 1px solid #e2e8f0; border-radius: 0 0 6px 6px; padding: 16px; background: #fff; }
+  .product-order-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .product-order-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg-card);
+  }
+  .product-order-pos { min-width: 22px; font-size: 12px; font-weight: 700; color: var(--text-3); text-align: right; }
+  .product-order-thumb { width: 44px; height: 33px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--bg-muted); }
+  .product-order-thumb-empty { display: inline-block; }
+  .product-order-name { flex: 1; min-width: 0; font-size: 13px; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .product-order-actions { display: flex; gap: 4px; flex-shrink: 0; }
  </style>
 
 <!-- ══ FAQ MODAL ══════════════════════════════════════════════════════════════ -->

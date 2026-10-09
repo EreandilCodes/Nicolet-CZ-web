@@ -373,14 +373,23 @@ console.log('✅ Foreign key indexes ready');
   // ── Product ↔ Category map (M:N — composite PK, no serial) ────────────────
   await db.exec(`
     CREATE TABLE IF NOT EXISTS product_categories_map (
-      product_id  INTEGER NOT NULL,
-      category_id INTEGER NOT NULL,
+      product_id    INTEGER NOT NULL,
+      category_id   INTEGER NOT NULL,
+      display_order INTEGER,
       PRIMARY KEY (product_id, category_id),
       FOREIGN KEY (product_id)  REFERENCES products(id)           ON DELETE CASCADE,
       FOREIGN KEY (category_id) REFERENCES product_categories(id) ON DELETE CASCADE
     )
   `);
 console.log('✅ product_categories_map table ready');
+
+  // ── Per-category product order (Admin UI → Products) ───────────────────────
+  // The order of a product is scoped to the (product, category) pair, because a
+  // product may live in several categories and each list needs its own sequence.
+  // NULL = not configured yet → the public renderer falls back to
+  // products.display_order + id, so the existing order is preserved. The ALTER is
+  // wrapped in try/catch (no migration runner in this project).
+  try { await db.exec('ALTER TABLE product_categories_map ADD COLUMN display_order INTEGER'); } catch { /* exists */ }
 
 // ── Indexes on product_categories_map ──────────────────────────────────────
 await db.exec(`CREATE INDEX IF NOT EXISTS idx_pcm_category ON product_categories_map(category_id)`);

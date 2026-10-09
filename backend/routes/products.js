@@ -36,7 +36,8 @@ async function batchAttachRelations(products) {
   const ph = ids.map(() => '?').join(',');
 
   const catRows = await db.prepare(`
-    SELECT m.product_id, pc.id, pc.slug, pc.name_cz, pc.name_en, pc.display_order, pc.parent_id, pc.is_active
+    SELECT m.product_id, pc.id, pc.slug, pc.name_cz, pc.name_en, pc.display_order, pc.parent_id, pc.is_active,
+           m.display_order AS order_in_category
     FROM product_categories pc
     JOIN product_categories_map m ON m.category_id = pc.id
     WHERE m.product_id IN (${ph})
@@ -71,7 +72,8 @@ async function batchAttachRelations(products) {
 
 async function getProductCategories(productId) {
   return db.prepare(`
-    SELECT pc.* FROM product_categories pc
+    SELECT pc.*, m.display_order AS order_in_category
+    FROM product_categories pc
     JOIN product_categories_map m ON m.category_id = pc.id
     WHERE m.product_id = ?
     ORDER BY pc.display_order, pc.id
@@ -233,6 +235,94 @@ router.get('/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     const result = await batchAttachRelations(products);
     res.json(result);
   } catch (err) {
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/products/admin/category/:categoryId – admin, products of one category
+// in the saved per-category order (used by the ordering panel in Admin → Products)
+router.get('/admin/category/:categoryId', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const categoryId = Number(req.params.categoryId);
+    if (!Number.isInteger(categoryId)) return res.status(400).json({ error: 'Neplatné ID kategorie' });
+
+    const category = await db.prepare('SELECT * FROM product_categories WHERE id = ?').get(categoryId);
+    if (!category) return res.status(404).json({ error: 'Kategorie nenalezena' });
+
+    const products = await db.prepare(`
+      SELECT p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url, p.is_published,
+             m.display_order AS order_in_category
+      FROM products p
+      JOIN product_categories_map m ON m.product_id = p.id
+      WHERE m.category_id = ?
+      ORDER BY CASE WHEN m.display_order IS NULL THEN 1 ELSE 0 END,
+               m.display_order, p.display_order, p.id
+    `).all(categoryId);
+
+    res.json({ category, products });
+  } catch (err) {
+    console.error('Product category GET error:', err);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// PUT /api/products/admin/category/:categoryId/order – admin, persist the full
+// sequence of one category. `product_ids` is the complete desired order.
+// Every id must already belong to the category; ids missing from the request are
+// reset to the deterministic fallback (products.display_order) instead of being
+// dropped or left on a colliding position.
+router.put('/admin/category/:categoryId/order', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const categoryId = Number(req.params.categoryId);
+    if (!Number.isInteger(categoryId)) return res.status(400).json({ error: 'Neplatné ID kategorie' });
+
+    const rawIds = req.body?.product_ids;
+    if (!Array.isArray(rawIds)) return res.status(400).json({ error: 'product_ids musí být pole' });
+
+    const productIds = rawIds.map(Number);
+    if (productIds.some(id => !Number.isInteger(id))) {
+      return res.status(400).json({ error: 'product_ids obsahuje neplatné ID' });
+    }
+    if (new Set(productIds).size !== productIds.length) {
+      return res.status(400).json({ error: 'product_ids obsahuje duplicity' });
+    }
+
+    const category = await db.prepare('SELECT * FROM product_categories WHERE id = ?').get(categoryId);
+    if (!category) return res.status(404).json({ error: 'Kategorie nenalezena' });
+
+    const currentRows = await db.prepare(
+      'SELECT product_id FROM product_categories_map WHERE category_id = ?'
+    ).all(categoryId);
+    const currentIds = new Set(currentRows.map(r => Number(r.product_id)));
+
+    const invalid = productIds.filter(id => !currentIds.has(id));
+    if (invalid.length) {
+      return res.status(400).json({ error: 'Některé produkty nepatří do vybrané kategorie', invalid_ids: invalid });
+    }
+
+    // No transaction runner in this project (SQLite + PostgreSQL share the same
+    // db wrapper). The reset keeps the operation idempotent and every position
+    // unique even if a later update fails.
+    await db.prepare('UPDATE product_categories_map SET display_order = NULL WHERE category_id = ?').run(categoryId);
+    for (let i = 0; i < productIds.length; i++) {
+      await db.prepare(
+        'UPDATE product_categories_map SET display_order = ? WHERE category_id = ? AND product_id = ?'
+      ).run(i + 1, categoryId, productIds[i]);
+    }
+
+    const products = await db.prepare(`
+      SELECT p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url, p.is_published,
+             m.display_order AS order_in_category
+      FROM products p
+      JOIN product_categories_map m ON m.product_id = p.id
+      WHERE m.category_id = ?
+      ORDER BY CASE WHEN m.display_order IS NULL THEN 1 ELSE 0 END,
+               m.display_order, p.display_order, p.id
+    `).all(categoryId);
+
+    res.json({ category, products });
+  } catch (err) {
+    console.error('Product category order PUT error:', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });

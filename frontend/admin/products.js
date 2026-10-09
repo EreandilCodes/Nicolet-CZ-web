@@ -17,6 +17,8 @@ constructor(auth) {
     await Promise.all([this.loadCategories(), this.loadApplications()]);
     await this.loadItems();
     this._bindButtons();
+    this._populateCategorySelects();
+    this._bindOrderPanel();
   }
 
   _bindButtons() {
@@ -24,6 +26,178 @@ constructor(auth) {
     if (btn && !btn.dataset.bound) {
       btn.dataset.bound = '1';
       btn.addEventListener('click', () => this.showModal());
+    }
+  }
+
+  // ─── Category selects (list filter + ordering panel) ───────────────────────
+
+  /** Options for the list filter: roots and their children, tree-ordered. */
+  _categorySelectOptions() {
+    const byOrder = (a, b) =>
+      (Number(a.display_order) || 0) - (Number(b.display_order) || 0) || a.id - b.id;
+    const roots = this.categories.filter(c => c.parent_id == null).sort(byOrder);
+    const out = [];
+    for (const root of roots) {
+      out.push(`<option value="${root.id}">${esc(root.name_cz)}</option>`);
+      const kids = this.categories.filter(c => c.parent_id === root.id).sort(byOrder);
+      for (const kid of kids) {
+        out.push(`<option value="${kid.id}">\u00A0\u00A0\u00A0${esc(kid.name_cz)}</option>`);
+      }
+    }
+    return out.join('');
+  }
+
+  _populateCategorySelects() {
+    const filter = document.getElementById('productsCategoryFilter');
+    if (filter) {
+      const current = filter.value;
+      filter.innerHTML = `<option value="">Všechny kategorie</option>` + this._categorySelectOptions();
+      filter.value = current;
+    }
+
+    // The ordering panel is meant for second-level categories (they have a
+    // parent). Deeper levels are included automatically – the rule is the real
+    // parent_id relation, never a name or a slug prefix.
+    const order = document.getElementById('productOrderCategory');
+    if (order) {
+      const current = order.value;
+      const secondLevel = this.categories.filter(c => c.parent_id != null);
+      order.innerHTML = `<option value="">— Vyberte kategorii —</option>` +
+        secondLevel.map(c => {
+          const parent = this.categories.find(p => p.id === c.parent_id);
+          const label = parent ? `${parent.name_cz} → ${c.name_cz}` : c.name_cz;
+          return `<option value="${c.id}">${esc(label)}</option>`;
+        }).join('');
+      order.value = current;
+    }
+  }
+
+  /** Filter the product table by the search box and the category select. */
+  filterItems() {
+    this._filter = {
+      q: (document.getElementById('productsSearch')?.value || '').trim().toLowerCase(),
+      catId: document.getElementById('productsCategoryFilter')?.value || '',
+    };
+    this.renderItems();
+  }
+
+  // ─── Product ordering within a category ────────────────────────────────────
+
+  _bindOrderPanel() {
+    const select = document.getElementById('productOrderCategory');
+    if (select && !select.dataset.bound) {
+      select.dataset.bound = '1';
+      select.addEventListener('change', () =>
+        this.loadOrderCategory(select.value ? Number(select.value) : null));
+    }
+    const saveBtn = document.getElementById('btnSaveProductOrder');
+    if (saveBtn && !saveBtn.dataset.bound) {
+      saveBtn.dataset.bound = '1';
+      saveBtn.addEventListener('click', () => this.saveOrder());
+    }
+  }
+
+  async loadOrderCategory(categoryId) {
+    this._order = { categoryId, products: [], dirty: false };
+    const list = document.getElementById('productOrderList');
+    const status = document.getElementById('productOrderStatus');
+    this._setOrderSaveEnabled(false);
+
+    if (!categoryId) {
+      if (list) list.innerHTML = '';
+      if (status) status.textContent = '';
+      return;
+    }
+
+    if (status) status.textContent = 'Načítám…';
+    try {
+      const response = await this.auth.authenticatedFetch(`/api/products/admin/category/${categoryId}`);
+      const ct = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = ct?.includes('application/json') ? await response.json() : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      const data = await response.json();
+      this._order.products = data.products || [];
+      this._renderOrderList();
+      if (status) status.textContent = this._order.products.length ? '' : 'Kategorie zatím nemá žádné produkty.';
+    } catch (err) {
+      console.error('Product order load error:', err);
+      if (list) list.innerHTML = '';
+      if (status) status.textContent = 'Chyba načítání: ' + err.message;
+    }
+  }
+
+  _renderOrderList() {
+    const list = document.getElementById('productOrderList');
+    if (!list) return;
+    const items = this._order?.products || [];
+    if (!items.length) { list.innerHTML = ''; return; }
+
+    list.innerHTML = items.map((p, idx) => `
+      <li class="product-order-item">
+        <span class="product-order-pos">${idx + 1}</span>
+        ${p.thumbnail_url
+          ? `<img class="product-order-thumb" src="${esc(p.thumbnail_url)}" alt="">`
+          : '<span class="product-order-thumb product-order-thumb-empty"></span>'}
+        <span class="product-order-name">${esc(p.name_cz || p.name_en || ('#' + p.id))}${p.is_published ? '' : ' <em>(skrytý)</em>'}</span>
+        <span class="product-order-actions">
+          <button type="button" class="btn btn-ghost btn-icon" title="Posunout nahoru" aria-label="Posunout ${esc(p.name_cz || ('#' + p.id))} nahoru" ${idx === 0 ? 'disabled' : ''} onclick="admin.products.moveOrder(${idx}, -1)">▲</button>
+          <button type="button" class="btn btn-ghost btn-icon" title="Posunout dolů" aria-label="Posunout ${esc(p.name_cz || ('#' + p.id))} dolů" ${idx === items.length - 1 ? 'disabled' : ''} onclick="admin.products.moveOrder(${idx}, 1)">▼</button>
+        </span>
+      </li>`).join('');
+  }
+
+  moveOrder(index, direction) {
+    const arr = this._order?.products;
+    if (!arr) return;
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= arr.length) return;
+    [arr[index], arr[target]] = [arr[target], arr[index]];
+    this._order.dirty = true;
+    this._renderOrderList();
+    this._setOrderSaveEnabled(true);
+  }
+
+  _setOrderSaveEnabled(enabled) {
+    const btn = document.getElementById('btnSaveProductOrder');
+    if (btn) btn.disabled = !enabled;
+  }
+
+  async saveOrder() {
+    if (this._savingOrder) return;
+    const { categoryId, products = [] } = this._order || {};
+    if (!categoryId) return;
+
+    this._savingOrder = true;
+    const btn = document.getElementById('btnSaveProductOrder');
+    const status = document.getElementById('productOrderStatus');
+    if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
+    if (status) status.textContent = '';
+
+    try {
+      const response = await this.auth.authenticatedFetch(`/api/products/admin/category/${categoryId}/order`, {
+        method: 'PUT',
+        body: JSON.stringify({ product_ids: products.map(p => p.id) }),
+      });
+      const ct = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = ct?.includes('application/json') ? await response.json() : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      const data = await response.json();
+      this._order.products = data.products || [];
+      this._order.dirty = false;
+      this._renderOrderList();
+      if (status) status.textContent = 'Pořadí uloženo.';
+      window.admin?.showNotification('Pořadí produktů uloženo', 'success');
+    } catch (err) {
+      console.error('Product order save error:', err);
+      if (status) status.textContent = 'Chyba ukládání: ' + err.message;
+      window.admin?.showNotification('Chyba ukládání pořadí: ' + err.message, 'error');
+    } finally {
+      this._savingOrder = false;
+      if (btn) { btn.textContent = 'Uložit pořadí'; btn.disabled = !this._order?.dirty; }
     }
   }
 
@@ -39,6 +213,7 @@ const response = await this.auth.authenticatedFetch('/api/product-categories/adm
       }
       if (!contentType?.includes('application/json')) throw new Error('Neplatná odpověď serveru');
       this.categories = await response.json();
+      this._populateCategorySelects();
     } catch (err) {
       console.error('Products: categories load error:', err);
     }
@@ -84,19 +259,30 @@ const response = await this.auth.authenticatedFetch('/api/products/admin/all');
     const tbody = document.getElementById('productsTableBody');
     if (!tbody) return;
 
-    if (!this.items.length) {
+    const { q = '', catId = '' } = this._filter || {};
+    let items = this.items;
+    if (q) {
+      items = items.filter(i =>
+        (i.name_cz || '').toLowerCase().includes(q) ||
+        (i.name_en || '').toLowerCase().includes(q));
+    }
+    if (catId) {
+      items = items.filter(i => (i.categories || []).some(c => String(c.id) === String(catId)));
+    }
+
+    if (!items.length) {
       tbody.innerHTML = `<tr><td colspan="7">
         <div class="table-empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <circle cx="12" cy="12" r="10"/>
           </svg>
-          <p>Žádné produkty. Přidejte první.</p>
+          <p>${this.items.length ? 'Žádné produkty neodpovídají filtru.' : 'Žádné produkty. Přidejte první.'}</p>
         </div>
       </td></tr>`;
       return;
     }
 
-    tbody.innerHTML = this.items.map(item => {
+    tbody.innerHTML = items.map(item => {
       const cats = (item.categories || []).map(c => esc(c.name_cz)).join(', ') || '–';
       return `<tr>
         <td class="col-id">${item.id}</td>

@@ -1086,7 +1086,6 @@ p  { color: var(--text-1); }
 .category-tile { padding: 6px 14px; border-radius: 100px; border: 1.5px solid var(--border); background: var(--bg-1); color: #5A6672; font-family: var(--font); font-size: 0.82rem; font-weight: 600; text-decoration: none; transition: all var(--t); }
 .category-tile:hover { border-color: var(--primary); color: var(--primary); }
 .category-tile:focus-visible, .filter-chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-.products-filter-empty { grid-column: 1 / -1; }
 
 /* ── Contact banner ──────────────────────────────────────────────────────── */
 .contact-banner {
