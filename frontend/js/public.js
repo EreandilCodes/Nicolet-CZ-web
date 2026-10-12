@@ -6,6 +6,7 @@
 import { plainText, previewText, excerptRepeatsLead } from './richtext.js';
 import { orderEntitiesByMenu, normalizeKey } from './category-order.js';
 import { orderProductsForCategory } from './product-order.js';
+import { buildProductMenu } from './nav-model.js';
 
 /** Lazy-loaded DOMPurify — self-hosted, no CDN dependency. */
 let _DOMPurify = null;
@@ -219,14 +220,16 @@ class PublicApp {
     // Reference data for automatic navigation discovery: new eligible content
     // appears in the menu without a code change, while the stored menu items stay
     // the manual configuration (order + visibility always win).
-    const [newsCats, prodCats, appGroups] = await Promise.allSettled([
+    const [newsCats, prodCats, appGroups, prodTree] = await Promise.allSettled([
       safeFetch('/api/news-categories'),
       safeFetch('/api/product-categories'),
       safeFetch('/api/application-groups'),
+      safeFetch('/api/menu/product-tree'),
     ]);
     this._navNewsCats = settled(newsCats, []);
     this._navProdCats = settled(prodCats, []);
     this._navAppGroups = settled(appGroups, []);
+    this._navProdTree = settled(prodTree, []);
 
     this._renderNav();
     this._updateTopbar();
@@ -1457,6 +1460,60 @@ class PublicApp {
     }
   }
 
+  /**
+   * Products dropdown: the real hierarchy (top-level → child → instruments)
+   * from /api/menu/product-tree, ordered by the authoritative Admin UI →
+   * Categories / Products rules. Manually configured children of /produkty
+   * override the ORDER of top-level categories by stable entity_id; plain
+   * manual links stay first. Visibility is controlled by content state
+   * (an inactive category or unpublished product never reaches this endpoint).
+   */
+  _renderProductMega(storedChildren, lang) {
+    const label = (e) => (lang === 'en' && e.label_en ? e.label_en : (e.label_cz || e.name_cz || ''));
+    const { flat, roots } = buildProductMenu(this._navProdTree, storedChildren);
+
+    const flatHtml = flat
+      .map(c => {
+        const href = c.link_value || '#';
+        return `<a href="${esc(href)}" data-nav="${esc(href)}">${esc(label(c))}</a>`;
+      })
+      .join('');
+
+    // Fallback: no tree (API failed) → flat top-level categories.
+    if (!roots.length) {
+      const fallback = (this._navProdCats || [])
+        .filter(c => c.parent_id == null)
+        .sort((a, b) => (a.display_order - b.display_order) || (a.id - b.id))
+        .map(c => {
+          const href = `/produkty?kategorie=${encodeURIComponent(c.slug)}`;
+          return `<a href="${esc(href)}" data-nav="${esc(href)}">${esc(label(c))}</a>`;
+        })
+        .join('');
+      return flatHtml + fallback;
+    }
+
+    const cols = roots
+      .map(root => {
+        const rHref = `/produkty?kategorie=${encodeURIComponent(root.slug)}`;
+        const rootProds = (root.products || []).map(p => this._productMegaLink(p, lang)).join('');
+        const kids = (root.children || []).map(k => {
+          const kHref = `/produkty?kategorie=${encodeURIComponent(k.slug)}`;
+          const kProds = (k.products || []).map(p => this._productMegaLink(p, lang)).join('');
+          return `<div class="nav-mega-group"><a class="nav-mega-sub" href="${esc(kHref)}" data-nav="${esc(kHref)}">${esc(label(k))}</a>${kProds}</div>`;
+        }).join('');
+        return `<div class="nav-mega-col"><a class="nav-mega-head" href="${esc(rHref)}" data-nav="${esc(rHref)}">${esc(label(root))}</a>${rootProds}${kids}</div>`;
+      })
+      .join('');
+
+    return flatHtml + (cols ? `<div class="nav-megamenu">${cols}</div>` : '');
+  }
+
+  _productMegaLink(p, lang) {
+    const name = lang === 'en' && p.name_en ? p.name_en : (p.name_cz || '');
+    const href = `/produkty/${p.slug}`;
+    return `<a class="nav-mega-prod" href="${esc(href)}" data-nav="${esc(href)}">${esc(name)}</a>`;
+  }
+
   _renderNav() {
     const nav = document.getElementById('main-nav');
     if (!nav) return;
@@ -1471,20 +1528,27 @@ class PublicApp {
 
     const chevronSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`;
 
-    // Automatically discovered children for a stored root item. The stored menu
-    // is the manual configuration; anything eligible that is not referenced yet
-    // is appended after it, in the entity's own deterministic order. Nothing is
-    // ever removed or reordered here, so an administrator's customisation wins.
+    const labelOf = (e) => (lang === 'en' && e.label_en ? e.label_en : (e.label_cz || e.name_cz || ''));
+
+    // Discovered children for a non-product root (News rubrics, application
+    // groups). The stored menu is the manual configuration; an eligible entity
+    // that is not referenced yet is appended, in its own deterministic order.
     const dynamicChildren = (rootItem, storedChildren) => {
       const key = normalizeKey(rootItem.link_value);
-      const existing = new Set(
+      const referencedIds = new Set(
+        storedChildren
+          .filter(c => c.entity_type && c.entity_id != null)
+          .map(c => `${c.entity_type}:${Number(c.entity_id)}`)
+      );
+      const slugSeen = new Set(
         storedChildren.map(c => normalizeKey(linkSlug(c.link_value) || c.label_cz))
       );
       const extra = [];
-      const append = (entities, makeLink, filter) => {
+      const append = (entities, entityType, makeLink) => {
         for (const e of (entities || [])) {
-          if (filter && !filter(e)) continue;
-          if (!e.slug || existing.has(normalizeKey(e.slug))) continue;
+          if (!e.slug) continue;
+          if (referencedIds.has(`${entityType}:${Number(e.id)}`)) continue;
+          if (slugSeen.has(normalizeKey(e.slug))) continue;
           extra.push({
             id: 1e6 + Number(e.id || 0),
             display_order: 1e4 + (Number(e.display_order) || 0),
@@ -1496,40 +1560,44 @@ class PublicApp {
       };
 
       if (key === 'novinky') {
-        append(this._navNewsCats, s => `/novinky?rubrika=${encodeURIComponent(s)}`);
-      } else if (key === 'produkty') {
-        append(this._navProdCats, s => `/produkty?kategorie=${encodeURIComponent(s)}`,
-          c => c.parent_id == null);
+        append(this._navNewsCats, 'news_category', s => `/novinky?rubrika=${encodeURIComponent(s)}`);
       } else if (key === 'aplikace') {
-        append(this._navAppGroups, s => `/aplikace?okruh=${encodeURIComponent(s)}`);
+        append(this._navAppGroups, 'app_group', s => `/aplikace?okruh=${encodeURIComponent(s)}`);
       }
       return extra;
     };
 
     nav.innerHTML = roots.map(item => {
       const href = item.link_value || '#';
-      const label = lang === 'en' && item.label_en ? item.label_en : item.label_cz;
+      const text = lang === 'en' && item.label_en ? item.label_en : item.label_cz;
 
       const storedChildren = children
         .filter(c => c.parent_id === item.id)
-        .sort((a, b) => a.display_order - b.display_order);
-      const itemChildren = storedChildren
-        .concat(dynamicChildren(item, storedChildren))
         .sort((a, b) => (a.display_order - b.display_order) || (a.id - b.id));
+      const key = normalizeKey(item.link_value);
 
-      const hasDropdown = itemChildren.length > 0;
+      let dropdownBody = '';
+      let mega = false;
+      if (key === 'produkty') {
+        dropdownBody = this._renderProductMega(storedChildren, lang);
+        mega = true;
+      } else {
+        const merged = storedChildren
+          .concat(dynamicChildren(item, storedChildren))
+          .sort((a, b) => (a.display_order - b.display_order) || (a.id - b.id));
+        dropdownBody = merged.map(c => {
+          const cHref = c.link_value || '#';
+          return `<a href="${esc(cHref)}" data-nav="${esc(cHref)}">${esc(labelOf(c))}</a>`;
+        }).join('');
+      }
 
-      const dropdownHtml = hasDropdown ? `
-        <div class="nav-dropdown">
-          ${itemChildren.map(c => {
-            const cHref  = c.link_value || '#';
-            const cLabel = lang === 'en' && c.label_en ? c.label_en : (c.label_cz || '');
-            return `<a href="${esc(cHref)}" data-nav="${esc(cHref)}">${esc(cLabel)}</a>`;
-          }).join('')}
-        </div>` : '';
+      const hasDropdown = !!dropdownBody;
+      const dropdownHtml = hasDropdown
+        ? `<div class="nav-dropdown${mega ? ' nav-dropdown-mega' : ''}">${dropdownBody}</div>`
+        : '';
 
       return `<li>
-        <a href="${esc(href)}" data-nav="${esc(href)}">${esc(label)}${hasDropdown ? chevronSvg : ''}</a>
+        <a href="${esc(href)}" data-nav="${esc(href)}">${esc(text)}${hasDropdown ? chevronSvg : ''}</a>
         ${dropdownHtml}
       </li>`;
     }).join('');

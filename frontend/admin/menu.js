@@ -110,12 +110,14 @@ const response = await this.auth.authenticatedFetch('/api/menu/admin/all');
     }
 
     const linkTypeLabels = {
-      internal:    'Interní',
-      page:        'Stránka',
-      product:     'Produkt',
-      application: 'Aplikace',
-      category:    'Kategorie',
-      external:    'Externí',
+      internal:      'Interní',
+      page:          'Stránka',
+      product:       'Produkt',
+      application:   'Aplikace',
+      category:      'Kategorie',
+      news_category: 'Rubrika',
+      app_group:     'Okruh aplikací',
+      external:      'Externí',
     };
     const hierarchy = this._buildHierarchy();
 
@@ -318,6 +320,25 @@ const response = await this.auth.authenticatedFetch('/api/menu/admin/all');
     });
   }
 
+  /** Stable entity reference for a link: { entity_type, entity_id }. */
+  _findTargetIdentity(linkType, linkValue) {
+    if (!linkValue) return { entity_type: null, entity_id: null };
+    const specs = {
+      page:          { list: this._pages,     url: p => `/stranka/${p.slug}`,            type: 'page' },
+      product:       { list: this._products,  url: p => `/produkty/${p.slug}`,           type: 'product' },
+      application:   { list: this._apps,      url: a => `/aplikace/${a.slug}`,           type: 'application' },
+      category:      { list: this._cats,      url: c => `/produkty?kategorie=${c.slug}`, type: 'product_category' },
+      news_category: { list: this._newsCats,  url: c => `/novinky?rubrika=${c.slug}`,    type: 'news_category' },
+      app_group:     { list: this._appGroups, url: g => `/aplikace?okruh=${g.slug}`,     type: 'app_group' },
+    };
+    const spec = specs[linkType];
+    if (!spec) return { entity_type: null, entity_id: null };
+    const target = spec.list.find(e => spec.url(e) === linkValue);
+    return target
+      ? { entity_type: spec.type, entity_id: target.id }
+      : { entity_type: null, entity_id: null };
+  }
+
   _findTargetMeta(linkType, linkValue) {
     if (!linkValue) return null;
     let target = null;
@@ -376,14 +397,19 @@ async saveItem() {
     }
 
     const parentVal = document.getElementById('menuParentId').value;
+    const linkType  = document.getElementById('menuLinkType').value || 'internal';
+    const linkValue = document.getElementById('menuLinkValue').value.trim() || null;
+    const entity    = this._findTargetIdentity(linkType, linkValue);
     const data = {
       label_cz,
       label_en: document.getElementById('menuLabelEn').value.trim() || null,
       parent_id: parentVal ? Number(parentVal) : null,
-      link_type: document.getElementById('menuLinkType').value || 'internal',
-      link_value: document.getElementById('menuLinkValue').value.trim() || null,
+      link_type: linkType,
+      link_value: linkValue,
       display_order: Number(document.getElementById('menuOrder').value) || 0,
       is_active: document.getElementById('menuActive').checked ? 1 : 0,
+      entity_type: entity.entity_type,
+      entity_id: entity.entity_id,
     };
 
     const isEdit = !!this._editing;

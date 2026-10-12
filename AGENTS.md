@@ -1039,12 +1039,20 @@ Jediná změna v tomto úkolu: doplnění preventivních pravidel do `AGENTS.md`
   items load. Authorization is **never** the button — the Admin UI and every
   mutation endpoint enforce it server-side.
 - **Dynamic navigation discovery:** `_renderNav()` keeps the stored `menu_items`
-  as the manual configuration (order + `is_active` win) and **appends** eligible
-  entities not referenced yet — News rubrics (`/novinky?rubrika=`), top-level
-  product categories (`/produkty?kategorie=`) and application groups
-  (`/aplikace?okruh=`) — deterministically. Nothing stored is removed or
-  reordered. Client-side discovery by `link_value` slug (no `entity_id` column);
-  renaming a slug therefore requires re-picking the menu link.
+  as the manual configuration and **appends** eligible entities not referenced
+  yet — News rubrics (`/novinky?rubrika=`) and application groups
+  (`/aplikace?okruh=`) — deterministically. `menu_items` carries a stable
+  `entity_type` + `entity_id` (written by the admin picker), so a slug rename
+  never breaks the reference; legacy rows without it still match by `link_value`.
+- **Products mega menu:** the Products dropdown is generated from real content by
+  `GET /api/menu/product-tree` (batched: categories + published products + map,
+  ordered by the shared `product-order.js`): top-level category → child category
+  → instruments, published only. `frontend/js/nav-model.js`
+  (`buildProductMenu`) merges it with the manual menu — a stored child of
+  `/produkty` referencing a `product_category` by `entity_id` sets that column's
+  order, plain manual links render first, `is_active: 0` hides a referenced
+  column. Visibility otherwise follows content state (inactive category /
+  unpublished product never reaches the endpoint).
 - **Rich-text typography:** one `.richtext` block centres every inline image
   (the imported WordPress `alignleft/alignright` float intent is neutralised at
   render time; stored HTML is never rewritten) and gives every heading level a

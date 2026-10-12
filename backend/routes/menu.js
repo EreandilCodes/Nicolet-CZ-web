@@ -1,8 +1,23 @@
 import express from 'express';
 import db from '../database.js';
 import { AuthMiddleware } from '../middleware/auth.js';
+import { orderProductsForCategory } from '../../frontend/js/product-order.js';
 
 const router = express.Router();
+
+// Types a menu item may reference by stable id (never by label/slug).
+const ENTITY_TYPES = new Set([
+  'page', 'product', 'application',
+  'product_category', 'news_category', 'app_group',
+]);
+
+function normalizeEntity(entity_type, entity_id) {
+  const type = entity_type && ENTITY_TYPES.has(entity_type) ? entity_type : null;
+  const num  = entity_id == null || entity_id === '' ? null : Number(entity_id);
+  const id   = Number.isInteger(num) ? num : null;
+  // A reference is only valid as a pair.
+  return type && id != null ? { entity_type: type, entity_id: id } : { entity_type: null, entity_id: null };
+}
 
 // GET /api/menu – public, active items ordered by parent_id, display_order
 router.get('/', async (req, res) => {
@@ -12,6 +27,62 @@ router.get('/', async (req, res) => {
     ).all();
     res.json(rows);
   } catch (err) {
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/menu/product-tree – public, the Products navigation tree computed
+// from the real content in batched queries (3 selects + the shared orderer):
+//   top-level category → child category → instruments
+// Only published products of active categories are returned, ordered by the
+// authoritative Admin UI → Categories / Products rules. Admin UI → Menu may
+// override the order/visibility of TOP-LEVEL categories (manual config wins).
+router.get('/product-tree', async (req, res) => {
+  try {
+    const categories = await db.prepare(
+      'SELECT id, parent_id, slug, name_cz, name_en, display_order FROM product_categories WHERE is_active = 1 ORDER BY display_order, id'
+    ).all();
+    const products = await db.prepare(
+      'SELECT id, slug, name_cz, name_en, display_order FROM products WHERE is_published = 1 ORDER BY display_order, id'
+    ).all();
+    const mapRows = await db.prepare(
+      'SELECT product_id, category_id, display_order AS order_in_category FROM product_categories_map'
+    ).all();
+
+    const byProduct = new Map();
+    for (const r of mapRows) {
+      const list = byProduct.get(r.product_id) || [];
+      list.push({ id: r.category_id, order_in_category: r.order_in_category });
+      byProduct.set(r.product_id, list);
+    }
+    const withCats = products.map(p => ({ ...p, categories: byProduct.get(p.id) || [] }));
+
+    const childOf = new Map();
+    for (const c of categories) {
+      const key = c.parent_id == null ? null : Number(c.parent_id);
+      if (!childOf.has(key)) childOf.set(key, []);
+      childOf.get(key).push(c);
+    }
+
+    const slim = (p) => ({ id: p.id, slug: p.slug, name_cz: p.name_cz, name_en: p.name_en });
+
+    const roots = (childOf.get(null) || []).map(root => {
+      const children = (childOf.get(Number(root.id)) || []).map(child => ({
+        ...child,
+        products: orderProductsForCategory(withCats, categories, Number(child.id)).map(slim),
+      }));
+      // Products assigned directly to the root (not through a child) are kept
+      // on the root node so nothing silently disappears from the menu.
+      const taken = new Set(children.flatMap(c => c.products.map(p => p.id)));
+      const rootProducts = orderProductsForCategory(withCats, categories, Number(root.id))
+        .filter(p => !taken.has(p.id))
+        .map(slim);
+      return { ...root, products: rootProducts, children };
+    });
+
+    res.json(roots);
+  } catch (err) {
+    console.error('Product tree error:', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });
@@ -31,12 +102,13 @@ router.get('/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
 // POST /api/menu/admin – admin, create menu item
 router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
   try {
-    const { parent_id, label_cz, label_en, link_type, link_value, display_order, is_active } = req.body;
+    const { parent_id, label_cz, label_en, link_type, link_value, display_order, is_active, entity_type, entity_id } = req.body;
     if (!label_cz?.trim()) return res.status(400).json({ error: 'label_cz je povinné' });
+    const ent = normalizeEntity(entity_type, entity_id);
 
     const result = await db.prepare(`
-      INSERT INTO menu_items (parent_id, label_cz, label_en, link_type, link_value, display_order, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO menu_items (parent_id, label_cz, label_en, link_type, link_value, display_order, is_active, entity_type, entity_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       parent_id || null,
       label_cz.trim(),
@@ -44,7 +116,9 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
       link_type?.trim() || 'internal',
       link_value?.trim() || null,
       Number(display_order) || 0,
-      is_active != null ? (is_active ? 1 : 0) : 1
+      is_active != null ? (is_active ? 1 : 0) : 1,
+      ent.entity_type,
+      ent.entity_id
     );
 
     const created = await db.prepare('SELECT * FROM menu_items WHERE id = ?').get(result.lastInsertRowid);
@@ -59,13 +133,14 @@ router.post('/admin', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, asyn
 router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
-    const { parent_id, label_cz, label_en, link_type, link_value, display_order, is_active } = req.body;
+    const { parent_id, label_cz, label_en, link_type, link_value, display_order, is_active, entity_type, entity_id } = req.body;
     if (!label_cz?.trim()) return res.status(400).json({ error: 'label_cz je povinné' });
+    const ent = normalizeEntity(entity_type, entity_id);
 
     const result = await db.prepare(`
       UPDATE menu_items
       SET parent_id = ?, label_cz = ?, label_en = ?, link_type = ?, link_value = ?,
-          display_order = ?, is_active = ?
+          display_order = ?, is_active = ?, entity_type = ?, entity_id = ?
       WHERE id = ?
     `).run(
       parent_id || null,
@@ -75,6 +150,8 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
       link_value?.trim() || null,
       Number(display_order) || 0,
       is_active != null ? (is_active ? 1 : 0) : 1,
+      ent.entity_type,
+      ent.entity_id,
       id
     );
 

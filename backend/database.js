@@ -596,6 +596,12 @@ await db.exec(`CREATE INDEX IF NOT EXISTS idx_pam_application ON product_applica
       FOREIGN KEY (parent_id) REFERENCES menu_items(id)
     )
   `);
+
+  // Stable entity reference for generated menu nodes: a menu item that points
+  // at a real record keeps its identity when the record's slug changes. Additive
+  // and idempotent (no migration runner in this project).
+  try { await db.exec('ALTER TABLE menu_items ADD COLUMN entity_type TEXT'); } catch { /* exists */ }
+  try { await db.exec('ALTER TABLE menu_items ADD COLUMN entity_id INTEGER'); } catch { /* exists */ }
   console.log('✅ All tables initialized');
 
   // ── Seed default menu items ────────────────────────────────────────────────
