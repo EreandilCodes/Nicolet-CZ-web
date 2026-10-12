@@ -358,7 +358,10 @@ class PublicApp {
     return `<section class="landing-intro">
   <div class="landing-intro-wrapper">
     <div class="landing-intro-image">
-      <img src="/uploads/NicoLandingPage.png" alt="Nicolet CZ">
+      <picture>
+        <source type="image/webp" srcset="/uploads/NicoLandingPage.webp">
+        <img src="/uploads/NicoLandingPage.png" width="1536" height="1024" alt="Nicolet CZ" decoding="async">
+      </picture>
     </div>
     <div class="landing-intro-card">
       <h2>Společnost Nicolet CZ s.r.o. působí na českém trhu více než 30 let.</h2>
@@ -387,7 +390,7 @@ class PublicApp {
 
     const slides = items.map((item, i) => `
       <div class="carousel-slide ${i === 0 ? 'active' : ''}" data-slide="${i}">
-        <img src="${esc(item.image_url)}" alt="${esc(pick(item.title_cz, item.title_en))}" loading="${i === 0 ? 'eager' : 'lazy'}">
+        <img src="${esc(item.image_url)}" alt="${esc(pick(item.title_cz, item.title_en))}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${i === 0 ? ' fetchpriority="high"' : ''}>
         ${item.show_text && (item.title_cz || item.subtitle_cz) ? `
           <div class="carousel-caption">
             ${item.title_cz ? `<h2>${esc(pick(item.title_cz, item.title_en))}</h2>` : ''}
@@ -724,7 +727,7 @@ class PublicApp {
           <a href="/novinky" data-nav="/novinky" class="back-link">← ${t('common.back')}</a>
           <span class="article-date">${fmtDate(post.published_at)}</span>
         </div>
-        ${post.cover_image ? `<figure class="article-cover-wrap img-align--${esc(post.cover_align || 'center')}"><img class="article-cover" src="${esc(post.cover_image)}" alt="${esc(pick(post.title_cz, post.title_en))}">${post.cover_caption ? `<figcaption class="img-caption img-caption--${esc(post.cover_align || 'center')}">${esc(post.cover_caption)}</figcaption>` : ''}</figure>` : ''}
+        ${post.cover_image ? `<figure class="article-cover-wrap img-align--${esc(post.cover_align || 'center')}"><img class="article-cover" src="${esc(post.cover_image)}" alt="${esc(pick(post.title_cz, post.title_en))}" decoding="async" fetchpriority="high">${post.cover_caption ? `<figcaption class="img-caption img-caption--${esc(post.cover_align || 'center')}">${esc(post.cover_caption)}</figcaption>` : ''}</figure>` : ''}
         <h1 class="article-title">${esc(pick(post.title_cz, post.title_en))}</h1>
         ${excerptHtml}
         <div class="richtext article-content">${sanitize(content)}</div>
@@ -929,11 +932,11 @@ class PublicApp {
 
     const galleryHtml = images.length
       ? `<div class="product-detail-cover">
-           <img id="prodMainImg" class="article-cover img-align--center" src="${esc(images[0].url)}" alt="${esc(pick(p.name_cz, p.name_en))}">
+           <img id="prodMainImg" class="article-cover img-align--center" src="${esc(images[0].url)}" alt="${esc(pick(p.name_cz, p.name_en))}" decoding="async" fetchpriority="high">
            ${images[0].caption ? `<p class="img-caption img-caption--${esc(images[0].align || 'center')}">${esc(images[0].caption)}</p>` : ''}
            ${images.length > 1 ? `<div class="product-thumbs">${images.map((img, i) => `
              <img src="${esc(img.url)}" data-full-src="${esc(img.url)}" class="product-thumb ${i === 0 ? 'active' : ''}"
-               loading="lazy">`).join('')}</div>` : ''}
+               loading="lazy" decoding="async">`).join('')}</div>` : ''}
          </div>`
       : '';
 
@@ -1089,7 +1092,7 @@ class PublicApp {
     const coverHtml = a.cover_image
       ? `<div class="app-detail-cover">
            <div class="app-detail-cover-img">
-             <img class="article-cover img-align--${esc(a.cover_align || 'center')}" src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}">
+             <img class="article-cover img-align--${esc(a.cover_align || 'center')}" src="${esc(a.cover_image)}" alt="${esc(pick(a.name_cz, a.name_en))}" decoding="async" fetchpriority="high">
            </div>
            ${a.cover_caption ? `<p class="img-caption img-caption--${esc(a.cover_align || 'center')}">${esc(a.cover_caption)}</p>` : ''}
          </div>`
@@ -1222,7 +1225,7 @@ class PublicApp {
     const excerpt = plainText(pick(page.excerpt_cz, page.excerpt_en));
     el.innerHTML = `
       <article class="container section article-body">
-        ${page.cover_image ? `<img class="article-cover" src="${esc(page.cover_image)}" alt="${esc(pick(page.title_cz, page.title_en))}">` : ''}
+        ${page.cover_image ? `<img class="article-cover" src="${esc(page.cover_image)}" alt="${esc(pick(page.title_cz, page.title_en))}" decoding="async">` : ''}
         <h1 class="article-title">${esc(pick(page.title_cz, page.title_en))}</h1>
         ${excerpt ? `<p class="article-excerpt">${esc(excerpt)}</p>` : ''}
         <div class="richtext article-content">${sanitize(pick(page.content_cz, page.content_en))}</div>
