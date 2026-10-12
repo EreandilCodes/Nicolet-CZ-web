@@ -45,14 +45,18 @@ Branch: `perf-audit/2026-10-12`.
 | P6 | 100+ stored gallery PNG/JPG are large (0.9–8.8 MB each) | `du`/`find`; e.g. 8 832 949 B PNG | High | L | NEEDS APPROVAL (content) |
 | P7 | JS 96 KB + CSS 105 KB served **unminified** (no build step) | raw sizes above | Medium | M | NEEDS APPROVAL (add build) |
 | P8 | Google Fonts third-party CSS is render-blocking (35 `@font-face`) | `index.html:21`; fonts CSS | Medium | M | NEEDS APPROVAL (self-host) |
-| P9 | `/api/products?fields=list` 25 KB @1.26 s on home/listing | curl | Medium | M | NEEDS APPROVAL (cache/paginate) |
-| P10 | favicon 404 (no icon asset) | `index.html:9` | Low | S | NEEDS APPROVAL (asset) |
+| P9 | `/api/products?fields=list` 25 KB @1.26 s on home/listing | curl | Medium | M | **FIXED** (30 s HTTP cache + SWR; pagination unnecessary) |
+| P10 | favicon 404 (no icon asset) | `index.html:9` | Low | S | **FIXED** (`favicon.ico` + `apple-touch-icon.png`) |
 | P11 | `aurora.js` rAF animation with blurred blobs (desktop only) | `aurora.js:81-108` | Low | M | Not changed (already gated: reduced-motion/touch/<768 px, pauses hidden) |
 
 ## Changes made (this branch)
 1. `perf(images)`: homepage landing image → `<picture>` WebP + PNG fallback, width/height,
    `decoding="async"`; `fetchpriority="high"` + `decoding="async"` on LCP covers.
 2. `perf(delivery)`: `/uploads/*` served `immutable`; file-like misses return a 9 B 404.
+3. `perf(api)`: public content API cached 30 s (`stale-while-revalidate=300`), admin/auth
+   never cached (`backend/middleware/public-cache.js`).
+4. `perf(assets)`: real `favicon.ico` (16/32/48) + `apple-touch-icon.png` generated from the
+   brand logo emblem (`scripts/make-favicon.mjs`); removes the favicon 404.
 
 ## Verification
 - `npm run lint` → 0 errors (3 pre-existing warnings); `npm test` → 369/369 pass.
