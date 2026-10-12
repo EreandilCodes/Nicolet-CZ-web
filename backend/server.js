@@ -125,6 +125,10 @@ app.use(cors({
       setHeaders(res, filePath) {
         if (filePath.endsWith('.html')) {
           res.setHeader('Cache-Control', 'no-cache');
+        } else if (filePath.includes('/uploads/')) {
+          // Uploaded media filenames are generated with a unique epoch/random
+          // prefix and never overwritten → safe to cache for a year, immutable.
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         } else if (filePath.endsWith('.js')) {
           // ES module imports carry no ?v= query (bumping admin.js? only busts
           // admin.js itself), so a changed *manager* would sit in the browser
@@ -218,7 +222,15 @@ app.use(cors({
     }
 
     app.get('*', (req, res) => {
-      const root = req.path.split('/').filter(Boolean)[0] || '';
+      const segments = req.path.split('/').filter(Boolean);
+      const lastSeg  = segments[segments.length - 1] || '';
+      // A missing static asset (file-like path, e.g. /images/favicon.ico) is a
+      // genuine 404 — never answer it with the ~13 KB SPA document.
+      if (lastSeg.includes('.')) {
+        return res.status(404).type('text/plain').send('Not found');
+      }
+
+      const root = segments[0] || '';
       const isAdmin = isAdminCookie(req);
       let html;
       try {
