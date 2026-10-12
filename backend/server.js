@@ -13,6 +13,7 @@ import { JWT_SECRET } from './config.js';
 import { tokenBlacklist } from './middleware/auth.js';
 import { logger } from './logger.js';
 import { requestLogger } from './middleware/request-logger.js';
+import { publicCache } from './middleware/public-cache.js';
 
 import authRoutes                          from './routes/auth.js';
 import settingsRoutes                      from './routes/settings.js';
@@ -90,6 +91,9 @@ app.use(cors({
 
     // ── Request logging (must be before routes) ───────────────────────────
     app.use(requestLogger);
+
+    // ── Short caching for the public content API (never admin/auth) ───────
+    app.use(publicCache);
 
     // ── Rate limiting ────────────────────────────────────────────────────
     app.use('/api/', rateLimit({
