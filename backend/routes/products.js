@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../database.js';
 import { AuthMiddleware } from '../middleware/auth.js';
+import { orderProductsForCategory } from '../../frontend/js/product-order.js';
 
 const router = express.Router();
 export const categoriesRouter = express.Router();
@@ -323,6 +324,28 @@ router.put('/admin/category/:categoryId/order', AuthMiddleware.verifyToken, Auth
     res.json({ category, products });
   } catch (err) {
     console.error('Product category order PUT error:', err);
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/products/order – public, the authoritative catalogue order as ids.
+// Computed with the SAME shared orderer as the public grid and the Admin UI, so
+// an Application (or any other surface) can order its associated instruments by
+// the one canonical rule without introducing a second sorting algorithm.
+// NOTE: must be defined before /:slug so "order" is not treated as a slug.
+router.get('/order', async (_req, res) => {
+  try {
+    const products = await db.prepare(
+      'SELECT id, display_order FROM products WHERE is_published = 1 ORDER BY display_order, id'
+    ).all();
+    const withCats = await batchAttachRelations(products);
+    const categories = await db.prepare(
+      'SELECT id, parent_id, display_order FROM product_categories WHERE is_active = 1 ORDER BY display_order, id'
+    ).all();
+    const ordered = orderProductsForCategory(withCats, categories, null);
+    res.json({ ids: ordered.map(p => p.id) });
+  } catch (err) {
+    console.error('Product order error:', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });

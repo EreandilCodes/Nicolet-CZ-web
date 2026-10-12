@@ -4,7 +4,7 @@
  */
 
 import { plainText, previewText, excerptRepeatsLead } from './richtext.js';
-import { orderEntitiesByMenu } from './category-order.js';
+import { orderEntitiesByMenu, normalizeKey } from './category-order.js';
 import { orderProductsForCategory } from './product-order.js';
 
 /** Lazy-loaded DOMPurify — self-hosted, no CDN dependency. */
@@ -65,6 +65,18 @@ function pick(czVal, enVal) {
   return czVal || '';
 }
 
+/** Slug a menu link points at: `/produkty?kategorie=x` or `/aplikace/x` → `x`. */
+function linkSlug(linkValue) {
+  const raw = String(linkValue || '');
+  const query = raw.split('?')[1] || '';
+  for (const pair of query.split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq > 0) return decodeURIComponent(pair.slice(eq + 1));
+  }
+  const segments = raw.split('?')[0].split('/').filter(Boolean);
+  return segments.length > 1 ? segments[segments.length - 1] : null;
+}
+
 function fmtDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -81,7 +93,9 @@ async function safeFetch(url) {
     const err = contentType?.includes('application/json')
       ? await response.json()
       : { error: await response.text() };
-    throw new Error(err.error || 'Request failed');
+    const e = new Error(err.error || 'Request failed');
+    e.status = response.status;
+    throw e;
   }
   if (!contentType?.includes('application/json')) throw new Error('Neplatná odpověď serveru');
   return response.json();
@@ -202,7 +216,19 @@ class PublicApp {
     try { this.menuItems = await safeFetch('/api/menu'); }
     catch { this.menuItems = []; }
 
-    await this._renderNav();
+    // Reference data for automatic navigation discovery: new eligible content
+    // appears in the menu without a code change, while the stored menu items stay
+    // the manual configuration (order + visibility always win).
+    const [newsCats, prodCats, appGroups] = await Promise.allSettled([
+      safeFetch('/api/news-categories'),
+      safeFetch('/api/product-categories'),
+      safeFetch('/api/application-groups'),
+    ]);
+    this._navNewsCats = settled(newsCats, []);
+    this._navProdCats = settled(prodCats, []);
+    this._navAppGroups = settled(appGroups, []);
+
+    this._renderNav();
     this._updateTopbar();
     this._updateFooter();
     this._updateLogo();
@@ -254,17 +280,25 @@ class PublicApp {
         await this.renderTrainings(el);
       } else if (parts[0] === 'hledat') {
         await this.renderSearch(el);
+      } else if (parts[0] === 'faq' || parts[0] === 'caste-dotazy') {
+        // /faq and the reserved page slug both route to the FAQ renderer.
+        await this.renderFaq(el);
+      } else if (parts[0] === 'o-nas') {
+        // Root alias used by Admin UI → Menu; the page itself is slug `o-nas`.
+        await this.renderPage(el, 'o-nas');
+      } else if (parts[0] === 'stranka' && parts[1] === 'caste-dotazy') {
+        await this.renderFaq(el);
       } else if (parts[0] === 'stranka' && parts[1]) {
         await this.renderPage(el, parts[1]);
-      } else if (parts[0] === 'faq') {
-        await this.renderFaq(el);
       } else {
-        this.render404(el);
+        await this.render404(el);
       }
     } catch (err) {
       console.error('Route error:', err);
       el.innerHTML = `<div class="container section"><p style="color:var(--error)">Chyba načítání stránky.</p></div>`;
     }
+
+    this._updateAdminEdit();
   }
 
   navigate(path) {
@@ -1033,8 +1067,21 @@ class PublicApp {
   }
 
   async renderApplicationDetail(el, slug) {
-    const [a] = await Promise.all([safeFetch(`/api/applications/${slug}`), _loadDOMPurify()]);
-    const linkedProds = a.products || [];
+    // The application's instruments follow the SAME authoritative catalogue
+    // order as the public Products grid: /api/products/order returns the frozen
+    // sequence (computed by the shared orderer) and we keep only the instruments
+    // genuinely associated with this application, in that order. A newly added
+    // product or a changed category order therefore propagates automatically.
+    const [a, orderData] = await Promise.all([
+      safeFetch(`/api/applications/${slug}`),
+      safeFetch('/api/products/order').catch(() => null),
+      _loadDOMPurify(),
+    ]);
+    const rank = new Map((orderData?.ids || []).map((id, i) => [id, i]));
+    const linkedProds = [...(a.products || [])].sort(
+      (x, y) => (rank.has(x.id) ? rank.get(x.id) : Infinity)
+              - (rank.has(y.id) ? rank.get(y.id) : Infinity)
+    );
 
     const coverHtml = a.cover_image
       ? `<div class="app-detail-cover">
@@ -1160,7 +1207,15 @@ class PublicApp {
   // ── PAGES ─────────────────────────────────────────────────────────────────
 
   async renderPage(el, slug) {
-    const [page] = await Promise.all([safeFetch(`/api/pages/${slug}`), _loadDOMPurify()]);
+    let page;
+    try {
+      [page] = await Promise.all([safeFetch(`/api/pages/${slug}`), _loadDOMPurify()]);
+    } catch (err) {
+      // A genuinely missing/unpublished page shows the managed 404 view; a
+      // transient/authorization error must not be disguised as "not found".
+      if (err.status === 404) return this.render404(el);
+      throw err;
+    }
     const excerpt = plainText(pick(page.excerpt_cz, page.excerpt_en));
     el.innerHTML = `
       <article class="container section article-body">
@@ -1309,17 +1364,98 @@ class PublicApp {
 
   // ── 404 ───────────────────────────────────────────────────────────────────
 
-  render404(el) {
+  // The managed 404 view: message + body come from the reserved page slug
+  // `404` (Admin UI → Pages → Speciální stránky), the associated instruments
+  // from page_products_map. A genuinely unknown URL keeps a real HTTP 404 from
+  // the server; a transient API failure here just falls back to the default
+  // text so the page never breaks.
+  async render404(el) {
+    let page = null, products = [];
+    try {
+      const data = await safeFetch('/api/pages/notfound');
+      page = data?.page || null;
+      products = data?.products || [];
+    } catch (err) {
+      console.error('404 config load failed:', err);
+    }
+
+    const fallbackTitle = t('common.page_not_found');
+    const title = page ? pick(page.title_cz, page.title_en) : fallbackTitle;
+    const body = page ? sanitize(pick(page.content_cz, page.content_en)) : '';
+    const defaultThumb = this.settings?.default_thumbnail || '';
+
+    const cards = products.length ? `
+      <div class="product-grid" style="text-align:left;margin-top:40px;">
+        ${products.map(p => {
+          const thumb = p.thumbnail_url || defaultThumb;
+          return `
+            <a class="product-card" href="/produkty/${esc(p.slug)}" data-nav="/produkty/${esc(p.slug)}">
+              ${thumb ? `<div class="product-card-img"><img src="${esc(thumb)}" alt="${esc(pick(p.name_cz, p.name_en))}" loading="lazy"></div>` : '<div class="product-card-img product-card-img-empty"></div>'}
+              <div class="product-card-body">
+                <div class="product-card-name">${esc(pick(p.name_cz, p.name_en))}</div>
+                <span class="product-card-link">${t('common.read_more')} →</span>
+              </div>
+            </a>`;
+        }).join('')}
+      </div>` : '';
+
     el.innerHTML = `
-      <div class="container section" style="text-align:center;padding:80px 24px">
+      <div class="container section" style="text-align:center;padding:72px 24px 80px">
         <div style="font-size:4rem;font-weight:800;color:var(--text-3);line-height:1">404</div>
-        <h2 style="margin:16px 0 8px;color:var(--text-0)">${t('common.page_not_found')}</h2>
-        <p style="color:var(--text-2);margin-bottom:24px">${t('common.page_not_found_desc')}</p>
-        <a href="/" data-nav="/" class="btn-primary-pub">${t('common.back_home')}</a>
+        <h1 style="margin:16px 0 8px;color:var(--text-0);font-size:clamp(1.5rem,4vw,2.2rem)">${esc(title || fallbackTitle)}</h1>
+        ${body
+          ? `<div class="richtext article-content" style="max-width:680px;margin:0 auto;text-align:left">${body}</div>`
+          : `<p style="color:var(--text-2);margin-bottom:24px">${t('common.page_not_found_desc')}</p>`}
+        <a href="/" data-nav="/" class="btn-primary-pub" style="margin-top:24px">${t('common.back_home')}</a>
+        ${cards}
       </div>`;
+
+    updateMeta({ title: title || fallbackTitle });
   }
 
   // ── Navigation from DB menu ────────────────────────────────────────────────
+
+  /**
+   * Global admin control (“Upravit stránku”). The button itself is rendered by
+   * the server (window.__NICOLET_ADMIN__); here we only point it at the correct
+   * editor for the entity currently being viewed. Authorization is never
+   * delegated to this link — the Admin UI and every mutation endpoint enforce it.
+   */
+  _updateAdminEdit() {
+    const bar  = document.getElementById('adminEditBar');
+    const link = document.getElementById('adminEditLink');
+    if (!bar || !link) return;
+    if (!window.__NICOLET_ADMIN__) { bar.hidden = true; return; }
+
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    link.href = this._adminEditUrl(parts);
+    bar.hidden = false;
+  }
+
+  _adminEditUrl(parts) {
+    const p0 = parts[0] || '';
+    const withSlug = (section, slug) => (slug
+      ? `/admin#${section}?edit=${encodeURIComponent(slug)}`
+      : `/admin#${section}`);
+
+    switch (p0) {
+      case '':            return '/admin#dashboard';
+      case 'novinky':     return withSlug('news', parts[1]);
+      case 'produkty': {
+        // A category listing (?kategorie=slug) edits the category itself.
+        const cat = new URLSearchParams(window.location.search).get('kategorie');
+        if (cat) return `/admin#productCategories?edit=${encodeURIComponent(cat)}`;
+        return withSlug('products', parts[1]);
+      }
+      case 'aplikace':    return withSlug('applications', parts[1]);
+      case 'stranka':     return withSlug('pages', parts[1]);
+      case 'o-nas':       return withSlug('pages', 'o-nas');
+      case 'faq':
+      case 'caste-dotazy': return '/admin#faqs';
+      case 'skoleni':     return '/admin#trainings';
+      default:            return '/admin#pages'; // genuine 404 → the managed 404 page
+    }
+  }
 
   _renderNav() {
     const nav = document.getElementById('main-nav');
@@ -1335,13 +1471,51 @@ class PublicApp {
 
     const chevronSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`;
 
+    // Automatically discovered children for a stored root item. The stored menu
+    // is the manual configuration; anything eligible that is not referenced yet
+    // is appended after it, in the entity's own deterministic order. Nothing is
+    // ever removed or reordered here, so an administrator's customisation wins.
+    const dynamicChildren = (rootItem, storedChildren) => {
+      const key = normalizeKey(rootItem.link_value);
+      const existing = new Set(
+        storedChildren.map(c => normalizeKey(linkSlug(c.link_value) || c.label_cz))
+      );
+      const extra = [];
+      const append = (entities, makeLink, filter) => {
+        for (const e of (entities || [])) {
+          if (filter && !filter(e)) continue;
+          if (!e.slug || existing.has(normalizeKey(e.slug))) continue;
+          extra.push({
+            id: 1e6 + Number(e.id || 0),
+            display_order: 1e4 + (Number(e.display_order) || 0),
+            link_value: makeLink(e.slug),
+            label_cz: e.name_cz,
+            label_en: e.name_en,
+          });
+        }
+      };
+
+      if (key === 'novinky') {
+        append(this._navNewsCats, s => `/novinky?rubrika=${encodeURIComponent(s)}`);
+      } else if (key === 'produkty') {
+        append(this._navProdCats, s => `/produkty?kategorie=${encodeURIComponent(s)}`,
+          c => c.parent_id == null);
+      } else if (key === 'aplikace') {
+        append(this._navAppGroups, s => `/aplikace?okruh=${encodeURIComponent(s)}`);
+      }
+      return extra;
+    };
+
     nav.innerHTML = roots.map(item => {
       const href = item.link_value || '#';
       const label = lang === 'en' && item.label_en ? item.label_en : item.label_cz;
 
-      const itemChildren = children
+      const storedChildren = children
         .filter(c => c.parent_id === item.id)
         .sort((a, b) => a.display_order - b.display_order);
+      const itemChildren = storedChildren
+        .concat(dynamicChildren(item, storedChildren))
+        .sort((a, b) => (a.display_order - b.display_order) || (a.id - b.id));
 
       const hasDropdown = itemChildren.length > 0;
 

@@ -5,8 +5,12 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import db, { initDatabase, closeDatabase } from './database.js';
+import { JWT_SECRET } from './config.js';
+import { tokenBlacklist } from './middleware/auth.js';
 import { logger } from './logger.js';
 import { requestLogger } from './middleware/request-logger.js';
 
@@ -112,11 +116,22 @@ app.use(cors({
       next();
     });
 
-    // Static files – cache assets for 1 day, HTML never
+    // Static files – cache assets for 1 day, HTML never.
+    // `index: false` makes the SPA catch-all (not static) answer `/`, so the
+    // authenticated-layout flag can be injected into index.html per request.
     app.use(express.static(path.join(__dirname, '../frontend'), {
+      index: false,
       maxAge: '1d',
       setHeaders(res, filePath) {
-        if (filePath.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache');
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else if (filePath.endsWith('.js')) {
+          // ES module imports carry no ?v= query (bumping admin.js? only busts
+          // admin.js itself), so a changed *manager* would sit in the browser
+          // cache for a day. Revalidation guarantees the deployed module wins;
+          // unchanged files still return 304.
+          res.setHeader('Cache-Control', 'no-cache');
+        }
       }
     }));
 
@@ -180,9 +195,41 @@ app.use(cors({
       }
     });
 
-    // Public SPA – all remaining routes
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    // Public SPA – all remaining routes.
+    // Top-level roots the client router knows. Anything else is a genuine 404:
+    // the server answers with status 404 (still serving index.html so the managed
+    // 404 view renders) instead of pretending every unknown URL is a 200 page.
+    const SPA_ROUTE_ROOTS = new Set([
+      '', 'novinky', 'produkty', 'aplikace', 'skoleni', 'hledat',
+      'stranka', 'faq', 'o-nas', 'caste-dotazy',
+    ]);
+    const INDEX_HTML_PATH = path.join(__dirname, '../frontend/index.html');
+
+    function isAdminCookie(req) {
+      const token = req.cookies?.auth_token;
+      if (!token) return false;
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET); // httpOnly cookie, verified server-side
+        if (decoded.jti && tokenBlacklist.has(decoded.jti)) return false;
+        return decoded.role === 'admin';
+      } catch {
+        return false;
+      }
+    }
+
+    app.get('*', (req, res) => {
+      const root = req.path.split('/').filter(Boolean)[0] || '';
+      const isAdmin = isAdminCookie(req);
+      let html;
+      try {
+        html = fs.readFileSync(INDEX_HTML_PATH, 'utf8')
+          .replace('window.__NICOLET_ADMIN__ = false', `window.__NICOLET_ADMIN__ = ${isAdmin ? 'true' : 'false'}`);
+      } catch (err) {
+        logger.fromError('index_read_error', err);
+        return res.status(500).send('Server error');
+      }
+      res.set('Cache-Control', 'no-cache');
+      res.type('html').status(SPA_ROUTE_ROOTS.has(root) ? 200 : 404).send(html);
     });
 
     // ── Global error handler (must be last) ───────────────────────────────

@@ -475,9 +475,9 @@
       <!-- Special pages tab -->
       <div id="pagesPanelSpecial" style="display:none;">
         <div class="section-header-row">
-          <h2>Časté dotazy</h2>
+          <h2>Speciální stránky</h2>
         </div>
-        <p style="color:#64748b;margin-bottom:16px;">Kliknutím na řádek upravíte otázky a odpovědi.</p>
+        <p style="color:#64748b;margin-bottom:16px;">Rezervované stránky (Časté dotazy, stránka 404). Obsah upravíte tlačítkem, přístroje na stránce 404 vyberete přes „Přístroje".</p>
         <div class="table-wrap">
           <table class="admin-table">
             <thead>
@@ -486,10 +486,11 @@
                 <th>Název</th>
                 <th>Slug</th>
                 <th class="col-status">Stav</th>
+                <th class="col-actions">Akce</th>
               </tr>
             </thead>
             <tbody id="specialPagesTableBody">
-              <tr><td colspan="4"><div class="table-empty"><p>Načítám…</p></div></td></tr>
+              <tr><td colspan="5"><div class="table-empty"><p>Načítám…</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -1613,6 +1614,31 @@
   </div>
 </div>
 
+<!-- ══ 404 PRODUCTS MODAL (Speciální stránky) ═════════════════════════════════ -->
+<div id="notFoundProductsModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Přístroje na stránce 404</h3>
+      <button class="modal-close" onclick="admin.pages.closeNotFoundProducts()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#64748b;font-size:13px;margin-bottom:12px;">
+        Vyberte přístroje zobrazené na stránce „nenalezeno" a šipkami nastavte jejich pořadí.
+        Zobrazí se pouze publikované přístroje.
+      </p>
+      <div class="input-with-btn" style="margin-bottom:12px;">
+        <select id="notFoundProductSelect" class="form-select"></select>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="admin.pages.addNotFoundProduct()">Přidat</button>
+      </div>
+      <ol id="notFoundProductList" class="product-order-list" aria-label="Vybrané přístroje na stránce 404"></ol>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="admin.pages.closeNotFoundProducts()">Zrušit</button>
+      <button type="button" class="btn btn-primary" id="btnSaveNotFoundProducts" onclick="admin.pages.saveNotFoundProducts()">Uložit</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ NEWS CATEGORIES MODAL ═════════════════════════════════════════════════ -->
 <div id="ncatModal" class="modal-overlay hidden">
   <div class="modal">
@@ -2655,7 +2681,7 @@
 <!-- Toast container -->
 <div id="admin-toast"></div>
 
-<script type="module" src="/js/admin.js?v=14"></script>
+<script type="module" src="/js/admin.js?v=15"></script>
 
 <style>
   .hidden { display: none !important; }

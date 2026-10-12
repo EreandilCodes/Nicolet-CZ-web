@@ -1003,7 +1003,7 @@ p  { color: var(--text-1); }
 .article-content ol li { list-style-type: decimal; }
 .article-content ul ul, .article-content ol ol, .article-content ul ol, .article-content ol ul { margin: 0.4em 0 0.4em 1.5em; }
 .article-content a  { color: var(--primary); }
-.article-content img { border-radius: var(--r-md); margin: 16px 0; max-width: 100%; }
+.article-content img { border-radius: var(--r-md); margin: 16px auto; max-width: 100%; }
 
 /* ── Rich text (one block for ALL sanitized article content) ─────────────────
    Added as an extra class next to the existing container classes
@@ -1024,7 +1024,7 @@ p  { color: var(--text-1); }
   border-radius: var(--r-md);
 }
 .richtext figure {
-  margin: 24px 0;
+  margin: 24px auto;               /* centered, never left-aligned by inline width */
   max-width: 100% !important; /* beats inline width from the import */
   text-align: center;
 }
@@ -1039,11 +1039,31 @@ p  { color: var(--text-1); }
   font-style: italic;
   text-align: center;
 }
-.richtext .alignleft  { margin-right: 24px; margin-left: 0; }
-.richtext .alignright { margin-left: 24px;  margin-right: 0; }
-@media (max-width: 600px) {
-  .richtext .alignleft, .richtext .alignright { margin-left: 0; margin-right: 0; }
+/* Every inline content image is centered. The imported WordPress alignment
+   classes only carry a visual intent (float left / right); the stored HTML is
+   never rewritten — the intent is neutralised at render time so News, Products
+   and Applications images all sit on the same centered axis (requirement 2). */
+.richtext .alignleft,
+.richtext .alignright,
+.richtext .aligncenter,
+.richtext .alignnone {
+  float: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
+
+/* ── One heading rhythm for every rich-text container ───────────────────────
+   News, Products, Applications, Pages, About us and the 404 page all render
+   through a `.richtext` container, so a single rule here gives every heading
+   level the same comfortable space before it, and never a blank gap at the very
+   start of a document (requirement 6). */
+.richtext :is(h1, h2, h3, h4, h5, h6) {
+  margin: 1.8em 0 0.7em;
+  line-height: 1.25;
+  color: var(--text-0);
+}
+.richtext > :is(h1, h2, h3, h4, h5, h6):first-child { margin-top: 0; }
+.richtext :is(h1, h2, h3, h4, h5, h6) + :is(h1, h2, h3, h4, h5, h6) { margin-top: 0.85em; }
 
 .back-link { font-size: 0.84rem; color: var(--text-3); font-weight: 500; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 28px; transition: color var(--t); }
 .back-link:hover { color: var(--primary); }
@@ -2290,3 +2310,33 @@ p  { color: var(--text-1); }
 }
 .faq-answer p { margin-bottom: 0.8em; }
 .faq-answer p:last-child { margin-bottom: 0; }
+
+/* ── Global admin "Upravit stránku" control ─────────────────────────────────
+   Fixed just under the sticky header, centered, visible only to an
+   authenticated admin (the server sets window.__NICOLET_ADMIN__). Anonymous
+   visitors get no element and therefore no layout shift. */
+.admin-edit-bar {
+  position: fixed;
+  top: calc(var(--header-h) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+}
+.admin-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 16px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.28);
+  transition: transform var(--t), box-shadow var(--t);
+}
+.admin-edit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(220, 38, 38, 0.36); color: #fff; }
+.admin-edit-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5); }
+@media (max-width: 640px) {
+  .admin-edit-bar { top: auto; bottom: 16px; }
+}

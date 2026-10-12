@@ -8,6 +8,8 @@ constructor(auth) {
     this.items = [];
     this._editing = null;
     this._saving = false;
+    this._nf = null;          // 404 associated-products editor state
+    this._savingNF = false;
   }
 
   async init() {
@@ -99,39 +101,53 @@ async loadItems() {
     const tbody = document.getElementById('specialPagesTableBody');
     if (!tbody) return;
 
-  // Načteme stránku "caste-dotazy" přímo z DB
-  let faqPage = null;
-try {
-    const response = await this.auth.authenticatedFetch('/api/pages/admin/all');
+    // Special pages are reserved records identified by a stable slug (never by
+    // label): the FAQ page and the managed 404 page.
+    let pages = [];
+    try {
+      const response = await this.auth.authenticatedFetch('/api/pages/admin/all');
       const contentType = response.headers.get('content-type');
       if (response.ok && contentType?.includes('application/json')) {
-        const pages = await response.json();
-        faqPage = pages.find(p => p.slug === 'caste-dotazy');
+        pages = await response.json();
       }
     } catch (err) {
-      console.error('Error loading FAQ page:', err);
+      console.error('Error loading special pages:', err);
     }
+    this._specialPages = pages;
 
-    if (!faqPage) {
-      tbody.innerHTML = `<tr><td colspan="4">
-        <div class="table-empty"><p>Stránka Časté dotazy nenalezena.</p></div>
-      </td></tr>`;
-      return;
-    }
+    const faqPage = pages.find(p => p.slug === 'caste-dotazy');
+    const nfPage  = pages.find(p => p.slug === '404');
 
-    tbody.innerHTML = `<tr onclick="admin.pages.editFaqPage(${faqPage.id})" style="cursor:pointer;">
-      <td class="col-id">${faqPage.id}</td>
-      <td>
-        <div class="table-title">${esc(faqPage.title_cz || 'Časté dotazy')}</div>
-        <div class="table-sub">${esc(faqPage.title_en || 'FAQ')}</div>
-      </td>
-      <td><code style="font-size:12px;">${esc(faqPage.slug || 'caste-dotazy')}</code></td>
-      <td class="col-status">
-        <span class="badge ${faqPage.is_published ? 'badge-success' : 'badge-neutral'}">
-          ${faqPage.is_published ? 'Publikováno' : 'Skryta'}
-        </span>
-      </td>
-    </tr>`;
+    const row = (page, label, actions) => {
+      if (!page) {
+        return `<tr><td colspan="5"><div class="table-empty"><p>${esc(label)} nenalezena.</p></div></td></tr>`;
+      }
+      return `<tr>
+        <td class="col-id">${page.id}</td>
+        <td>
+          <div class="table-title">${esc(page.title_cz || label)}</div>
+          <div class="table-sub">${esc(page.title_en || '')}</div>
+        </td>
+        <td><code style="font-size:12px;">${esc(page.slug)}</code></td>
+        <td class="col-status">
+          <span class="badge ${page.is_published ? 'badge-success' : 'badge-neutral'}">
+            ${page.is_published ? 'Publikováno' : 'Skryta'}
+          </span>
+        </td>
+        <td class="col-actions"><div class="table-actions">${actions}</div></td>
+      </tr>`;
+    };
+
+    const editBtn = (page, title = 'Upravit obsah') => page
+      ? `<button class="btn btn-ghost btn-icon" title="${title}" onclick="admin.pages.showModal(${page.id})">&#9998;</button>`
+      : '';
+    const productsBtn = (page) => page
+      ? `<button class="btn btn-secondary btn-sm" onclick="admin.pages.openNotFoundProducts(${page.id})">Přístroje</button>`
+      : '';
+
+    tbody.innerHTML =
+      row(faqPage, 'Stránka Časté dotazy', editBtn(faqPage, 'Upravit obsah / FAQ'))
+      + row(nfPage, 'Stránka 404', editBtn(nfPage) + productsBtn(nfPage));
   }
 
   editFaqPage(id) {
@@ -143,6 +159,126 @@ try {
     // Otevření FAQ modalu z pages modalu
     if (window.admin?.faqs) {
       window.admin.faqs.showModal();
+    }
+  }
+
+  // ── 404 associated instruments ─────────────────────────────────────────────
+
+  async openNotFoundProducts(pageId) {
+    this._nf = { pageId, selected: [], all: [] };
+    try {
+      const [allRes, selRes] = await Promise.all([
+        this.auth.authenticatedFetch('/api/products/admin/all'),
+        this.auth.authenticatedFetch(`/api/pages/admin/${pageId}/products`),
+      ]);
+      const readJson = async (res) => {
+        if (!res.ok) {
+          const ct = res.headers.get('content-type');
+          const err = ct?.includes('application/json') ? await res.json() : { error: 'Request failed' };
+          throw new Error(err.error || 'Request failed');
+        }
+        return res.json();
+      };
+      this._nf.all = await readJson(allRes);
+      const selected = await readJson(selRes);
+      this._nf.selected = selected.map(p => ({
+        id: p.id, name_cz: p.name_cz, name_en: p.name_en, thumbnail_url: p.thumbnail_url,
+      }));
+    } catch (err) {
+      console.error('NotFound products load error:', err);
+      window.admin?.showNotification('Chyba načítání přístrojů: ' + err.message, 'error');
+      return;
+    }
+    this._renderNotFoundProducts();
+    document.getElementById('notFoundProductsModal')?.classList.remove('hidden');
+  }
+
+  closeNotFoundProducts() {
+    document.getElementById('notFoundProductsModal')?.classList.add('hidden');
+    this._nf = null;
+  }
+
+  _renderNotFoundProducts() {
+    const nf = this._nf || { selected: [], all: [] };
+    const select = document.getElementById('notFoundProductSelect');
+    const list   = document.getElementById('notFoundProductList');
+    const selectedIds = new Set(nf.selected.map(p => p.id));
+
+    if (select) {
+      select.innerHTML = nf.all
+        .filter(p => !selectedIds.has(p.id))
+        .map(p => `<option value="${p.id}">${esc(p.name_cz || p.name_en || ('#' + p.id))}</option>`)
+        .join('');
+    }
+
+    if (!list) return;
+    if (!nf.selected.length) {
+      list.innerHTML = '<li style="color:#94a3b8;font-size:13px;">Zatím žádné přístroje.</li>';
+      return;
+    }
+    list.innerHTML = nf.selected.map((p, idx) => `
+      <li class="product-order-item">
+        <span class="product-order-pos">${idx + 1}</span>
+        ${p.thumbnail_url
+          ? `<img class="product-order-thumb" src="${esc(p.thumbnail_url)}" alt="">`
+          : '<span class="product-order-thumb product-order-thumb-empty"></span>'}
+        <span class="product-order-name">${esc(p.name_cz || p.name_en || ('#' + p.id))}</span>
+        <span class="product-order-actions">
+          <button type="button" class="btn btn-ghost btn-icon" title="Posunout nahoru" aria-label="Posunout nahoru" ${idx === 0 ? 'disabled' : ''} onclick="admin.pages.moveNotFoundProduct(${idx}, -1)">&#9650;</button>
+          <button type="button" class="btn btn-ghost btn-icon" title="Posunout dolů" aria-label="Posunout dolů" ${idx === nf.selected.length - 1 ? 'disabled' : ''} onclick="admin.pages.moveNotFoundProduct(${idx}, 1)">&#9660;</button>
+          <button type="button" class="btn btn-danger btn-icon" title="Odebrat" aria-label="Odebrat" onclick="admin.pages.removeNotFoundProduct(${idx})">&times;</button>
+        </span>
+      </li>`).join('');
+  }
+
+  addNotFoundProduct() {
+    const select = document.getElementById('notFoundProductSelect');
+    if (!select || !select.value || !this._nf) return;
+    const p = this._nf.all.find(x => String(x.id) === String(select.value));
+    if (!p) return;
+    this._nf.selected.push({ id: p.id, name_cz: p.name_cz, name_en: p.name_en, thumbnail_url: p.thumbnail_url });
+    this._renderNotFoundProducts();
+  }
+
+  removeNotFoundProduct(idx) {
+    if (!this._nf) return;
+    this._nf.selected.splice(idx, 1);
+    this._renderNotFoundProducts();
+  }
+
+  moveNotFoundProduct(idx, direction) {
+    const arr = this._nf?.selected;
+    if (!arr) return;
+    const target = idx + direction;
+    if (target < 0 || target >= arr.length) return;
+    [arr[idx], arr[target]] = [arr[target], arr[idx]];
+    this._renderNotFoundProducts();
+  }
+
+  async saveNotFoundProducts() {
+    if (this._savingNF) return;
+    if (!this._nf?.pageId) return;
+    this._savingNF = true;
+    const btn = document.getElementById('btnSaveNotFoundProducts');
+    if (btn) { btn.disabled = true; btn.textContent = 'Ukládám…'; }
+    try {
+      const response = await this.auth.authenticatedFetch(`/api/pages/admin/${this._nf.pageId}/products`, {
+        method: 'PUT',
+        body: JSON.stringify({ product_ids: this._nf.selected.map(p => p.id) }),
+      });
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        const err = contentType?.includes('application/json') ? await response.json() : { error: await response.text() };
+        throw new Error(err.error || 'Request failed');
+      }
+      window.admin?.showNotification('Přístroje na stránce 404 uloženy', 'success');
+      this.closeNotFoundProducts();
+    } catch (err) {
+      console.error('NotFound products save error:', err);
+      window.admin?.showNotification('Chyba ukládání: ' + err.message, 'error');
+    } finally {
+      this._savingNF = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Uložit'; }
     }
   }
 

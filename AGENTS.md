@@ -269,6 +269,12 @@ All admin save operations MUST use a `this._saving` flag + button disable patter
 When changing `public.js` or `admin.js`, bump the `?v=N` query parameter in the corresponding HTML `<script>` tag. Static assets are cached for 1 day by Express.
 **This applies to all admin JS files in `/frontend/admin/` directory as well.**
 
+Bumping the entry `?v=` does **not** bust the ES-module imports (`admin.js` imports
+`../admin/*.js` and `public.js` imports `./richtext.js` etc. without a query). Therefore
+Express serves every `.js` file with `Cache-Control: no-cache` so the browser always
+revalidates and a changed manager/module reaches the user (unchanged files answer `304`).
+Keep bumping the entry `?v=` for explicitness and for the version-consistency test.
+
 ### 11. Label Color for Forms
 When adding a new form-related setting that affects visual appearance, ensure:
 - Database column exists with proper migration
@@ -1004,3 +1010,46 @@ pouze připojuje k jinam (PostgreSQL místo SQLite), kde existují jen výchozí
 ## Git
 Jediná změna v tomto úkolu: doplnění preventivních pravidel do `AGENTS.md`.
 Žádný jiný soubor nebyl změněn.
+
+---
+
+## Managed 404, About us alias, navigation discovery & admin edit control (2026-10-12)
+
+- **Reserved pages** are `pages` rows identified by a stable slug, never by a
+  label: `caste-dotazy` (FAQ) and `404` (managed not-found view). They are
+  seeded by `initDatabase()` and edited under **Admin UI → Pages → Speciální
+  stránky**. The `## Managed 404` content is a normal page (`content_cz`).
+- **404 route + status:** the client router renders `render404()` for URLs no
+  route matches and for a genuinely missing `/stranka/:slug` (only when the API
+  answers 404, never for a transient/authorization error). The server catch-all
+  in `server.js` answers **HTTP 404** for unknown top-level roots and 200 for the
+  known SPA roots (`SPA_ROUTE_ROOTS`); it always serves `index.html` so the
+  managed view can render. `/api/pages/notfound` returns `{ page, products }`.
+- **404 associated instruments:** `page_products_map(page_id, product_id,
+  display_order)` + `GET/PUT /api/pages/admin/:id/products` (admin-only, ids
+  validated, duplicates rejected). The public view shows **published** products
+  only, in the saved order.
+- **About us (`/o-nas`)**: alias for the seeded page slug `o-nas` (canonical
+  `/stranka/o-nas`). The content is grounded in the live `nicoletcz.cz` About us
+  page; do not invent company claims.
+- **Global “Upravit stránku”**: `server.js` verifies the httpOnly `auth_token`
+  cookie and injects `window.__NICOLET_ADMIN__` into `index.html`; `public.js`
+  renders `#adminEditBar` only for an authenticated admin and deep-links with
+  `/admin#<section>?edit=<slug>`, which `admin.js` resolves after the section's
+  items load. Authorization is **never** the button — the Admin UI and every
+  mutation endpoint enforce it server-side.
+- **Dynamic navigation discovery:** `_renderNav()` keeps the stored `menu_items`
+  as the manual configuration (order + `is_active` win) and **appends** eligible
+  entities not referenced yet — News rubrics (`/novinky?rubrika=`), top-level
+  product categories (`/produkty?kategorie=`) and application groups
+  (`/aplikace?okruh=`) — deterministically. Nothing stored is removed or
+  reordered. Client-side discovery by `link_value` slug (no `entity_id` column);
+  renaming a slug therefore requires re-picking the menu link.
+- **Rich-text typography:** one `.richtext` block centres every inline image
+  (the imported WordPress `alignleft/alignright` float intent is neutralised at
+  render time; stored HTML is never rewritten) and gives every heading level a
+  consistent top margin with no gap on the first heading.
+- **Application → Product order:** `GET /api/products/order` returns the
+  authoritative catalogue ids (computed by the shared `product-order.js` imported
+  into the backend); the application detail keeps only its associated instruments
+  and sorts them by that sequence. No second ordering algorithm.

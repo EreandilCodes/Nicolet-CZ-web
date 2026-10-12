@@ -136,6 +136,19 @@ describe('public.css – rich text images, captions and grids', () => {
     expect(css).toMatch(/\.richtext figure\s*\{[^}]*max-width:\s*100%\s*!important/);
   });
 
+  it('centers every inline content image and ignores imported float classes', () => {
+    // The imported WordPress content carries alignleft / alignright classes.
+    // Render-time rule neutralises the float so all images share one axis.
+    expect(css).toMatch(/\.richtext \.alignleft[\s\S]{0,240}float:\s*none\s*!important/);
+    expect(css).toMatch(/\.richtext \.alignright[\s\S]{0,240}float:\s*none\s*!important/);
+    expect(css).toMatch(/\.richtext figure\s*\{[^}]*margin:\s*24px auto/);
+  });
+
+  it('gives every heading level a consistent top spacing inside .richtext', () => {
+    expect(css).toMatch(/\.richtext :is\(h1, h2, h3, h4, h5, h6\)\s*\{[^}]*margin:\s*1\.8em 0 0\.7em/);
+    expect(css).toMatch(/\.richtext > :is\(h1, h2, h3, h4, h5, h6\):first-child\s*\{[^}]*margin-top:\s*0/);
+  });
+
   it('renders the application cover as a compact cropped banner', () => {
     expect(css).toMatch(/\.app-detail-cover-img\s*\{[^}]*height:\s*clamp\(/);
     expect(css).toMatch(/\.app-detail-cover-img \.article-cover\s*\{[^}]*object-fit:\s*cover/);

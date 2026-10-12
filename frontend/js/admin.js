@@ -53,9 +53,34 @@ class AdminController {
     this._setupNavigation();
     this._bindGlobalHandlers();
 
-    // Load initial section
-    const hash = window.location.hash.replace('#', '') || 'dashboard';
-    this.loadSection(hash);
+    // Load initial section. The hash may carry a deep link from the public
+    // “Upravit stránku” button: #products?edit=<slug>
+    const rawHash = window.location.hash.replace('#', '');
+    const [initialSection, initialQuery] = rawHash.split('?');
+    const section = initialSection || 'dashboard';
+    const editSlug = new URLSearchParams(initialQuery || '').get('edit');
+    this.loadSection(section);
+    if (editSlug) this._applyDeepLink(section, editSlug);
+  }
+
+  /** Open the editor of one entity addressed by slug (public edit button). */
+  _applyDeepLink(section, slug) {
+    const target = {
+      products:          this.products,
+      applications:      this.apps,
+      news:              this.news,
+      pages:             this.pages,
+      productCategories: this.prodCats,
+    }[section];
+    if (!target) return;
+
+    let tries = 0;
+    const attempt = () => {
+      const item = (target.items || []).find(i => i.slug === slug);
+      if (item) { target.showModal(item.id); return; }
+      if (++tries < 50) setTimeout(attempt, 150);
+    };
+    setTimeout(attempt, 150);
   }
 
   _setupNavigation() {

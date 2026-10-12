@@ -59,7 +59,7 @@ function createPgDb() {
     prepare: (sql) => {
       const isInsert = /^\s*INSERT/i.test(sql);
       // M:N mapping tables have no id column — skip RETURNING for those
-      const noIdTable = /product_categories_map|product_applications_map|\bsettings\b/i.test(sql);
+      const noIdTable = /product_categories_map|product_applications_map|page_products_map|\bsettings\b/i.test(sql);
       const pgSql = convertPlaceholders(sql);
       const pgSqlRun = isInsert && !noIdTable && !/RETURNING/i.test(sql)
         ? pgSql.replace(/;?\s*$/, '') + ' RETURNING id'
@@ -393,6 +393,21 @@ console.log('✅ product_categories_map table ready');
 
 // ── Indexes on product_categories_map ──────────────────────────────────────
 await db.exec(`CREATE INDEX IF NOT EXISTS idx_pcm_category ON product_categories_map(category_id)`);
+
+// ── Page ↔ Product map (associated instruments, e.g. the managed 404 page) ──
+// Created after `products` so the FK target exists in PostgreSQL too.
+await db.exec(`
+  CREATE TABLE IF NOT EXISTS page_products_map (
+    page_id       INTEGER NOT NULL,
+    product_id    INTEGER NOT NULL,
+    display_order INTEGER,
+    PRIMARY KEY (page_id, product_id),
+    FOREIGN KEY (page_id)    REFERENCES pages(id)    ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )
+`);
+console.log('✅ page_products_map table ready');
+await db.exec(`CREATE INDEX IF NOT EXISTS idx_ppm_page ON page_products_map(page_id)`);
 
 // ── Application groups ─────────────────────────────────────────────────────
   await db.exec(`
@@ -807,6 +822,18 @@ await db.exec(`CREATE INDEX IF NOT EXISTS idx_pam_application ON product_applica
 <p>Stálá aplikační a poradenská služba je k dispozici v pracovní dny od 8:30 do 17:00. Neváhejte nás <a href="/stranka/kontakt">kontaktovat</a> – poradíme vám se vším, co se týká vašich měření.</p>`,
       is_published: 1,
       display_order: 5
+    },
+    {
+      // Reserved page for the managed 404 view (Admin UI → Pages → Speciální
+      // stránky). Not an ordinary route: public.js renders it for unknown URLs.
+      slug: '404',
+      title_cz: 'Stránka nenalezena',
+      title_en: 'Page not found',
+      excerpt_cz: 'Požadovaná stránka nebyla nalezena.',
+      content_cz: `<p>Je nám líto, ale stránku, kterou hledáte, se nepodařilo najít. Adresa mohla být změněna nebo stránka už neexistuje.</p>
+<p>Zkuste se vrátit na <a href="/">domovskou stránku</a> nebo si prohlédnout naše <a href="/produkty">spektrometry</a>.</p>`,
+      is_published: 1,
+      display_order: 99
     }
   ];
 

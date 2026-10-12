@@ -8,6 +8,22 @@ function generateSlug(title) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + `-${Date.now()}`;
 }
 
+// ── Managed 404 page ─────────────────────────────────────────────────────────
+const NOT_FOUND_SLUG = '404';
+
+/** Associated instruments of a page, in the saved order. */
+async function getPageProducts(pageId, publishedOnly = true) {
+  const where = publishedOnly ? 'AND p.is_published = 1' : '';
+  return db.prepare(`
+    SELECT p.id, p.slug, p.name_cz, p.name_en, p.thumbnail_url, m.display_order
+    FROM products p
+    JOIN page_products_map m ON m.product_id = p.id
+    WHERE m.page_id = ? ${where}
+    ORDER BY CASE WHEN m.display_order IS NULL THEN 1 ELSE 0 END,
+             m.display_order, p.display_order, p.id
+  `).all(pageId);
+}
+
 // GET /api/pages – public, published pages
 router.get('/', async (req, res) => {
   try {
@@ -29,6 +45,23 @@ router.get('/admin/all', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
     ).all();
     res.json(rows);
   } catch (err) {
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/pages/notfound – public, the managed 404 message + associated
+// published instruments. Defined before /:slug so "notfound" is a route, not a
+// page lookup. The page itself is the reserved slug `404`.
+router.get('/notfound', async (req, res) => {
+  try {
+    const page = await db.prepare(
+      'SELECT * FROM pages WHERE slug = ? AND is_published = 1'
+    ).get(NOT_FOUND_SLUG);
+    if (!page) return res.json({ page: null, products: [] });
+    const products = await getPageProducts(page.id, true);
+    res.json({ page, products });
+  } catch (err) {
+    console.error('NotFound GET error:', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });
@@ -136,6 +169,60 @@ router.put('/admin/:id', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, a
   } catch (err) {
     console.error('Pages PUT error:', err);
     if (err.message?.includes('UNIQUE')) return res.status(400).json({ error: 'Slug již existuje' });
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// GET /api/pages/admin/:id/products – admin, associated instruments (any state)
+router.get('/admin/:id/products', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const page = await db.prepare('SELECT id FROM pages WHERE id = ?').get(id);
+    if (!page) return res.status(404).json({ error: 'Stránka nenalezena' });
+    res.json(await getPageProducts(id, false));
+  } catch (err) {
+    res.status(500).json({ error: 'Chyba serveru' });
+  }
+});
+
+// PUT /api/pages/admin/:id/products – admin, persist the complete ordered list.
+// Every id must reference an existing product; the list is the full desired
+// sequence, so reordering is deterministic.
+router.put('/admin/:id/products', AuthMiddleware.verifyToken, AuthMiddleware.adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const raw = req.body?.product_ids;
+    if (!Array.isArray(raw)) return res.status(400).json({ error: 'product_ids musí být pole' });
+    const productIds = raw.map(Number);
+    if (productIds.some(n => !Number.isInteger(n))) {
+      return res.status(400).json({ error: 'product_ids obsahuje neplatné ID' });
+    }
+    if (new Set(productIds).size !== productIds.length) {
+      return res.status(400).json({ error: 'product_ids obsahuje duplicity' });
+    }
+
+    const page = await db.prepare('SELECT id FROM pages WHERE id = ?').get(id);
+    if (!page) return res.status(404).json({ error: 'Stránka nenalezena' });
+
+    if (productIds.length) {
+      const ph = productIds.map(() => '?').join(',');
+      const found = await db.prepare(`SELECT id FROM products WHERE id IN (${ph})`).all(...productIds);
+      const foundSet = new Set(found.map(r => Number(r.id)));
+      const missing = productIds.filter(pid => !foundSet.has(pid));
+      if (missing.length) {
+        return res.status(400).json({ error: 'Některé produkty neexistují', invalid_ids: missing });
+      }
+    }
+
+    await db.prepare('DELETE FROM page_products_map WHERE page_id = ?').run(id);
+    for (let i = 0; i < productIds.length; i++) {
+      await db.prepare(
+        'INSERT INTO page_products_map (page_id, product_id, display_order) VALUES (?, ?, ?) ON CONFLICT DO NOTHING'
+      ).run(id, productIds[i], i + 1);
+    }
+    res.json(await getPageProducts(id, false));
+  } catch (err) {
+    console.error('Page products PUT error:', err);
     res.status(500).json({ error: 'Chyba serveru' });
   }
 });
