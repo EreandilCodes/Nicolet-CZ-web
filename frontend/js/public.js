@@ -1495,26 +1495,36 @@ class PublicApp {
       return flatHtml + fallback;
     }
 
-    const cols = roots
+    const chevron = `<svg class="nav-sub-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>`;
+
+    const items = roots
       .map(root => {
         const rHref = `/produkty?kategorie=${encodeURIComponent(root.slug)}`;
         const rootProds = (root.products || []).map(p => this._productMegaLink(p, lang)).join('');
         const kids = (root.children || []).map(k => {
           const kHref = `/produkty?kategorie=${encodeURIComponent(k.slug)}`;
           const kProds = (k.products || []).map(p => this._productMegaLink(p, lang)).join('');
-          return `<div class="nav-mega-group"><a class="nav-mega-sub" href="${esc(kHref)}" data-nav="${esc(kHref)}">${esc(label(k))}</a>${kProds}</div>`;
+          const hasKids = kProds.length > 0;
+          return `<div class="nav-subitem">
+            <a class="nav-sublink${hasKids ? ' nav-sublink--parent' : ''}" href="${esc(kHref)}" data-nav="${esc(kHref)}">${esc(label(k))}${hasKids ? chevron : ''}</a>
+            ${hasKids ? `<div class="nav-subflyout">${kProds}</div>` : ''}
+          </div>`;
         }).join('');
-        return `<div class="nav-mega-col"><a class="nav-mega-head" href="${esc(rHref)}" data-nav="${esc(rHref)}">${esc(label(root))}</a>${rootProds}${kids}</div>`;
+        const hasContent = rootProds.length > 0 || kids.length > 0;
+        return `<div class="nav-subitem">
+          <a class="nav-sublink${hasContent ? ' nav-sublink--parent' : ''}" href="${esc(rHref)}" data-nav="${esc(rHref)}">${esc(label(root))}${hasContent ? chevron : ''}</a>
+          ${hasContent ? `<div class="nav-subflyout">${rootProds}${kids}</div>` : ''}
+        </div>`;
       })
       .join('');
 
-    return flatHtml + (cols ? `<div class="nav-megamenu">${cols}</div>` : '');
+    return flatHtml + `<div class="nav-submenu">${items}</div>`;
   }
 
   _productMegaLink(p, lang) {
     const name = lang === 'en' && p.name_en ? p.name_en : (p.name_cz || '');
     const href = `/produkty/${p.slug}`;
-    return `<a class="nav-mega-prod" href="${esc(href)}" data-nav="${esc(href)}">${esc(name)}</a>`;
+    return `<a class="nav-prod-link" href="${esc(href)}" data-nav="${esc(href)}">${esc(name)}</a>`;
   }
 
   _renderNav() {
@@ -1596,7 +1606,7 @@ class PublicApp {
 
       const hasDropdown = !!dropdownBody;
       const dropdownHtml = hasDropdown
-        ? `<div class="nav-dropdown${mega ? ' nav-dropdown-mega' : ''}">${dropdownBody}</div>`
+        ? `<div class="nav-dropdown${mega ? ' nav-dropdown-products' : ''}">${dropdownBody}</div>`
         : '';
 
       return `<li>

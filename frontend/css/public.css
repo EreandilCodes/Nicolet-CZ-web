@@ -342,40 +342,39 @@ p  { color: var(--text-1); }
 
 .nav-dropdown-wide { min-width: 500px; display: grid; grid-template-columns: repeat(2, 1fr); }
 
-/* ── Products mega menu: top-level category → child category → instruments ──
-   Generated from real content (Admin UI → Categories / Products), so it never
-   forces ~100 instruments into a single hover panel: it is a scrollable grid of
-   category columns, ordered authoritatively. */
-#main-nav > li > .nav-dropdown-mega {
-  left: 50%;
-  min-width: 720px;
-  max-width: min(1100px, calc(100vw - 40px));
-  transform: translateX(-50%) translateY(-6px);
-}
-#main-nav > li:hover > .nav-dropdown-mega,
-#main-nav > li:focus-within > .nav-dropdown-mega {
-  transform: translateX(-50%) translateY(0);
-}
-.nav-megamenu {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 6px 26px;
-  padding: 16px;
-  max-height: min(70vh, 620px);
+/* ── Products: progressive hover reveal ─────────────────────────────────────
+   The structure (main category → subcategory → instrument) is unchanged and is
+   still generated from the real content. Only the presentation is progressive:
+   hovering a main category reveals its subcategories, hovering a subcategory
+   reveals its instruments — instead of one all-at-once mega panel. */
+#main-nav > li > .nav-dropdown-products {
+  min-width: 260px;
+  max-width: min(360px, calc(100vw - 32px));
+  max-height: min(78vh, 640px);
   overflow-y: auto;
 }
-.nav-mega-col { min-width: 0; }
-.nav-megamenu a {
-  display: block;
-  padding: 3px 0 !important;
-  border-bottom: none !important;
-  font-size: 0.8rem;
-  line-height: 1.35;
+.nav-submenu { padding: 4px 0; }
+.nav-subitem { position: relative; }
+.nav-sublink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
-.nav-megamenu a:hover { color: var(--primary) !important; background: transparent !important; }
-.nav-mega-head { font-weight: 700; color: var(--text-0) !important; font-size: 0.84rem !important; border-bottom: 1px solid var(--border) !important; margin-bottom: 6px; padding-bottom: 6px !important; }
-.nav-mega-sub { font-weight: 600; color: var(--text-1) !important; margin-top: 10px; }
-.nav-mega-prod { color: var(--text-2) !important; padding-left: 12px !important; }
+.nav-sub-caret { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.5; transition: transform var(--t); }
+.nav-subitem:hover > .nav-sublink .nav-sub-caret,
+.nav-subitem:focus-within > .nav-sublink .nav-sub-caret { transform: rotate(180deg); }
+.nav-subflyout {
+  display: none;
+  margin: 2px 0 6px 14px;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+.nav-subitem:hover > .nav-subflyout,
+.nav-subitem:focus-within > .nav-subflyout { display: block; }
+.nav-subflyout .nav-sublink,
+.nav-subflyout .nav-prod-link { padding: 7px 14px; border-bottom: none; font-size: 0.8rem; }
+.nav-prod-link { color: var(--text-2) !important; }
 
 .nav-mobile-toggle {
   display: none;
@@ -722,8 +721,10 @@ p  { color: var(--text-1); }
   .nav-dropdown .nav-dropdown { background: var(--bg-2); }
 
   /* Mega menu stacks on phones; the whole mobile nav already scrolls. */
-  #main-nav .nav-dropdown-mega { min-width: 0; max-width: none; }
-  .nav-megamenu { grid-template-columns: 1fr; max-height: none; padding: 8px 0 8px 8px; }
+  /* Progressive reveal is hover-only; on touch / small screens show the whole
+     tree so subcategories and instruments stay reachable. */
+  #main-nav .nav-dropdown-products { min-width: 0; max-width: none; max-height: none; overflow: visible; }
+  .nav-subflyout { display: block; }
 
   .section    { padding: 48px 0; }
   .section-lg { padding: 64px 0; }
