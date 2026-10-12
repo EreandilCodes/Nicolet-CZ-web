@@ -359,7 +359,7 @@ class PublicApp {
   <div class="landing-intro-wrapper">
     <div class="landing-intro-image">
       <picture>
-        <source type="image/webp" srcset="/uploads/NicoLandingPage.webp">
+        <source type="image/webp" srcset="/images/NicoLandingPage.webp">
         <img src="/uploads/NicoLandingPage.png" width="1536" height="1024" alt="Nicolet CZ" decoding="async">
       </picture>
     </div>
