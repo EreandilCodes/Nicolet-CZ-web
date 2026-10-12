@@ -32,4 +32,22 @@ describe('Products menu – progressive hover reveal', () => {
   it('does not use the removed mega-panel classes in CSS', () => {
     expect(css).not.toMatch(/\.nav-megamenu|\.nav-mega-col/);
   });
+
+  it('shows main categories in bold', () => {
+    expect(src).toMatch(/nav-sublink--main/);
+    expect(css).toMatch(/\.nav-sublink--main\s*\{[^}]*font-weight:\s*700/);
+  });
+
+  it('opens subcategories/instruments as separate boards on wide screens', () => {
+    expect(css).toMatch(/@media\s*\(min-width:\s*1200px\)/);
+    // the flyout becomes an absolutely-positioned panel to the right
+    expect(css).toMatch(/@media\s*\(min-width:\s*1200px\)[\s\S]*\.nav-subflyout\s*\{[^}]*position:\s*absolute/);
+    expect(css).toMatch(/@media\s*\(min-width:\s*1200px\)[\s\S]*\.nav-subflyout\s*\{[^}]*left:\s*calc\(100%/);
+  });
+
+  it('falls back to a tap accordion below the board breakpoint', () => {
+    expect(src).toMatch(/_bindNavDisclosure/);
+    expect(src).toMatch(/nav-open/);
+    expect(css).toMatch(/\.nav-subitem\.nav-open\s*>\s*\.nav-subflyout\s*\{[^}]*display:\s*block/);
+  });
 });

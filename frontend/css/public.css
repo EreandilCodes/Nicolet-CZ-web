@@ -342,14 +342,14 @@ p  { color: var(--text-1); }
 
 .nav-dropdown-wide { min-width: 500px; display: grid; grid-template-columns: repeat(2, 1fr); }
 
-/* ── Products: progressive hover reveal ─────────────────────────────────────
-   The structure (main category → subcategory → instrument) is unchanged and is
-   still generated from the real content. Only the presentation is progressive:
-   hovering a main category reveals its subcategories, hovering a subcategory
-   reveals its instruments — instead of one all-at-once mega panel. */
+/* ── Products: progressive reveal ───────────────────────────────────────────
+   Structure (main category → subcategory → instrument) is unchanged and still
+   generated from the real content. Presentation is progressive: on wide screens
+   subcategories and instruments open as separate boards to the right (never one
+   long column); on smaller screens the same tree is an accordion opened by tap. */
 #main-nav > li > .nav-dropdown-products {
-  min-width: 260px;
-  max-width: min(360px, calc(100vw - 32px));
+  min-width: 240px;
+  max-width: 320px;
   max-height: min(78vh, 640px);
   overflow-y: auto;
 }
@@ -361,20 +361,53 @@ p  { color: var(--text-1); }
   justify-content: space-between;
   gap: 10px;
 }
+.nav-sublink--main { font-weight: 700; color: var(--text-0) !important; }
 .nav-sub-caret { width: 12px; height: 12px; flex-shrink: 0; opacity: 0.5; transition: transform var(--t); }
-.nav-subitem:hover > .nav-sublink .nav-sub-caret,
-.nav-subitem:focus-within > .nav-sublink .nav-sub-caret { transform: rotate(180deg); }
+.nav-subitem.nav-open > .nav-sublink .nav-sub-caret { transform: rotate(180deg); }
 .nav-subflyout {
   display: none;
   margin: 2px 0 6px 14px;
   padding-left: 12px;
   border-left: 2px solid var(--border);
 }
-.nav-subitem:hover > .nav-subflyout,
-.nav-subitem:focus-within > .nav-subflyout { display: block; }
+.nav-subitem.nav-open > .nav-subflyout { display: block; }   /* tap accordion (small screens) */
 .nav-subflyout .nav-sublink,
 .nav-subflyout .nav-prod-link { padding: 7px 14px; border-bottom: none; font-size: 0.8rem; }
 .nav-prod-link { color: var(--text-2) !important; }
+
+/* Wide screens: subcategories / instruments open as separate boards to the right
+   so the menu never becomes a single long column. */
+@media (min-width: 1200px) {
+  #main-nav > li > .nav-dropdown-products {
+    min-width: 240px;
+    max-width: 300px;
+    max-height: none;
+    overflow: visible;              /* allow the boards to extend outside */
+  }
+  .nav-subitem:hover > .nav-subflyout,
+  .nav-subitem:focus-within > .nav-subflyout { display: block; }
+  .nav-subitem:hover > .nav-sublink .nav-sub-caret,
+  .nav-subitem:focus-within > .nav-sublink .nav-sub-caret { transform: rotate(180deg); }
+  .nav-subflyout {
+    position: absolute;
+    top: -9px;
+    left: calc(100% - 1px);
+    margin: 0;
+    padding: 8px 0;
+    min-width: 240px;
+    max-width: 320px;
+    max-height: 72vh;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 130;
+  }
+  .nav-subflyout .nav-sublink,
+  .nav-subflyout .nav-prod-link { padding: 8px 18px; border-bottom: 1px solid var(--border); font-size: 0.84rem; }
+  .nav-subflyout .nav-prod-link { font-size: 0.8rem; }
+}
 
 .nav-mobile-toggle {
   display: none;
@@ -721,10 +754,8 @@ p  { color: var(--text-1); }
   .nav-dropdown .nav-dropdown { background: var(--bg-2); }
 
   /* Mega menu stacks on phones; the whole mobile nav already scrolls. */
-  /* Progressive reveal is hover-only; on touch / small screens show the whole
-     tree so subcategories and instruments stay reachable. */
-  #main-nav .nav-dropdown-products { min-width: 0; max-width: none; max-height: none; overflow: visible; }
-  .nav-subflyout { display: block; }
+  /* Small screens: full-width accordion (side boards apply only ≥1200px). */
+  #main-nav .nav-dropdown-products { min-width: 0; max-width: none; max-height: none; }
 
   .section    { padding: 48px 0; }
   .section-lg { padding: 64px 0; }

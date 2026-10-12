@@ -240,6 +240,7 @@ class PublicApp {
     this._bindSearch();
     this._bindFormModalButtons();
     this._bindMobileMenu();
+    this._bindNavDisclosure();
 
     window.addEventListener('popstate', () => this.route());
     document.addEventListener('click', (e) => {
@@ -1512,7 +1513,7 @@ class PublicApp {
         }).join('');
         const hasContent = rootProds.length > 0 || kids.length > 0;
         return `<div class="nav-subitem">
-          <a class="nav-sublink${hasContent ? ' nav-sublink--parent' : ''}" href="${esc(rHref)}" data-nav="${esc(rHref)}">${esc(label(root))}${hasContent ? chevron : ''}</a>
+          <a class="nav-sublink nav-sublink--main${hasContent ? ' nav-sublink--parent' : ''}" href="${esc(rHref)}" data-nav="${esc(rHref)}">${esc(label(root))}${hasContent ? chevron : ''}</a>
           ${hasContent ? `<div class="nav-subflyout">${rootProds}${kids}</div>` : ''}
         </div>`;
       })
@@ -1525,6 +1526,33 @@ class PublicApp {
     const name = lang === 'en' && p.name_en ? p.name_en : (p.name_cz || '');
     const href = `/produkty/${p.slug}`;
     return `<a class="nav-prod-link" href="${esc(href)}" data-nav="${esc(href)}">${esc(name)}</a>`;
+  }
+
+  /**
+   * Touch / small-screen behaviour for the Products menu. The side boards only
+   * open on hover, which touch devices do not have — so a tap opens the branch
+   * (first tap) and a second tap follows the link. On wide screens the boards
+   * open on hover and a click navigates, so this handler bails out there.
+   */
+  _bindNavDisclosure() {
+    const nav = document.getElementById('main-nav');
+    if (!nav || nav.dataset.disclosureBound) return;
+    nav.dataset.disclosureBound = '1';
+
+    nav.addEventListener('click', (e) => {
+      const link = e.target.closest('.nav-sublink--parent');
+      if (!link) return;
+      if (window.matchMedia('(min-width: 1200px)').matches) return; // hover handles it
+      const item = link.closest('.nav-subitem');
+      if (!item || item.classList.contains('nav-open')) return; // already open → navigate
+
+      e.preventDefault();
+      const open = item.parentElement
+        ? item.parentElement.querySelectorAll(':scope > .nav-subitem.nav-open')
+        : [];
+      open.forEach(sib => { if (sib !== item) sib.classList.remove('nav-open'); });
+      item.classList.add('nav-open');
+    });
   }
 
   _renderNav() {
